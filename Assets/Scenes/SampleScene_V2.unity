@@ -6627,7 +6627,6 @@ GameObject:
   - component: {fileID: 330585545}
   - component: {fileID: 330585544}
   - component: {fileID: 330585547}
-  - component: {fileID: 330585548}
   - component: {fileID: 330585549}
   m_Layer: 0
   m_Name: Main Camera
@@ -6754,22 +6753,6 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
---- !u!114 &330585548
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 330585543}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: efe4a0a98f69f844da34158f03d5b6a4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CameraController
-  target: {fileID: 1936740317}
-  cam: {fileID: 330585545}
-  smoothTime: 0
-  offset: {x: 0, y: 8, z: 0}
 --- !u!114 &330585549
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6781,7 +6764,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 33ee601c66384bbfb005cfa6e7c69be8, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CameraControllerV2
+  m_EditorClassIdentifier: Assembly-CSharp::CameraController
   _focalPoint: {fileID: 1936740317}
   _water: {fileID: 1272931870}
   _distanceRange: {x: 16, y: 26}
@@ -8158,7 +8141,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 47702dae07b34b9684cd3f18f7d24474, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GameFlowManagerV2
+  m_EditorClassIdentifier: Assembly-CSharp::GameFlowManager
   _playerController: {fileID: 1936740315}
   _cameraController: {fileID: 330585549}
   _stoneGenerator: {fileID: 747180400}
@@ -8195,7 +8178,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 87196b8a082dd534985b921ddfa37a25, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SkipEffectV2
+  m_EditorClassIdentifier: Assembly-CSharp::SkipEffect
   _player: {fileID: 1936740315}
   _cameraController: {fileID: 330585549}
   _rumble: {fileID: 403970200}
@@ -8223,149 +8206,20 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1b9d4154852788c4a873de10991bd315, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FishSpawnerV2
+  m_EditorClassIdentifier: Assembly-CSharp::FishSpawner
   _player: {fileID: 1936740315}
   _progress: {fileID: 403970199}
   _effect: {fileID: 403970197}
   _water: {fileID: 1272931870}
-  _fishMaterial: {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
-  _fishTypes:
-  - _id: mackerel
-    _displayName: MACKEREL
-    _value: 10
-    _color: {r: 0.32, g: 0.5, b: 0.62, a: 1}
-    _spawnWeight: 0.6
-    _shape: 0
-    _length: 3.2
-    _height: 0.9
-    _thickness: 0.6
-    _tailLength: 0.9
-    _dorsalFin: 0
-    _inflateScale: 0
-    _speedMultiplier: 1.15
-    _spinMultiplier: 0.7
-    _liftMultiplier: 0.75
-    _frictionMultiplier: 0.25
-    _airGravityScale: 1
-  - _id: flyingfish
-    _displayName: FLYING FISH
-    _value: 30
-    _color: {r: 0.45, g: 0.72, b: 0.98, a: 1}
-    _spawnWeight: 0.3
-    _shape: 0
-    _length: 2.8
-    _height: 0.8
-    _thickness: 0.56
-    _tailLength: 0.8
-    _dorsalFin: 0
-    _inflateScale: 0
-    _speedMultiplier: 1
-    _spinMultiplier: 0.9
-    _liftMultiplier: 0.75
-    _frictionMultiplier: 0.25
-    _airGravityScale: 0.5
-  - _id: flounder
-    _displayName: FLOUNDER
-    _value: 80
-    _color: {r: 0.8, g: 0.63, b: 0.38, a: 1}
-    _spawnWeight: 0.1
-    _shape: 0
-    _length: 3
-    _height: 2
-    _thickness: 0.3
-    _tailLength: 0.6
-    _dorsalFin: 0
-    _inflateScale: 0
-    _speedMultiplier: 0.95
-    _spinMultiplier: 1.2
-    _liftMultiplier: 0.875
-    _frictionMultiplier: 0.15
-    _airGravityScale: 1
-  - _id: puffer
-    _displayName: PUFFER
-    _value: 40
-    _color: {r: 0.95, g: 0.8, b: 0.35, a: 1}
-    _spawnWeight: 0.12
-    _shape: 0
-    _length: 2
-    _height: 1.3
-    _thickness: 1
-    _tailLength: 0.5
-    _dorsalFin: 0
-    _inflateScale: 2.2
-    _speedMultiplier: 0.9
-    _spinMultiplier: 1
-    _liftMultiplier: 0.9
-    _frictionMultiplier: 0.3
-    _airGravityScale: 1
-  - _id: crab
-    _displayName: CRAB
-    _value: 60
-    _color: {r: 0.9, g: 0.32, b: 0.18, a: 1}
-    _spawnWeight: 0.1
-    _shape: 1
-    _length: 1.8
-    _height: 2.6
-    _thickness: 0.7
-    _tailLength: 0.9
-    _dorsalFin: 0
-    _inflateScale: 0
-    _speedMultiplier: 0.9
-    _spinMultiplier: 1.1
-    _liftMultiplier: 0.6
-    _frictionMultiplier: 0.2
-    _airGravityScale: 1
-  - _id: babyshark
-    _displayName: BABY SHARK
-    _value: 300
-    _color: {r: 0.5, g: 0.58, b: 0.68, a: 1}
-    _spawnWeight: 0.025
-    _shape: 0
-    _length: 5
-    _height: 1.3
-    _thickness: 1
-    _tailLength: 1.4
-    _dorsalFin: 0.8
-    _inflateScale: 0
-    _speedMultiplier: 0.9
-    _spinMultiplier: 0.7
-    _liftMultiplier: 0.35
-    _frictionMultiplier: 0.12
-    _airGravityScale: 1
-  - _id: tire
-    _displayName: TIRE
-    _value: 5
-    _color: {r: 0.13, g: 0.13, b: 0.14, a: 1}
-    _spawnWeight: 0.12
-    _shape: 2
-    _length: 2.4
-    _height: 2.4
-    _thickness: 0.8
-    _tailLength: 0
-    _dorsalFin: 0
-    _inflateScale: 0
-    _speedMultiplier: 0.85
-    _spinMultiplier: 1.2
-    _liftMultiplier: 0.8
-    _frictionMultiplier: 0.3
-    _airGravityScale: 1
-  - _id: can
-    _displayName: CRUSHED CAN
-    _value: 3
-    _color: {r: 0.82, g: 0.16, b: 0.15, a: 1}
-    _spawnWeight: 0.15
-    _shape: 3
-    _length: 1.8
-    _height: 1
-    _thickness: 0.45
-    _tailLength: 0
-    _dorsalFin: 0
-    _inflateScale: 0
-    _speedMultiplier: 1.1
-    _spinMultiplier: 0.8
-    _liftMultiplier: 1.6
-    _frictionMultiplier: 0.5
-    _airGravityScale: 1
+  _fishPrefabs:
+  - {fileID: 5171124836081562686, guid: 1a074aa25beef1243be45ae817445d3a, type: 3}
+  - {fileID: 1220799323297022026, guid: 988e3a6ad0e696148a880ee859a9242d, type: 3}
+  - {fileID: 1730565639443007212, guid: 3edf9affe1b62d44b8dea3ff80eb4d2d, type: 3}
+  - {fileID: 5447606526837980986, guid: da86862d8881a4f4599a7d827408ab8c, type: 3}
+  - {fileID: 7761537473451584007, guid: 651f73ce97c1a8948babdf8c8af5733d, type: 3}
+  - {fileID: 1491475594710219831, guid: 48b5db1676b3bf94d81260e7a8bffe5e, type: 3}
+  - {fileID: 4486523863033485913, guid: 78bd7ecc0c5edfc4c9746feaeb7f6e62, type: 3}
+  - {fileID: 3341601530354568855, guid: 17298c4baaeb071468981e403e2bf6ba, type: 3}
   _spawnIntervalRange: {x: 0.35, y: 0.9}
   _schoolSizeRange: {x: 1, y: 3}
   _leadTimeRange: {x: 1, y: 2}
@@ -8374,7 +8228,6 @@ MonoBehaviour:
   _crossSpeedRange: {x: 2, y: 5}
   _maxFish: 16
   _minStoneSpeed: 10
-  _hitRadiusBonus: 0.6
   _catchFlashColor: {r: 1, g: 0.85, b: 0.3, a: 0.3}
   _pufferBounce: 10
 --- !u!114 &403970199
@@ -8388,7 +8241,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1ce0fb90ede28bd4595899a60965c430, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerProgressV2
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerProgress
   _upgradeCosts: 3200000078000000fa000000c201000020030000
   _powerPerLevel: 0.08
   _spinPerLevel: 0.2
@@ -8403,7 +8256,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2f2a67a97e7c1bf4ba387a29667854d2, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RumbleV2
+  m_EditorClassIdentifier: Assembly-CSharp::Rumble
   _maxLowFrequency: 0.8
   _maxHighFrequency: 1
 --- !u!1 &404979050
@@ -38339,7 +38192,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2c723a901a2e4a94b0b787ffaa4f190e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerControllerV2
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   _water: {fileID: 1272931870}
   _stone: {fileID: 747180400}
   _throwVelocity: {x: 0, y: 10, z: 50}
