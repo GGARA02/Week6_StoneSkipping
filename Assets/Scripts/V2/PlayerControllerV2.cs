@@ -1,0 +1,813 @@
+using System;
+
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+public enum SkipJudge
+{
+    None,
+    Miss,
+    Good,
+    Perfect,
+}
+
+public enum GameOverReason
+{
+    Sunk,
+    Stopped,
+    HitGround,
+    OutOfBounds,
+}
+
+// 물수제비 돌 물리. 물에 닿으면 아랫면 법선 방향 양력, 표면 마찰, 잠김 저항이 작용한다.
+// 스핀이 클수록 기울기가 유지되고, 접촉 순간 SPACE 타이밍을 맞추면 보너스를 받는다.
+[RequireComponent(typeof(Rigidbody))]
+public class PlayerControllerV2 : MonoBehaviour
+{
+    [Header("참조")]
+    [SerializeField]
+    private GameObject _water;
+    [SerializeField]
+    private StoneMeshGenerator _stone;
+    private InputSystem_Actions _inputActions;
+    private Rigidbody _playerRB;
+    private Transform _stoneTransform;
+    private Matrix4x4 _stoneLocalMatrix = Matrix4x4.identity;
+    private Quaternion _stoneLocalRotation = Quaternion.identity;
+    private float _waterY;
+    private Vector3 _startPosition;
+    private Quaternion _startRotation;
+
+    [Header("던지기")]
+    [SerializeField]
+    private Vector3 _throwVelocity = new Vector3(0f, 10f, 50f);
+    [Tooltip("던질 때 스핀 속도 (rad/s)")]
+    [SerializeField]
+    private float _throwSpin = 30f;
+    [Tooltip("판마다 시작 앞뒤 기울기를 이 범위에서 랜덤으로 정한다(도)")]
+    [SerializeField]
+    private Vector2 _randomPitchRange = new Vector2(0f, 30f);
+    [Tooltip("판마다 시작 좌우 기울기를 ±이 범위에서 랜덤으로 정한다(도)")]
+    [SerializeField]
+    private float _randomRollRange = 25f;
+    [Tooltip("판마다 스핀 세기에 곱하는 랜덤 배율 범위. 방향(시계/반시계)도 랜덤이다")]
+    [SerializeField]
+    private Vector2 _randomSpinRange = new Vector2(0.7f, 1.3f);
+    private bool _isThrown;
+    private int _throwFrame = -1;
+    private float _spinScale = 1f;
+    private Vector3 _velocity;
+    private ThrowModifiersV2 _modifiers = ThrowModifiersV2.ForStone(1f, 1f);
+
+    [Header("조작 (A/D·왼쪽 스틱 커브, 방향키·오른쪽 스틱 자세)")]
+    [Tooltip("커브: 진행 방향이 초당 휘는 각도(도)")]
+    [SerializeField]
+    private float _steerRate = 15f;
+    [Tooltip("커브: 커브 방향으로 돌을 기울이는 각도(도)")]
+    [SerializeField]
+    private float _bankAngle = 12f;
+    [Tooltip("위/아래: 초당 앞뒤 기울기 변화(도). 위를 누르면 앞쪽이 들린다")]
+    [SerializeField]
+    private float _pitchControlRate = 80f;
+    [Tooltip("음수면 앞쪽이 숙여져 물에 박히기 쉽다")]
+    [SerializeField]
+    private Vector2 _pitchLimits = new Vector2(-10f, 55f);
+    [Tooltip("좌/우: 초당 좌우 기울기 변화(도). 누른 쪽이 내려간다")]
+    [SerializeField]
+    private float _rollControlRate = 100f;
+    [SerializeField]
+    private float _rollLimit = 60f;
+    [SerializeField]
+    private float _stickDeadZone = 0.15f;
+    private Vector3 _heading = Vector3.forward;
+    private float _steer;
+    private float _targetPitch;
+    private float _targetRoll;
+
+    [Header("자세 안정 (스핀이 클수록 단단하게 유지)")]
+    [SerializeField]
+    private float _attitudeStiffness = 90f;
+    [SerializeField]
+    private float _attitudeDamping = 15f;
+    [Tooltip("튕길 때 물결에 기운 수면 법선 쪽으로 돌을 비트는 세기 (수직 충돌 속도당 rad/s)")]
+    [SerializeField]
+    private float _impactWobble = 0.6f;
+    [Tooltip("물결 때문에 수면 법선이 기울어 있다고 보는 최대 정도")]
+    [SerializeField]
+    private float _waveNormalTilt = 0.3f;
+    [Tooltip("이 스핀(rad/s) 이상이면 자세 유지력 100%")]
+    [SerializeField]
+    private float _spinForFullStability = 20f;
+    [Range(0f, 1f)]
+    [SerializeField]
+    private float _minStability = 0.2f;
+
+    [Header("수면 반발")]
+    [Tooltip("양력 = 계수 x 속력 x (아랫면이 물을 파고드는 속도) x 잠긴 면적, 아랫면 법선 방향")]
+    [SerializeField]
+    private float _liftCoefficient = 1f;
+    [Tooltip("돌 면을 따라 미끄러질 때의 마찰")]
+    [SerializeField]
+    private float _skinFriction = 0.002f;
+    [Tooltip("돌이 깊이 잠길수록 커지는 저항")]
+    [SerializeField]
+    private float _formDrag = 0.03f;
+    [Tooltip("물에 닿아 있는 동안 속도와 상관없이 더하는 감속(m/s²). 느릴 때 수면을 오래 미끄러지지 않게 한다")]
+    [SerializeField]
+    private float _slideDeceleration = 5f;
+    [Tooltip("양력이 무게중심에서 벗어난 곳에 걸려 생기는 회전 비율. 0이면 돌 모양이 흔들림에 영향 없음")]
+    [Range(0f, 0.2f)]
+    [SerializeField]
+    private float _liftTorqueFactor = 0.03f;
+    [Tooltip("물에 닿아 있는 동안 스핀 감소율 (1/s)")]
+    [SerializeField]
+    private float _spinWaterDamping = 1.5f;
+    [Tooltip("수면 위로 이만큼 떠야 접촉이 끝난 것으로 판정 (떨림 방지)")]
+    [SerializeField]
+    private float _exitClearance = 0.05f;
+    private bool _inContact;
+    private float _bottomHeight = float.PositiveInfinity;
+    private float _topHeight = float.PositiveInfinity;
+    private float _submersion;
+    private float _submergedArea;
+    private Vector3 _submergedCenter;
+    private float _contactStartTime;
+    private float _contactEntrySpeed;
+    public event Action<Vector3, float> OnWaterContact;
+    public event Action<int, SkipJudge> OnSkip;
+
+    [Header("SPACE 타이밍 보너스 (초)")]
+    [SerializeField]
+    private float _perfectWindow = 0.06f;
+    [SerializeField]
+    private float _goodWindow = 0.15f;
+    [Tooltip("PERFECT 시 추가 상승 속도 (GOOD은 절반)")]
+    [SerializeField]
+    private float _bonusLift = 4f;
+    [Tooltip("PERFECT 시 이번 접촉에서 잃은 수평 속도 중 돌려받는 비율 (GOOD은 절반)")]
+    [Range(0f, 1f)]
+    [SerializeField]
+    private float _bonusSpeedRefund = 0.6f;
+    private SkipJudge _contactJudge;
+    private bool _jumpPending;
+    private float _jumpPressTime;
+    private bool _bonusLocked;
+    public event Action<SkipJudge, float> OnJudge;
+
+    [Header("게임오버")]
+    [Tooltip("돌 윗면이 수면 아래로 이만큼 내려가면 가라앉은 것으로 판정")]
+    [SerializeField]
+    private float _sinkDepth = 0.8f;
+    [SerializeField]
+    private float _stopSpeed = 0.5f;
+    [SerializeField]
+    private float _stopTime = 1.5f;
+    [SerializeField]
+    private float _killY = -40f;
+    private bool _isGameOver;
+    private float _stopTimer;
+    public event Action<GameOverReason> OnGameOver;
+    public event Action<float> OnObstacleHit;
+
+    public bool IsThrown => _isThrown;
+    public bool IsGameOver => _isGameOver;
+    public bool InContact => _inContact;
+    public int SkipCount { get; private set; }
+    public float Distance { get; private set; }
+    public float Speed => _velocity.magnitude;
+    public Vector3 Velocity => _velocity;
+    public Vector3 WaterContactPoint => new Vector3(_playerRB.position.x, _waterY, _playerRB.position.z);
+    public float TargetPitch => _targetPitch;
+    public float TargetRoll => _targetRoll;
+    public int StoneSeed => _stone.CurrentSeed;
+    public float ContactElapsed => _inContact ? Time.time - _contactStartTime : 0f;
+    public float CurrentPitch => Mathf.Asin(Mathf.Clamp(-Vector3.Dot(StoneUp(), _heading), -1f, 1f)) * Mathf.Rad2Deg;
+    public float SpinRate => Vector3.Dot(_playerRB.angularVelocity, StoneUp());
+    public float Stability => Mathf.Lerp(_minStability, 1f, Mathf.Clamp01(Mathf.Abs(SpinRate) / Mathf.Max(_spinForFullStability, 0.01f)));
+
+    // 이번 착수에서 아직 SPACE 판정을 받을 수 있는지 (접촉 후 GOOD 범위까지)
+    public bool CanJudge => _isThrown && !_isGameOver && !_bonusLocked && _contactJudge == SkipJudge.None
+        && (!_inContact || ContactElapsed <= _goodWindow);
+
+    // 지금 누르면 GOOD 이상을 받는 구간인지
+    public bool IsInJudgeWindow => CanJudge && (_inContact || TimeToWaterImpact <= _goodWindow);
+
+    // 지금 궤적대로 갈 때 수면에 닿기까지 남은 시간(초). 닿아 있으면 0
+    public float TimeToWaterImpact
+    {
+        get
+        {
+            if (!_isThrown || _isGameOver) return float.PositiveInfinity;
+            if (_inContact || _bottomHeight <= 0f) return 0f;
+            float gravity = -Physics.gravity.y * _modifiers.AirGravityScale;
+            float up = _velocity.y;
+            return (up + Mathf.Sqrt(up * up + 2f * gravity * _bottomHeight)) / gravity;
+        }
+    }
+
+    void Update()
+    {
+        // 던지기 전에는 방향키로 자세를 맞추고, 떠 있는 돌에 바로 보여준다.
+        if (!_isThrown)
+        {
+            ReadAttitudeInput(Time.deltaTime);
+            ApplyAimPose();
+            return;
+        }
+        // 던지는 데 쓴 SPACE 입력을 첫 타이밍 입력으로 세지 않는다.
+        if (_isGameOver || Time.frameCount == _throwFrame) return;
+
+        if (_inputActions.Player.Jump.WasPressedThisFrame())
+        {
+            // 공중에서 연타하면 이번 접촉의 보너스는 잠긴다.
+            if (_jumpPending && !_inContact)
+            {
+                _bonusLocked = true;
+            }
+            _jumpPending = true;
+            _jumpPressTime = Time.time;
+        }
+    }
+
+    void FixedUpdate()
+    {
+        if (!_isThrown) return;
+
+        float dt = Time.fixedDeltaTime;
+        _velocity = _playerRB.linearVelocity;
+
+        if (_isGameOver)
+        {
+            _steer = 0f;
+        }
+        else
+        {
+            ReadControls(dt);
+        }
+
+        SampleWater();
+        if (!_isGameOver)
+        {
+            UpdateContact();
+        }
+        if (_submersion > 0f)
+        {
+            ApplyWaterForces(dt);
+        }
+        else
+        {
+            // 공중 중력 배율이 1보다 작으면 중력 일부를 상쇄해 활공한다.
+            _velocity -= Physics.gravity * ((1f - _modifiers.AirGravityScale) * dt);
+        }
+        ApplySteering(dt);
+        _playerRB.linearVelocity = _velocity;
+        ApplyAttitude();
+
+        if (!_isGameOver)
+        {
+            UpdateDistance();
+            CheckGameOver(dt);
+        }
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        if (!_isThrown) return;
+
+        OnObstacleHit?.Invoke(collision.relativeVelocity.magnitude);
+        if (collision.gameObject.CompareTag("Finish"))
+        {
+            GameOver(GameOverReason.HitGround);
+        }
+    }
+
+    void OnDestroy()
+    {
+        _stone.OnGenerated -= HandleStoneGenerated;
+    }
+
+    /// <summary>
+    /// 입력과 물, 돌 메시 참조를 준비하고 시작 위치를 기록한 뒤 던지기 전 상태로 되돌린다.
+    /// input을 사용하며, 물 높이와 시작 포즈, 돌 로컬 변환을 저장한다.
+    /// </summary>
+    public void Initialize(InputSystem_Actions input)
+    {
+        _inputActions = input;
+        _playerRB = GetComponent<Rigidbody>();
+        _stoneTransform = _stone.transform;
+        _stoneLocalMatrix = transform.worldToLocalMatrix * _stoneTransform.localToWorldMatrix;
+        _stoneLocalRotation = Quaternion.Inverse(transform.rotation) * _stoneTransform.rotation;
+        _waterY = _water.GetComponent<Collider>().bounds.max.y;
+        _playerRB.maxAngularVelocity = Mathf.Max(_playerRB.maxAngularVelocity, _throwSpin * 2f);
+        _startPosition = transform.position;
+        _startRotation = transform.rotation;
+
+        _stone.OnGenerated += HandleStoneGenerated;
+        HandleStoneGenerated();
+        ResetToStart();
+    }
+
+    /// <summary>
+    /// 돌을 시작 위치에 멈춘 상태로 되돌리고 판정, 기록, 접촉 상태를 초기화한 뒤 시작 자세와 스핀을 랜덤으로 정한다.
+    /// 시작 포즈와 랜덤 범위를 사용하며, Rigidbody 속도와 위치, 목표 자세, 스핀 배율, SkipCount, Distance를 변경한다.
+    /// </summary>
+    public void ResetToStart()
+    {
+        _isThrown = false;
+        _isGameOver = false;
+        _inContact = false;
+        _jumpPending = false;
+        _bonusLocked = false;
+        _contactJudge = SkipJudge.None;
+        _stopTimer = 0f;
+        _steer = 0f;
+        SkipCount = 0;
+        Distance = 0f;
+        _bottomHeight = float.PositiveInfinity;
+        _topHeight = float.PositiveInfinity;
+        _submersion = 0f;
+        _submergedArea = 0f;
+        _velocity = Vector3.zero;
+        _heading = ThrowHeading();
+
+        _targetPitch = UnityEngine.Random.Range(_randomPitchRange.x, _randomPitchRange.y);
+        _targetRoll = UnityEngine.Random.Range(-_randomRollRange, _randomRollRange);
+        float spinSign = UnityEngine.Random.value < 0.5f ? -1f : 1f;
+        _spinScale = spinSign * UnityEngine.Random.Range(_randomSpinRange.x, _randomSpinRange.y);
+
+        _playerRB.useGravity = false;
+        _playerRB.linearVelocity = Vector3.zero;
+        _playerRB.angularVelocity = Vector3.zero;
+        _playerRB.position = _startPosition;
+        _playerRB.rotation = _startRotation;
+        transform.SetPositionAndRotation(_startPosition, _startRotation);
+    }
+
+    /// <summary>
+    /// 맞춘 자세와 랜덤 스핀을 주고 돌(또는 물고기)을 던진다.
+    /// modifiers와 _throwVelocity, 목표 자세, _throwSpin, _spinScale을 사용하며, Rigidbody 속도와 회전, _isThrown을 변경한다.
+    /// </summary>
+    public void Throw(ThrowModifiersV2 modifiers)
+    {
+        if (_isThrown) return;
+
+        _modifiers = modifiers;
+        float spin = _throwSpin * modifiers.SpinMultiplier * _spinScale;
+        _playerRB.maxAngularVelocity = Mathf.Max(_playerRB.maxAngularVelocity, Mathf.Abs(spin) * 2f);
+        Vector3 velocity = _startRotation * _throwVelocity * modifiers.SpeedMultiplier;
+        _heading = ThrowHeading();
+
+        Quaternion stoneRotation = AttitudeRotation(0f);
+        Quaternion rotation = stoneRotation * Quaternion.Inverse(_stoneLocalRotation);
+        _playerRB.rotation = rotation;
+        transform.rotation = rotation;
+
+        _playerRB.useGravity = true;
+        _playerRB.linearVelocity = velocity;
+        _playerRB.angularVelocity = (stoneRotation * Vector3.up) * spin;
+        _velocity = velocity;
+        _isThrown = true;
+        _throwFrame = Time.frameCount;
+    }
+
+    /// <summary>
+    /// 돌을 위로 튕겨 올린다. 부푼 복어에 닿았을 때 쓴다.
+    /// upSpeed를 사용하며, Rigidbody 속도를 변경한다.
+    /// </summary>
+    public void AddBounce(float upSpeed)
+    {
+        _playerRB.linearVelocity += Vector3.up * upSpeed;
+    }
+
+    /// <summary>
+    /// 비행 중 커브 방향과 목표 자세를 갱신한다. 커브는 A/D 또는 왼쪽 스틱과 트리거로 받는다.
+    /// dt와 키보드, 게임패드 입력을 사용하며, _steer, _targetPitch, _targetRoll을 변경한다.
+    /// </summary>
+    private void ReadControls(float dt)
+    {
+        // Move 액션은 WASD와 방향키가 묶여 있어서, 커브는 A/D 키만 직접 읽는다.
+        float steer = 0f;
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard != null)
+        {
+            steer += (keyboard.dKey.isPressed ? 1f : 0f) - (keyboard.aKey.isPressed ? 1f : 0f);
+        }
+        Gamepad gamepad = Gamepad.current;
+        if (gamepad != null)
+        {
+            steer += ApplyDeadZone(gamepad.leftStick.ReadValue()).x + gamepad.rightTrigger.ReadValue() - gamepad.leftTrigger.ReadValue();
+        }
+        _steer = Mathf.Clamp(steer, -1f, 1f);
+        ReadAttitudeInput(dt);
+    }
+
+    /// <summary>
+    /// 방향키와 오른쪽 스틱으로 목표 자세를 바꾼다. 위/아래는 앞뒤 기울기, 좌/우는 좌우 기울기다.
+    /// dt와 키보드, 게임패드 입력을 사용하며, _targetPitch와 _targetRoll을 변경한다.
+    /// </summary>
+    private void ReadAttitudeInput(float dt)
+    {
+        Vector2 input = Vector2.zero;
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard != null)
+        {
+            input.y += (keyboard.upArrowKey.isPressed ? 1f : 0f) - (keyboard.downArrowKey.isPressed ? 1f : 0f);
+            input.x += (keyboard.rightArrowKey.isPressed ? 1f : 0f) - (keyboard.leftArrowKey.isPressed ? 1f : 0f);
+        }
+        Gamepad gamepad = Gamepad.current;
+        if (gamepad != null)
+        {
+            input += ApplyDeadZone(gamepad.rightStick.ReadValue());
+        }
+        input = Vector2.ClampMagnitude(input, 1f);
+
+        _targetPitch = Mathf.Clamp(_targetPitch + input.y * _pitchControlRate * dt, _pitchLimits.x, _pitchLimits.y);
+        _targetRoll = Mathf.Clamp(_targetRoll + input.x * _rollControlRate * dt, -_rollLimit, _rollLimit);
+    }
+
+    /// <summary>
+    /// 스틱이 살짝 기울어진 정도는 무시하고 나머지를 0~1로 다시 늘린다.
+    /// stick과 _stickDeadZone을 사용하며, 보정된 스틱 값을 반환한다.
+    /// </summary>
+    private Vector2 ApplyDeadZone(Vector2 stick)
+    {
+        float magnitude = stick.magnitude;
+        if (magnitude <= _stickDeadZone) return Vector2.zero;
+        return stick / magnitude * ((magnitude - _stickDeadZone) / (1f - _stickDeadZone));
+    }
+    /// <summary>
+    /// 던지기 전 떠 있는 돌을 방향키로 맞춘 자세로 돌려 보여준다.
+    /// 목표 자세와 진행 방향을 사용하며, Rigidbody와 transform 회전을 변경한다.
+    /// </summary>
+    private void ApplyAimPose()
+    {
+        Quaternion rotation = AttitudeRotation(0f) * Quaternion.Inverse(_stoneLocalRotation);
+        _playerRB.rotation = rotation;
+        transform.rotation = rotation;
+    }
+
+    /// <summary>
+    /// 진행 방향 기준 목표 자세(앞뒤 기울기, 좌우 기울기)를 회전으로 만든다.
+    /// extraRoll(커브로 더 기울이는 각도)과 _heading, _targetPitch, _targetRoll을 사용하며, 돌의 목표 회전을 반환한다.
+    /// </summary>
+    private Quaternion AttitudeRotation(float extraRoll)
+    {
+        // 좌우 기울기가 양수면 오른쪽이 내려간다.
+        return Quaternion.LookRotation(_heading, Vector3.up) * Quaternion.Euler(-_targetPitch, 0f, -(_targetRoll + extraRoll));
+    }
+
+    /// <summary>
+    /// 물리 포즈 기준으로 돌의 최저/최고 높이와 물에 잠긴 아랫면 면적, 그 중심을 계산한다.
+    /// 돌 외형 점과 아랫면 샘플점을 사용하며, _bottomHeight, _topHeight, _submersion, _submergedArea, _submergedCenter를 변경한다.
+    /// </summary>
+    private void SampleWater()
+    {
+        // 보간된 transform 대신 물리 포즈를 써야 접촉 판정이 한 스텝 늦지 않는다.
+        Matrix4x4 toWorld = Matrix4x4.TRS(_playerRB.position, _playerRB.rotation, Vector3.one) * _stoneLocalMatrix;
+
+        float minY = float.PositiveInfinity;
+        float maxY = float.NegativeInfinity;
+        Vector3[] hull = _stone.HullPoints;
+        for (int i = 0; i < hull.Length; i++)
+        {
+            float y = toWorld.MultiplyPoint3x4(hull[i]).y;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+        }
+        _bottomHeight = minY - _waterY;
+        _topHeight = maxY - _waterY;
+        _submersion = Mathf.Clamp01((_waterY - minY) / Mathf.Max(maxY - minY, 0.01f));
+
+        _submergedArea = 0f;
+        Vector3 center = Vector3.zero;
+        Vector3[] samples = _stone.BottomSamples;
+        float[] areas = _stone.SampleAreas;
+        for (int i = 0; i < samples.Length; i++)
+        {
+            Vector3 point = toWorld.MultiplyPoint3x4(samples[i]);
+            if (point.y < _waterY)
+            {
+                _submergedArea += areas[i];
+                center += point * areas[i];
+            }
+        }
+        _submergedCenter = _submergedArea > 0f ? center / _submergedArea : _playerRB.worldCenterOfMass;
+    }
+
+    /// <summary>
+    /// 접촉 시작과 끝을 판정하고, 대기 중인 SPACE 입력을 판정하거나 만료시킨다.
+    /// _bottomHeight와 SPACE 입력 시각을 사용하며, 접촉 상태와 _jumpPending, _bonusLocked를 변경한다.
+    /// </summary>
+    private void UpdateContact()
+    {
+        if (!_inContact && _bottomHeight < 0f)
+        {
+            BeginContact();
+        }
+        else if (_inContact && _bottomHeight > _exitClearance)
+        {
+            EndContact();
+        }
+
+        if (!_jumpPending) return;
+
+        if (_inContact)
+        {
+            if (_contactJudge == SkipJudge.None && !_bonusLocked)
+            {
+                Judge(_jumpPressTime - _contactStartTime);
+            }
+            else
+            {
+                _jumpPending = false;
+            }
+        }
+        else if (Time.time - _jumpPressTime > _goodWindow)
+        {
+            // 너무 일찍 눌렀다.
+            _jumpPending = false;
+            _bonusLocked = true;
+            OnJudge?.Invoke(SkipJudge.Miss, float.NegativeInfinity);
+        }
+    }
+
+    /// <summary>
+    /// 물에 닿기 시작한 순간의 시각과 수평 속도를 기록하고 착수 이벤트를 보낸다.
+    /// _velocity와 돌 위치를 사용하며, _inContact, _contactStartTime, _contactEntrySpeed, _contactJudge를 변경한다.
+    /// </summary>
+    private void BeginContact()
+    {
+        _inContact = true;
+        _contactStartTime = Time.time;
+        _contactEntrySpeed = Horizontal(_velocity).magnitude;
+        _contactJudge = SkipJudge.None;
+        KickOnImpact();
+        OnWaterContact?.Invoke(WaterContactPoint, _velocity.magnitude);
+    }
+
+    /// <summary>
+    /// 착수 순간 물결에 살짝 기운 수면에 부딪힌 것처럼 돌을 비튼다. 돌 윗면이 그 수면 법선 쪽으로 꺾이고 스핀도 조금 흔들린다.
+    /// 수직 충돌 속도, _impactWobble, _waveNormalTilt를 사용하며, Rigidbody 각속도를 변경한다.
+    /// </summary>
+    private void KickOnImpact()
+    {
+        float impact = Mathf.Max(0f, -_velocity.y);
+        Vector2 waveTilt = UnityEngine.Random.insideUnitCircle * _waveNormalTilt;
+        Vector3 waterNormal = new Vector3(waveTilt.x, 1f, waveTilt.y).normalized;
+        Vector3 up = StoneUp();
+        if (up.y < 0f) up = -up;
+
+        // 윗면을 수면 법선 쪽으로 돌리는 축이다. 기울기 차이가 클수록, 세게 부딪힐수록 크게 꺾인다.
+        Vector3 kick = Vector3.Cross(up, waterNormal) * (impact * _impactWobble);
+        float spinShake = UnityEngine.Random.Range(-0.15f, 0.15f) * Vector3.Dot(_playerRB.angularVelocity, up);
+        _playerRB.angularVelocity += kick + up * spinShake;
+    }
+
+    /// <summary>
+    /// 물에서 벗어난 순간 튕김으로 세고, 판정 보너스가 있으면 잃은 수평 속도 일부를 돌려준다.
+    /// _contactJudge와 _contactEntrySpeed를 사용하며, _velocity, SkipCount, 접촉 상태를 변경한다.
+    /// </summary>
+    private void EndContact()
+    {
+        _inContact = false;
+        _bonusLocked = false;
+
+        if (_velocity.y > 0f)
+        {
+            float quality = JudgeQuality(_contactJudge);
+            if (quality > 0f)
+            {
+                float lost = _contactEntrySpeed - Horizontal(_velocity).magnitude;
+                if (lost > 0f)
+                {
+                    _velocity += _heading * (lost * _bonusSpeedRefund * quality);
+                }
+            }
+            SkipCount++;
+            OnSkip?.Invoke(SkipCount, _contactJudge);
+        }
+        _contactJudge = SkipJudge.None;
+    }
+
+    /// <summary>
+    /// 착수 시각과 SPACE 입력 시각의 차이로 판정하고, 성공하면 상승 속도와 스핀을 보충한다.
+    /// timingError(초, 빠르면 음수)를 사용하며, _contactJudge, _velocity, Rigidbody 각속도를 변경하고 OnJudge로 오차를 보낸다.
+    /// </summary>
+    private void Judge(float timingError)
+    {
+        _jumpPending = false;
+        float error = Mathf.Abs(timingError);
+        if (error <= _perfectWindow) _contactJudge = SkipJudge.Perfect;
+        else if (error <= _goodWindow) _contactJudge = SkipJudge.Good;
+        else _contactJudge = SkipJudge.Miss;
+
+        float quality = JudgeQuality(_contactJudge);
+        if (quality > 0f)
+        {
+            _velocity += Vector3.up * (_bonusLift * quality);
+
+            // 스핀을 다시 살려 자세를 잡아준다.
+            Vector3 up = StoneUp();
+            Vector3 angular = _playerRB.angularVelocity;
+            float spin = Vector3.Dot(angular, up);
+            float sign = spin < 0f ? -1f : 1f;
+            float throwSpin = _throwSpin * _modifiers.SpinMultiplier;
+            float restored = Mathf.Max(Mathf.Abs(spin), Mathf.Lerp(Mathf.Abs(spin), throwSpin, quality)) * sign;
+            _playerRB.angularVelocity = angular + up * (restored - spin);
+        }
+        OnJudge?.Invoke(_contactJudge, timingError);
+    }
+
+    /// <summary>
+    /// 물에 잠긴 정도에 따라 양력, 표면 마찰, 잠김 저항을 속도에 반영하고 스핀을 줄인다.
+    /// dt와 SampleWater 결과를 사용하며, _velocity와 Rigidbody 각속도를 변경한다.
+    /// </summary>
+    private void ApplyWaterForces(float dt)
+    {
+        float speed = _velocity.magnitude;
+        if (speed < 0.0001f) return;
+
+        Vector3 up = StoneUp();
+        Vector3 normal = up.y >= 0f ? up : -up;
+
+        // 한 스텝에 파고드는 속도 이상은 밀지 않는다. 그래서 돌은 자기 기울기만큼의 각도로 튀어 나간다.
+        float intoWater = -Vector3.Dot(_velocity, normal);
+        if (intoWater > 0f && _submergedArea > 0f)
+        {
+            float lift = Mathf.Min(_liftCoefficient * _modifiers.LiftMultiplier * speed * intoWater * _submergedArea * dt, intoWater);
+            _velocity += normal * lift;
+            Vector3 arm = _submergedCenter - _playerRB.worldCenterOfMass;
+            _playerRB.AddTorque(Vector3.Cross(arm, normal * (lift * _playerRB.mass)) * _liftTorqueFactor, ForceMode.Impulse);
+        }
+
+        if (_submergedArea > 0f)
+        {
+            Vector3 along = _velocity - Vector3.Dot(_velocity, normal) * normal;
+            float alongSpeed = along.magnitude;
+            if (alongSpeed > 0.0001f)
+            {
+                // 속도 제곱 마찰은 느릴 때 거의 사라지므로 일정한 미끄럼 감속을 더한다.
+                float friction = _skinFriction * _modifiers.FrictionMultiplier * speed * alongSpeed * _submergedArea * dt
+                    + _slideDeceleration * dt;
+                friction = Mathf.Min(friction, alongSpeed);
+                _velocity -= along / alongSpeed * friction;
+            }
+        }
+
+        float newSpeed = _velocity.magnitude;
+        if (newSpeed > 0.0001f)
+        {
+            float drag = Mathf.Min(_formDrag * newSpeed * newSpeed * _submersion * _submersion * dt, newSpeed);
+            _velocity -= _velocity / newSpeed * drag;
+        }
+
+        float areaRatio = _submergedArea / _stone.TotalBottomArea;
+        Vector3 angular = _playerRB.angularVelocity;
+        float spin = Vector3.Dot(angular, up);
+        float damped = spin * Mathf.Exp(-_spinWaterDamping * areaRatio * dt);
+        _playerRB.angularVelocity = angular + up * (damped - spin);
+    }
+
+    /// <summary>
+    /// A/D 입력만큼 수평 진행 방향을 휘게 하고 현재 진행 방향을 갱신한다.
+    /// dt와 _steer를 사용하며, _velocity의 수평 성분과 _heading을 변경한다.
+    /// </summary>
+    private void ApplySteering(float dt)
+    {
+        Vector3 horizontal = Horizontal(_velocity);
+        if (horizontal.sqrMagnitude < 0.01f) return;
+
+        if (Mathf.Abs(_steer) > 0.01f)
+        {
+            Vector3 turned = Quaternion.AngleAxis(_steer * _steerRate * dt, Vector3.up) * horizontal;
+            _velocity.x = turned.x;
+            _velocity.z = turned.z;
+            horizontal = turned;
+        }
+        _heading = horizontal.normalized;
+    }
+
+    /// <summary>
+    /// 진행 방향 기준 목표 자세(받음각, 커브 기울기)로 돌 윗면을 끌어당기는 토크를 준다.
+    /// _targetPitch, _steer, Stability를 사용하며, Rigidbody에 토크를 더한다.
+    /// </summary>
+    private void ApplyAttitude()
+    {
+        Vector3 up = StoneUp();
+        Vector3 targetUp = AttitudeRotation(_steer * _bankAngle) * Vector3.up;
+
+        Vector3 axis = Vector3.Cross(up, targetUp);
+        float axisLength = axis.magnitude;
+        Vector3 error = axisLength > 0.0001f
+            ? axis / axisLength * (Vector3.Angle(up, targetUp) * Mathf.Deg2Rad)
+            : Vector3.zero;
+
+        // 스핀 축 회전은 그대로 두고, 축이 기우는 흔들림만 잡는다.
+        Vector3 angular = _playerRB.angularVelocity;
+        Vector3 wobble = angular - Vector3.Dot(angular, up) * up;
+        Vector3 correction = (error * _attitudeStiffness - wobble * _attitudeDamping) * Stability;
+        _playerRB.AddTorque(correction, ForceMode.Acceleration);
+    }
+
+    /// <summary>
+    /// 시작 위치에서 가장 멀리 간 수평 거리를 갱신한다.
+    /// Rigidbody 위치를 사용하며, Distance를 변경한다.
+    /// </summary>
+    private void UpdateDistance()
+    {
+        Vector3 offset = Horizontal(_playerRB.position - _startPosition);
+        Distance = Mathf.Max(Distance, offset.magnitude);
+    }
+
+    /// <summary>
+    /// 가라앉음, 맵 이탈, 정지 조건을 검사해 게임오버를 발생시킨다.
+    /// dt, _topHeight, 위치, 속도를 사용하며, _stopTimer를 변경한다.
+    /// </summary>
+    private void CheckGameOver(float dt)
+    {
+        if (_topHeight < -_sinkDepth)
+        {
+            GameOver(GameOverReason.Sunk);
+            return;
+        }
+        if (_playerRB.position.y < _killY)
+        {
+            GameOver(GameOverReason.OutOfBounds);
+            return;
+        }
+
+        if (_velocity.magnitude < _stopSpeed)
+        {
+            _stopTimer += dt;
+            if (_stopTimer >= _stopTime)
+            {
+                GameOver(GameOverReason.Stopped);
+            }
+        }
+        else
+        {
+            _stopTimer = 0f;
+        }
+    }
+
+    /// <summary>
+    /// 한 번만 게임오버 상태로 바꾸고 이유와 함께 이벤트를 보낸다.
+    /// reason을 사용하며, _isGameOver와 _jumpPending을 변경한다.
+    /// </summary>
+    private void GameOver(GameOverReason reason)
+    {
+        if (_isGameOver) return;
+        _isGameOver = true;
+        _jumpPending = false;
+        OnGameOver?.Invoke(reason);
+    }
+
+    /// <summary>
+    /// 돌 모양이 바뀌면 무게중심과 관성을 새 모양 기준으로 다시 계산한다.
+    /// 입력값은 없으며, Rigidbody 질량 특성을 변경한다.
+    /// </summary>
+    private void HandleStoneGenerated()
+    {
+        _playerRB.ResetCenterOfMass();
+        _playerRB.ResetInertiaTensor();
+    }
+
+    /// <summary>
+    /// 시작 회전 기준 던지기 속도의 수평 방향을 구한다.
+    /// _startRotation과 _throwVelocity를 사용하며, 정규화된 수평 방향을 반환한다.
+    /// </summary>
+    private Vector3 ThrowHeading()
+    {
+        Vector3 horizontal = Horizontal(_startRotation * _throwVelocity);
+        return horizontal.sqrMagnitude > 0.0001f ? horizontal.normalized : Vector3.forward;
+    }
+
+    /// <summary>
+    /// 물리 포즈 기준 돌 윗면 방향을 구한다.
+    /// Rigidbody 회전과 돌 로컬 회전을 사용하며, 월드 방향 벡터를 반환한다.
+    /// </summary>
+    private Vector3 StoneUp()
+    {
+        return _playerRB.rotation * _stoneLocalRotation * Vector3.up;
+    }
+
+    /// <summary>
+    /// 판정을 보너스 배율로 바꾼다.
+    /// judge를 사용하며, PERFECT 1, GOOD 0.5, 그 외 0을 반환한다.
+    /// </summary>
+    private static float JudgeQuality(SkipJudge judge)
+    {
+        if (judge == SkipJudge.Perfect) return 1f;
+        if (judge == SkipJudge.Good) return 0.5f;
+        return 0f;
+    }
+
+    /// <summary>
+    /// 벡터에서 수직 성분을 제거한다.
+    /// v를 사용하며, y가 0인 벡터를 반환한다.
+    /// </summary>
+    private static Vector3 Horizontal(Vector3 v)
+    {
+        return new Vector3(v.x, 0f, v.z);
+    }
+}
