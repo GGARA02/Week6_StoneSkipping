@@ -84,6 +84,7 @@ public class GameFlowManager : MonoBehaviour
         _playerController.Initialize(_inputActions);
         _playerController.OnSkip += HandleSkip;
         _playerController.OnJudge += HandleJudge;
+        _playerController.OnSlidePush += HandleSlidePush;
         _playerController.OnGameOver += HandleGameOver;
         _playerController.OnWaterContact += HandleWaterContact;
         _fishSpawner.OnFishCaught += HandleFishCaught;
@@ -98,6 +99,7 @@ public class GameFlowManager : MonoBehaviour
     {
         _playerController.OnSkip -= HandleSkip;
         _playerController.OnJudge -= HandleJudge;
+        _playerController.OnSlidePush -= HandleSlidePush;
         _playerController.OnGameOver -= HandleGameOver;
         _playerController.OnWaterContact -= HandleWaterContact;
         _fishSpawner.OnFishCaught -= HandleFishCaught;
@@ -313,21 +315,7 @@ public class GameFlowManager : MonoBehaviour
     {
         if (judge == SkipJudge.Perfect || judge == SkipJudge.Good)
         {
-            BallController ballController = _stoneGenerator.GetComponentInChildren<BallController>();
-            if (ballController != null)
-            {
-                ballController.PlayAttackSequence();
-            }
-            HopakJumpAnimation hopakAnimation = _stoneGenerator.GetComponentInChildren<HopakJumpAnimation>();
-            if (hopakAnimation != null)
-            {
-                hopakAnimation.PlayJumpSegment();
-            }
-            AlkagiLaser laser = _stoneGenerator.GetComponentInChildren<AlkagiLaser>();
-            if (laser != null)
-            {
-                laser.Fire();
-            }
+            PlayFishInteraction();
         }
 
         string direction = timingError < 0f ? "EARLY" : "LATE";
@@ -345,6 +333,44 @@ public class GameFlowManager : MonoBehaviour
                 _missCount++;
                 ShowPopup($"MISS  TOO {direction}", JudgeColor(judge));
                 break;
+        }
+    }
+
+    /// <summary>
+    /// 미끄러지는 동안 SPACE를 누를 때 선택한 물고기의 성공 동작과 프리팹 연출을 실행한다.
+    /// 현재 플레이어와 물고기를 사용하며, 판정 기록과 팝업을 변경하지 않고 특수 동작 상태만 변경한다.
+    /// </summary>
+    private void HandleSlidePush()
+    {
+        FishAbility ability = _stoneGenerator.CurrentAbility;
+        if (ability != null)
+        {
+            ThrowContext context = new ThrowContext(_playerController, _stoneGenerator, _stoneGenerator.FishBody);
+            ability.OnJudgeSuccess(context, SkipJudge.Good);
+        }
+        PlayFishInteraction();
+    }
+
+    /// <summary>
+    /// 선택한 물고기의 공격, 발 교대 또는 레이저 연출을 실행한다.
+    /// 현재 던질 거리의 자식 컴포넌트를 사용하며, 각 프리팹의 애니메이션과 레이저 표시 상태를 변경한다.
+    /// </summary>
+    private void PlayFishInteraction()
+    {
+        BallController ballController = _stoneGenerator.GetComponentInChildren<BallController>();
+        if (ballController != null)
+        {
+            ballController.PlayAttackSequence();
+        }
+        HopakJumpAnimation hopakAnimation = _stoneGenerator.GetComponentInChildren<HopakJumpAnimation>();
+        if (hopakAnimation != null)
+        {
+            hopakAnimation.PlayJumpSegment();
+        }
+        AlkagiLaser laser = _stoneGenerator.GetComponentInChildren<AlkagiLaser>();
+        if (laser != null)
+        {
+            laser.Fire();
         }
     }
 

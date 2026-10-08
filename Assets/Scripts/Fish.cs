@@ -42,7 +42,7 @@ public class Fish : MonoBehaviour
             if (_delay > 0f) return;
 
             _jumped = true;
-            foreach (Renderer renderer in _body.GetComponentsInChildren<Renderer>())
+            foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
             {
                 renderer.enabled = true;
             }
@@ -83,7 +83,7 @@ public class Fish : MonoBehaviour
         _waterY = waterY;
         _gravity = -Physics.gravity.y;
         transform.position = start;
-        foreach (Renderer renderer in _body.GetComponentsInChildren<Renderer>())
+        foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
         {
             renderer.enabled = false;
         }
