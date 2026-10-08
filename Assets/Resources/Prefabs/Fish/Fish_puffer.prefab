@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 9125474704674369440}
   - component: {fileID: 4281916812728594999}
   - component: {fileID: 5447606526837980986}
+  - component: {fileID: 3817264950182736451}
   m_Layer: 0
   m_Name: Fish_puffer
   m_TagString: Untagged
@@ -107,14 +108,28 @@ MonoBehaviour:
     _thickness: 1
     _tailLength: 0.5
     _dorsalFin: 0
-    _inflateScale: 2.2
     _speedMultiplier: 0.9
     _spinMultiplier: 1
     _liftMultiplier: 0.9
     _frictionMultiplier: 0.3
     _airGravityScale: 1
   _body: {fileID: 7070125815422434734}
-  _bodyRenderer: {fileID: 335217239988722874}
+  _renderers:
+  - {fileID: 335217239988722874}
+--- !u!114 &3817264950182736451
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6601705473398351750}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c3f1a9e5b2d4f6e8a0c1d3e5f7a9b2c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PufferAbility
+  _inflateScale: 2.2
+  _inflatedGravityScale: 0.3
 --- !u!1 &6671979776909514670
 GameObject:
   m_ObjectHideFlags: 0

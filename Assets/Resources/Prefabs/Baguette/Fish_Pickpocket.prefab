@@ -31,7 +31,7 @@ Transform:
   m_LocalScale: {x: 0.17000003, y: 0.30000004, z: 0.17}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5869521774108837294}
+  m_Father: {fileID: 5407370577398133741}
   m_LocalEulerAnglesHint: {x: -23.452, y: 15.748, z: -56.66}
 --- !u!33 &4062728731614884454
 MeshFilter:
@@ -118,10 +118,10 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0.19019613, y: -0.09900986, z: 0.4510087, w: 0.8663796}
   m_LocalPosition: {x: -0.1269989, y: 0.681, z: 0.43899918}
-  m_LocalScale: {x: 0.17000003, y: 0.3, z: 0.16999999}
+  m_LocalScale: {x: 0.17000005, y: 0.3, z: 0.16999999}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5869521774108837294}
+  m_Father: {fileID: 5407370577398133741}
   m_LocalEulerAnglesHint: {x: -13.902, y: -20.7, z: 57.551}
 --- !u!33 &8967893758923601750
 MeshFilter:
@@ -211,7 +211,7 @@ Transform:
   m_LocalScale: {x: 1.02, y: 0.25, z: 1.02}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5869521774108837294}
+  m_Father: {fileID: 5407370577398133741}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &5819404143405036989
 MeshFilter:
@@ -298,10 +298,10 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0.39999998, z: 0.4699993}
-  m_LocalScale: {x: 0.17, y: 0.5000001, z: 0.17}
+  m_LocalScale: {x: 0.16999999, y: 0.5000001, z: 0.17}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5869521774108837294}
+  m_Father: {fileID: 5407370577398133741}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90}
 --- !u!33 &296472909346466324
 MeshFilter:
@@ -360,6 +360,45 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &3382485107955127368
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5407370577398133741}
+  m_Layer: 0
+  m_Name: Body
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5407370577398133741
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3382485107955127368}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 1
+  m_Children:
+  - {fileID: 4168089954035955162}
+  - {fileID: 5485231865881801040}
+  - {fileID: 1308731716020536773}
+  - {fileID: 8884835492078829406}
+  - {fileID: 1339915440164027414}
+  - {fileID: 7784318335134149494}
+  - {fileID: 881554624753537438}
+  - {fileID: 6211760940653852705}
+  m_Father: {fileID: 5869521774108837294}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!1 &4049329968307747968
 GameObject:
   m_ObjectHideFlags: 0
@@ -391,7 +430,7 @@ Transform:
   m_LocalScale: {x: 1.06, y: 0.25, z: 1.04}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5869521774108837294}
+  m_Father: {fileID: 5407370577398133741}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &5287169272044772967
 MeshFilter:
@@ -481,7 +520,7 @@ Transform:
   m_LocalScale: {x: 1.04, y: 1.1, z: 1.03}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5869521774108837294}
+  m_Father: {fileID: 5407370577398133741}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &9122265003180031889
 MeshFilter:
@@ -571,7 +610,7 @@ Transform:
   m_LocalScale: {x: 1.02, y: 0.8, z: 1.02}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5869521774108837294}
+  m_Father: {fileID: 5407370577398133741}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &1262563713769384536
 MeshFilter:
@@ -661,7 +700,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5869521774108837294}
+  m_Father: {fileID: 5407370577398133741}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &8115042069161892842
 MeshFilter:
@@ -729,10 +768,11 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5869521774108837294}
-  - component: {fileID: 3609769991502900468}
+  - component: {fileID: 6524931165701001346}
   - component: {fileID: 9214358072406595231}
+  - component: {fileID: 506581538772863496}
   m_Layer: 0
-  m_Name: Pickpocket
+  m_Name: Fish_Pickpocket
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -747,22 +787,15 @@ Transform:
   m_GameObject: {fileID: 8541028851135796197}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 16.28254, y: 1, z: 20.05786}
+  m_LocalPosition: {x: 0, y: 1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 4168089954035955162}
-  - {fileID: 5485231865881801040}
-  - {fileID: 1308731716020536773}
-  - {fileID: 8884835492078829406}
-  - {fileID: 1339915440164027414}
-  - {fileID: 7784318335134149494}
-  - {fileID: 881554624753537438}
-  - {fileID: 6211760940653852705}
+  - {fileID: 5407370577398133741}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!136 &3609769991502900468
-CapsuleCollider:
+--- !u!135 &6524931165701001346
+SphereCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -776,14 +809,12 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.6
-  m_Height: 2.05
-  m_Direction: 1
-  m_Center: {x: 0, y: 0.0245, z: 0}
+  serializedVersion: 3
+  m_Radius: 2
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &9214358072406595231
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -811,3 +842,42 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 80
   m_CollisionDetection: 0
+--- !u!114 &506581538772863496
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8541028851135796197}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ca418f0df82ebc4f9f9dc51b589be3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Fish
+  _type:
+    _id: pickpocket
+    _displayName: Pickpocket
+    _value: 10
+    _color: {r: 0.35, g: 0.5, b: 0.62, a: 1}
+    _spawnWeight: 1
+    _shape: 0
+    _length: 1.6
+    _height: 0.45
+    _thickness: 0.3
+    _tailLength: 0.45
+    _dorsalFin: 0
+    _speedMultiplier: 1
+    _spinMultiplier: 1
+    _liftMultiplier: 3
+    _frictionMultiplier: 1
+    _airGravityScale: 1
+  _body: {fileID: 5407370577398133741}
+  _renderers:
+  - {fileID: 6384305493835850729}
+  - {fileID: 737628204669249495}
+  - {fileID: 4216565816178304508}
+  - {fileID: 2809266974635491363}
+  - {fileID: 1576934395135558364}
+  - {fileID: 4998768328865927689}
+  - {fileID: 5708308609369936246}
+  - {fileID: 4396711249678726823}

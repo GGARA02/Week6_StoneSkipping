@@ -127,6 +127,10 @@ public class StoneMeshGenerator : MonoBehaviour
     public float TotalBottomArea { get; private set; }
     // 돌 외형을 감싸는 점들 (최저/최고 높이 계산용, 로컬 좌표)
     public Vector3[] HullPoints { get; private set; } = Array.Empty<Vector3>();
+    // 던진 물고기의 특수 동작. 돌이거나 특수 동작이 없는 물고기면 null이다.
+    public FishAbility CurrentAbility { get; private set; }
+    // 던진 물고기의 몸. 물고기 모양일 때만 쓴다.
+    public Transform FishBody => _fishInstance.Body;
 
     void Awake()
     {
@@ -199,7 +203,7 @@ public class StoneMeshGenerator : MonoBehaviour
 
     /// <summary>
     /// 물고기 프리팹을 돌 아래에 생성하고 출현용 동작을 끈 뒤 옆으로 눕혀 던질 준비를 한다.
-    /// prefab의 메시와 머티리얼을 사용하며, 충돌체와 수면 샘플을 변경하고 OnGenerated를 보낸다.
+    /// prefab의 메시와 머티리얼을 사용하며, 충돌체, 수면 샘플, CurrentAbility를 변경하고 OnGenerated를 보낸다.
     /// </summary>
     public void GenerateFish(Fish prefab)
     {
@@ -207,6 +211,7 @@ public class StoneMeshGenerator : MonoBehaviour
         _shapeMode = ShapeMode.Fish;
         _fishInstance = Instantiate(prefab, transform, false);
         _fishInstance.enabled = false;
+        CurrentAbility = _fishInstance.GetComponent<FishAbility>();
         _fishType = _fishInstance.Type;
         _fishInflate = 1f;
         _isFlopping = false;
@@ -225,7 +230,7 @@ public class StoneMeshGenerator : MonoBehaviour
         fishBody.detectCollisions = false;
         Destroy(fishBody);
 
-        _fishMeshFilter = _fishInstance.Body.GetComponent<MeshFilter>();
+        _fishMeshFilter = _fishInstance.Body.GetComponentInChildren<MeshFilter>();
         Mesh oldRender = _renderMesh;
         _renderMesh = _fishMeshFilter != null
             ? Instantiate(_fishMeshFilter.sharedMesh)
@@ -243,7 +248,7 @@ public class StoneMeshGenerator : MonoBehaviour
 
     /// <summary>
     /// 이전 물고기 인스턴스를 즉시 숨긴 뒤 제거한다.
-    /// 현재 인스턴스를 사용하며, 프리팹 참조와 파닥임 상태를 초기화한다.
+    /// 현재 인스턴스를 사용하며, 프리팹 참조, 특수 동작, 파닥임 상태를 초기화한다.
     /// </summary>
     private void ClearFish()
     {
@@ -253,6 +258,7 @@ public class StoneMeshGenerator : MonoBehaviour
         Destroy(_fishInstance.gameObject);
         _fishInstance = null;
         _fishMeshFilter = null;
+        CurrentAbility = null;
         _isFlopping = false;
     }
 
@@ -321,7 +327,7 @@ public class StoneMeshGenerator : MonoBehaviour
     /// 프리팹 메시의 실제 형상에서 수면 샘플과 저해상도 볼록 충돌 메시를 만든다.
     /// 몸 메시와 로컬 변환을 사용하며, HullPoints와 면적 데이터, 충돌체를 변경한다.
     /// </summary>
-    private void BuildPrefabGeometry()
+    public void BuildPrefabGeometry()
     {
         Transform meshTransform = _fishMeshFilter != null ? _fishMeshFilter.transform : _fishInstance.Body;
         Matrix4x4 toLocal = transform.worldToLocalMatrix * meshTransform.localToWorldMatrix;
@@ -379,21 +385,6 @@ public class StoneMeshGenerator : MonoBehaviour
             point = HullPoints[i];
         }
         return point;
-    }
-
-    /// <summary>
-    /// 던진 복어를 부풀린다. 복어가 아니거나 이미 부풀었으면 아무것도 하지 않는다.
-    /// 현재 물고기의 InflateScale과 원래 몸 크기를 사용하며, 프리팹 크기와 충돌체, 샘플점을 변경한다.
-    /// </summary>
-    public void InflateFish()
-    {
-        if (_shapeMode != ShapeMode.Fish || _fishType.InflateScale <= 0f || _fishInflate > 1f) return;
-
-        _fishInflate = _fishType.InflateScale;
-        SetFlopping(false);
-        _fishInstance.Body.localScale = Vector3.Scale(_fishBodyScale,
-            new Vector3(_fishInflate, _fishInflate * 1.3f, 1f + (_fishInflate - 1f) * 0.3f));
-        BuildPrefabGeometry();
     }
 
     /// <summary>

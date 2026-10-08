@@ -107,14 +107,14 @@ MonoBehaviour:
     _thickness: 0.6
     _tailLength: 0.9
     _dorsalFin: 0
-    _inflateScale: 0
     _speedMultiplier: 1.15
     _spinMultiplier: 0.7
     _liftMultiplier: 0.75
     _frictionMultiplier: 0.25
     _airGravityScale: 1
   _body: {fileID: 8953343488237393733}
-  _bodyRenderer: {fileID: 273434779304187960}
+  _renderers:
+  - {fileID: 273434779304187960}
 --- !u!1 &6343997815209711271
 GameObject:
   m_ObjectHideFlags: 0

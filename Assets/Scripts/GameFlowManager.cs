@@ -176,6 +176,12 @@ public class GameFlowManager : MonoBehaviour
         {
             DrawShop(width, height, s);
         }
+        else if (_playerController.IsSliding && _playerController.SlidePower > 0f)
+        {
+            // 미끄러지는 동안은 남은 밀기 힘만큼 진하게 연타 안내를 띄운다.
+            Color slideColor = new Color(1f, 1f, 1f, 0.35f + 0.65f * _playerController.SlidePower);
+            ShadowLabel(new Rect(0f, height * _spaceHintHeight, width, 80f * s), "MASH SPACE!", _centerStyle, slideColor);
+        }
         else if (_playerController.CanJudge && _playerController.TimeToWaterImpact <= _spaceHintLeadTime)
         {
             // 닿을수록 진해지고, GOOD 이상 구간에 들어오면 금색으로 바뀐다.
@@ -343,13 +349,12 @@ public class GameFlowManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 처음 물에 닿는 순간 던진 물고기의 파닥임을 멈추고, 복어면 부풀린다.
-    /// point와 speed는 쓰지 않으며, 던질 거리의 파닥임과 모양을 변경한다.
+    /// 처음 물에 닿는 순간 던진 물고기의 파닥임을 멈춘다.
+    /// point와 speed는 쓰지 않으며, 던질 거리의 파닥임을 변경한다.
     /// </summary>
     private void HandleWaterContact(Vector3 point, float speed)
     {
         _stoneGenerator.SetFlopping(false);
-        _stoneGenerator.InflateFish();
     }
 
     /// <summary>

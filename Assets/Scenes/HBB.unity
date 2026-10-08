@@ -8221,13 +8221,8 @@ MonoBehaviour:
   - {fileID: 4486523863033485913, guid: 78bd7ecc0c5edfc4c9746feaeb7f6e62, type: 3}
   - {fileID: 3341601530354568855, guid: 17298c4baaeb071468981e403e2bf6ba, type: 3}
   - {fileID: 114000001, guid: 46f3f3a6ab774a109b958ecfe990b9b2, type: 3}
-  - {fileID: -338053525794902233, guid: 0c8de91f24b68ee4796e1fc5906cba8c, type: 3}
-  - {fileID: 114000001, guid: 741aa4ffd93d2e04a8527d3d19d9e21b, type: 3}
-  - {fileID: 114000001, guid: f635d926e29d4fa0b5d623138d75da24, type: 3}
-  - {fileID: 114000001, guid: 09dad68268504264eb033956a041d508, type: 3}
-  - {fileID: 114000001, guid: 50d48c18fc731d64783fe1d33febb46e, type: 3}
-  - {fileID: 4482674079178255689, guid: 214647fc108e40d43b5570e725beafdb, type: 3}
-  - {fileID: 6653721780412713267, guid: 5d9e20f344ddd0c4dbc8c098bce497ed, type: 3}
+  - {fileID: 114000001, guid: bb4ebf38c5ff46c785768c48b5ab7cf4, type: 3}
+  - {fileID: 114000001, guid: 90c576cd768a43f88741eb349da8ecca, type: 3}
   _spawnIntervalRange: {x: 0.35, y: 0.9}
   _schoolSizeRange: {x: 1, y: 3}
   _leadTimeRange: {x: 1, y: 2}
@@ -25772,7 +25767,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: ca98ad74617321a4297d53d83876c751, type: 2}
+  - {fileID: 2100000, guid: 0a7ae05600d740b1a4f20cbc055bed31, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -38231,6 +38226,14 @@ MonoBehaviour:
   _goodWindow: 0.15
   _bonusLift: 4
   _bonusSpeedRefund: 0.6
+  _missCooldown: 0.5
+  _slideEnterTime: 0.5
+  _slidePushSpeed: 5
+  _slideMaxPushes: 20
+  _slideFloatDepth: 0.02
+  _slideRiseSpeed: 2
+  _slideSinkSpeed: 1
+  _slideSteerRate: 25
   _sinkDepth: 0.8
   _stopSpeed: 0.5
   _stopTime: 1.5

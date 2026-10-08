@@ -148,11 +148,44 @@ public class PlayerController : MonoBehaviour
     [Range(0f, 1f)]
     [SerializeField]
     private float _bonusSpeedRefund = 0.6f;
+    [Tooltip("MISS 뒤 다음 SPACE 입력을 받지 않는 시간(초). 연타로 판정 구간을 덮지 못하게 한다")]
+    [SerializeField]
+    private float _missCooldown = 0.5f;
     private SkipJudge _contactJudge;
     private bool _jumpPending;
     private float _jumpPressTime;
-    private bool _bonusLocked;
+    private float _cooldownEndTime;
     public event Action<SkipJudge, float> OnJudge;
+
+    [Header("미끄러짐 (SPACE 연타)")]
+    [Tooltip("물에 이 시간(초) 이상 계속 닿아 있으면 미끄러짐으로 판정한다. GOOD 판정 범위보다 길어야 한다")]
+    [SerializeField]
+    private float _slideEnterTime = 0.3f;
+    [Tooltip("미끄러지는 동안 첫 SPACE에 진행 방향으로 더하는 속도(m/s). 누를 때마다 줄어든다")]
+    [SerializeField]
+    private float _slidePushSpeed = 0.8f;
+    [Tooltip("미끄러지는 동안 SPACE로 밀 수 있는 횟수. 누를 때마다 추진력이 일정하게 줄어 이 횟수에서 0이 된다")]
+    [SerializeField]
+    private int _slideMaxPushes = 20;
+    [Tooltip("미끄러지는 동안 돌 아랫면을 띄워 두는 수면 아래 깊이(m). 0보다 커야 물 마찰로 감속한다")]
+    [SerializeField]
+    private float _slideFloatDepth = 0.02f;
+    [Tooltip("미끄러지기 시작할 때 수면까지 떠오르는 최대 속도(m/s)")]
+    [SerializeField]
+    private float _slideRiseSpeed = 2f;
+    [Tooltip("미끄러지다 수평 속력이 이 아래로 떨어지면 더 떠 있지 않고 가라앉는다(m/s)")]
+    [SerializeField]
+    private float _slideSinkSpeed = 1f;
+    [Tooltip("미끄러지는 동안 A/D 커브로 진행 방향이 초당 휘는 각도(도). 비행 중 값은 Steer Rate")]
+    [SerializeField]
+    private float _slideSteerRate = 25f;
+    [Tooltip("미끄러지는 동안에만 수평 속력에서 추가로 빼는 감속도(m/s²). 물 마찰과 Slide Deceleration에 더해진다")]
+    [SerializeField]
+    private float _slideBrakeDeceleration = 3f;
+    private bool _isSliding;
+    private bool _isSlideSinking;
+    private int _slidePushesUsed;
+    private int _slidePushCount;
 
     [Header("게임오버")]
     [Tooltip("돌 윗면이 수면 아래로 이만큼 내려가면 가라앉은 것으로 판정")]
@@ -184,10 +217,13 @@ public class PlayerController : MonoBehaviour
     public float CurrentPitch => Mathf.Asin(Mathf.Clamp(-Vector3.Dot(StoneUp(), _heading), -1f, 1f)) * Mathf.Rad2Deg;
     public float SpinRate => Vector3.Dot(_playerRB.angularVelocity, StoneUp());
     public float Stability => Mathf.Lerp(_minStability, 1f, Mathf.Clamp01(Mathf.Abs(SpinRate) / Mathf.Max(_spinForFullStability, 0.01f)));
+    public bool IsSliding => _isSliding;
+    // 남은 밀기 힘 (1이면 처음, 0이면 더 밀리지 않음)
+    public float SlidePower => 1f - Mathf.Clamp01((float)_slidePushesUsed / Mathf.Max(_slideMaxPushes, 1));
 
-    // 이번 착수에서 아직 SPACE 판정을 받을 수 있는지 (접촉 후 GOOD 범위까지)
-    public bool CanJudge => _isThrown && !_isGameOver && !_bonusLocked && _contactJudge == SkipJudge.None
-        && (!_inContact || ContactElapsed <= _goodWindow);
+    // 지금 SPACE를 판정 입력으로 받는지 (MISS 쿨타임이 아니고, 접촉 중이면 판정 전이며 GOOD 범위까지)
+    public bool CanJudge => _isThrown && !_isGameOver && Time.time >= _cooldownEndTime
+        && (!_inContact || (_contactJudge == SkipJudge.None && ContactElapsed <= _goodWindow));
 
     // 지금 누르면 GOOD 이상을 받는 구간인지
     public bool IsInJudgeWindow => CanJudge && (_inContact || TimeToWaterImpact <= _goodWindow);
@@ -214,16 +250,22 @@ public class PlayerController : MonoBehaviour
             ApplyAimPose();
             return;
         }
-        // 던지는 데 쓴 SPACE 입력을 첫 타이밍 입력으로 세지 않는다.
-        if (_isGameOver || Time.frameCount == _throwFrame) return;
+        if (_isGameOver) return;
 
-        if (_inputActions.Player.Jump.WasPressedThisFrame())
+        UpdateAbilityFlight(Time.deltaTime);
+        // 던지는 데 쓴 SPACE 입력을 첫 타이밍 입력으로 세지 않는다.
+        if (Time.frameCount == _throwFrame) return;
+
+        if (!_inputActions.Player.Jump.WasPressedThisFrame()) return;
+
+        // 미끄러지는 동안은 타이밍 판정 대신 누른 횟수만큼 밀어준다.
+        if (_isSliding)
         {
-            // 공중에서 연타하면 이번 접촉의 보너스는 잠긴다.
-            if (_jumpPending && !_inContact)
-            {
-                _bonusLocked = true;
-            }
+            _slidePushCount++;
+        }
+        // 판정을 기다리는 입력이 있거나 MISS 쿨타임 중이면 새 입력은 받지 않는다.
+        else if (!_jumpPending && Time.time >= _cooldownEndTime)
+        {
             _jumpPending = true;
             _jumpPressTime = Time.time;
         }
@@ -249,6 +291,10 @@ public class PlayerController : MonoBehaviour
         if (!_isGameOver)
         {
             UpdateContact();
+            if (_isSliding)
+            {
+                ApplySlidePush();
+            }
         }
         if (_submersion > 0f)
         {
@@ -258,6 +304,11 @@ public class PlayerController : MonoBehaviour
         {
             // 공중 중력 배율이 1보다 작으면 중력 일부를 상쇄해 활공한다.
             _velocity -= Physics.gravity * ((1f - _modifiers.AirGravityScale) * dt);
+        }
+        if (_isSliding)
+        {
+            ApplySlideDeceleration(dt);
+            ApplySlideFloat(dt);
         }
         ApplySteering(dt);
         _playerRB.linearVelocity = _velocity;
@@ -317,8 +368,13 @@ public class PlayerController : MonoBehaviour
         _isGameOver = false;
         _inContact = false;
         _jumpPending = false;
-        _bonusLocked = false;
+        _cooldownEndTime = 0f;
         _contactJudge = SkipJudge.None;
+        _contactStartTime = float.NegativeInfinity;
+        _isSliding = false;
+        _isSlideSinking = false;
+        _slidePushesUsed = 0;
+        _slidePushCount = 0;
         _stopTimer = 0f;
         _steer = 0f;
         SkipCount = 0;
@@ -371,12 +427,17 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// 돌을 위로 튕겨 올린다. 부푼 복어에 닿았을 때 쓴다.
-    /// upSpeed를 사용하며, Rigidbody 속도를 변경한다.
+    /// 비행 중 공중 중력 배율을 바꾼다. 다음에 던질 때는 던지는 물체의 원래 배율로 돌아간다.
+    /// scale을 사용하며, _modifiers의 공중 중력 배율을 변경한다.
     /// </summary>
-    public void AddBounce(float upSpeed)
+    public void SetAirGravityScale(float scale)
     {
-        _playerRB.linearVelocity += Vector3.up * upSpeed;
+        _modifiers = new ThrowModifiers(
+            _modifiers.SpeedMultiplier,
+            _modifiers.SpinMultiplier,
+            _modifiers.LiftMultiplier,
+            _modifiers.FrictionMultiplier,
+            scale);
     }
 
     /// <summary>
@@ -495,8 +556,8 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// 접촉 시작과 끝을 판정하고, 대기 중인 SPACE 입력을 판정하거나 만료시킨다.
-    /// _bottomHeight와 SPACE 입력 시각을 사용하며, 접촉 상태와 _jumpPending, _bonusLocked를 변경한다.
+    /// 접촉 시작과 끝, 미끄러짐 시작을 판정하고, 대기 중인 SPACE 입력을 지금 또는 방금 끝난 접촉으로 판정하거나 만료시킨다.
+    /// _bottomHeight와 SPACE 입력 시각, 착수 시각을 사용하며, 접촉 상태와 _isSliding, _jumpPending을 변경한다.
     /// </summary>
     private void UpdateContact()
     {
@@ -504,30 +565,33 @@ public class PlayerController : MonoBehaviour
         {
             BeginContact();
         }
-        else if (_inContact && _bottomHeight > _exitClearance)
+        // 미끄러지는 중에는 자세가 바뀌어 아랫면이 살짝 떠도 접촉을 끝내지 않는다.
+        else if (_inContact && !_isSliding && _bottomHeight > _exitClearance)
         {
             EndContact();
         }
 
+        // 튕겨 나가지 못하고 계속 닿아 있으면 미끄러짐으로 바꾸고, 기다리던 타이밍 입력은 버린다.
+        if (_inContact && !_isSliding && ContactElapsed >= _slideEnterTime)
+        {
+            _isSliding = true;
+            _jumpPending = false;
+            _slidePushCount = 0;
+        }
+
         if (!_jumpPending) return;
 
-        if (_inContact)
+        // 접촉 중이거나, 방금 끝난 접촉이 판정 전이고 그 착수 후 GOOD 범위 안에 눌렀으면 그 접촉으로 판정한다.
+        float timingError = _jumpPressTime - _contactStartTime;
+        if (_contactJudge == SkipJudge.None && timingError >= -_goodWindow && (_inContact || timingError <= _goodWindow))
         {
-            if (_contactJudge == SkipJudge.None && !_bonusLocked)
-            {
-                Judge(_jumpPressTime - _contactStartTime);
-            }
-            else
-            {
-                _jumpPending = false;
-            }
+            Judge(timingError);
         }
         else if (Time.time - _jumpPressTime > _goodWindow)
         {
-            // 너무 일찍 눌렀다.
+            // 앞뒤 어느 착수와도 판정 범위가 맞지 않았다.
             _jumpPending = false;
-            _bonusLocked = true;
-            OnJudge?.Invoke(SkipJudge.Miss, float.NegativeInfinity);
+            ReportJudge(SkipJudge.Miss, float.NegativeInfinity);
         }
     }
 
@@ -565,33 +629,95 @@ public class PlayerController : MonoBehaviour
 
     /// <summary>
     /// 물에서 벗어난 순간 튕김으로 세고, 판정 보너스가 있으면 잃은 수평 속도 일부를 돌려준다.
-    /// _contactJudge와 _contactEntrySpeed를 사용하며, _velocity, SkipCount, 접촉 상태를 변경한다.
+    /// 판정 결과는 다음 착수 전까지 남겨, 늦은 입력이 같은 접촉을 다시 판정하지 않게 한다.
+    /// _contactJudge를 사용하며, _velocity, SkipCount, 접촉 상태를 변경한다.
     /// </summary>
     private void EndContact()
     {
         _inContact = false;
-        _bonusLocked = false;
 
         if (_velocity.y > 0f)
         {
             float quality = JudgeQuality(_contactJudge);
             if (quality > 0f)
             {
-                float lost = _contactEntrySpeed - Horizontal(_velocity).magnitude;
-                if (lost > 0f)
-                {
-                    _velocity += _heading * (lost * _bonusSpeedRefund * quality);
-                }
+                RefundContactSpeed(quality);
             }
             SkipCount++;
             OnSkip?.Invoke(SkipCount, _contactJudge);
         }
-        _contactJudge = SkipJudge.None;
+    }
+
+    /// <summary>
+    /// 이번 접촉에서 잃은 수평 속도 중 판정 배율만큼을 진행 방향으로 돌려준다.
+    /// quality와 _contactEntrySpeed, _bonusSpeedRefund를 사용하며, _velocity를 변경한다.
+    /// </summary>
+    private void RefundContactSpeed(float quality)
+    {
+        float lost = _contactEntrySpeed - Horizontal(_velocity).magnitude;
+        if (lost > 0f)
+        {
+            _velocity += _heading * (lost * _bonusSpeedRefund * quality);
+        }
+    }
+
+    /// <summary>
+    /// 미끄러지는 동안 쌓인 SPACE 입력마다 진행 방향으로 밀어준다. 누를 때마다 추진력이 줄어 _slideMaxPushes번째에 0이 된다.
+    /// _slidePushCount, _slidePushSpeed, SlidePower를 사용하며, _velocity, _slidePushesUsed, _slidePushCount를 변경한다.
+    /// </summary>
+    private void ApplySlidePush()
+    {
+        for (int i = 0; i < _slidePushCount; i++)
+        {
+            _velocity += _heading * (_slidePushSpeed * SlidePower);
+            _slidePushesUsed++;
+        }
+        _slidePushCount = 0;
+    }
+
+    /// <summary>
+    /// 미끄러지는 동안 수평 속력을 일정한 감속도로 줄인다. 멈춘 뒤 반대로 밀리지는 않는다.
+    /// dt와 _slideBrakeDeceleration을 사용하며, _velocity의 수평 성분을 변경한다.
+    /// </summary>
+    private void ApplySlideDeceleration(float dt)
+    {
+        Vector3 horizontal = Horizontal(_velocity);
+        float speed = horizontal.magnitude;
+        if (speed < 0.0001f) return;
+
+        float slowed = Mathf.Max(speed - _slideBrakeDeceleration * dt, 0f);
+        horizontal *= slowed / speed;
+        _velocity.x = horizontal.x;
+        _velocity.z = horizontal.z;
+    }
+
+    /// <summary>
+    /// 미끄러지는 동안 돌 아랫면을 수면 바로 아래에 띄워 보이게 하고, 느려지거나 게임오버가 되면 더 띄우지 않고 가라앉힌다.
+    /// 어느 쪽이든 위로 튀어 오르지는 못한다.
+    /// dt, _bottomHeight, 수평 속력, _slideFloatDepth, _slideRiseSpeed, _slideSinkSpeed를 사용하며, _velocity.y와 _isSlideSinking을 변경한다.
+    /// </summary>
+    private void ApplySlideFloat(float dt)
+    {
+        if (!_isSlideSinking && (_isGameOver || Horizontal(_velocity).magnitude < _slideSinkSpeed))
+        {
+            _isSlideSinking = true;
+        }
+
+        if (_isSlideSinking)
+        {
+            _velocity.y = Mathf.Min(_velocity.y, 0f);
+            return;
+        }
+
+        // 다음 물리 스텝의 중력까지 상쇄해, 아랫면이 목표 깊이에 머물게 한다.
+        float rise = (-_slideFloatDepth - _bottomHeight) / dt - Physics.gravity.y * dt;
+        _velocity.y = Mathf.Min(rise, _slideRiseSpeed);
     }
 
     /// <summary>
     /// 착수 시각과 SPACE 입력 시각의 차이로 판정하고, 성공하면 상승 속도와 스핀을 보충한다.
-    /// timingError(초, 빠르면 음수)를 사용하며, _contactJudge, _velocity, Rigidbody 각속도를 변경하고 OnJudge로 오차를 보낸다.
+    /// 물에서 이미 벗어난 뒤의 늦은 판정이면 수평 속도 환급도 바로 준다.
+    /// timingError(초, 빠르면 음수)를 사용하며, _contactJudge, _velocity, Rigidbody 각속도를 변경하고 특수 동작과 OnJudge로 결과를 보낸다.
     /// </summary>
     private void Judge(float timingError)
     {
@@ -605,6 +731,10 @@ public class PlayerController : MonoBehaviour
         if (quality > 0f)
         {
             _velocity += Vector3.up * (_bonusLift * quality);
+            if (!_inContact)
+            {
+                RefundContactSpeed(quality);
+            }
 
             // 스핀을 다시 살려 자세를 잡아준다.
             Vector3 up = StoneUp();
@@ -615,7 +745,55 @@ public class PlayerController : MonoBehaviour
             float restored = Mathf.Max(Mathf.Abs(spin), Mathf.Lerp(Mathf.Abs(spin), throwSpin, quality)) * sign;
             _playerRB.angularVelocity = angular + up * (restored - spin);
         }
-        OnJudge?.Invoke(_contactJudge, timingError);
+        ReportJudge(_contactJudge, timingError);
+    }
+
+    /// <summary>
+    /// 판정 결과를 던진 물고기의 특수 동작에 먼저 알리고 OnJudge로 보낸다. Perfect와 Good은 성공, Miss는 실패다.
+    /// judge와 timingError(초, 빠르면 음수)를 사용하며, Miss면 _cooldownEndTime을 갱신하고 특수 동작 상태를 변경한 뒤 OnJudge를 보낸다.
+    /// </summary>
+    private void ReportJudge(SkipJudge judge, float timingError)
+    {
+        // MISS 뒤에는 잠시 입력을 받지 않아 연타로 판정 구간을 덮지 못하게 한다.
+        if (judge == SkipJudge.Miss)
+        {
+            _cooldownEndTime = Time.time + _missCooldown;
+        }
+
+        FishAbility ability = _stone.CurrentAbility;
+        if (ability != null)
+        {
+            if (judge == SkipJudge.Miss)
+            {
+                ability.OnJudgeMiss(AbilityContext());
+            }
+            else
+            {
+                ability.OnJudgeSuccess(AbilityContext(), judge);
+            }
+        }
+        OnJudge?.Invoke(judge, timingError);
+    }
+
+    /// <summary>
+    /// 던진 뒤 게임오버 전까지 던진 물고기의 특수 동작을 갱신한다.
+    /// dt와 현재 특수 동작을 사용하며, 특수 동작 상태를 변경한다.
+    /// </summary>
+    private void UpdateAbilityFlight(float dt)
+    {
+        FishAbility ability = _stone.CurrentAbility;
+        if (ability == null) return;
+
+        ability.UpdateFlight(AbilityContext(), dt);
+    }
+
+    /// <summary>
+    /// 특수 동작에 넘길 대상 묶음을 만든다.
+    /// 이 컨트롤러와 _stone을 사용하며, ThrowContext를 반환한다.
+    /// </summary>
+    private ThrowContext AbilityContext()
+    {
+        return new ThrowContext(this, _stone, _stone.FishBody);
     }
 
     /// <summary>
@@ -669,8 +847,8 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// A/D 입력만큼 수평 진행 방향을 휘게 하고 현재 진행 방향을 갱신한다.
-    /// dt와 _steer를 사용하며, _velocity의 수평 성분과 _heading을 변경한다.
+    /// A/D 입력만큼 수평 진행 방향을 휘게 하고 현재 진행 방향을 갱신한다. 미끄러지는 동안은 더 세게 휜다.
+    /// dt와 _steer, _steerRate, _slideSteerRate를 사용하며, _velocity의 수평 성분과 _heading을 변경한다.
     /// </summary>
     private void ApplySteering(float dt)
     {
@@ -679,7 +857,8 @@ public class PlayerController : MonoBehaviour
 
         if (Mathf.Abs(_steer) > 0.01f)
         {
-            Vector3 turned = Quaternion.AngleAxis(_steer * _steerRate * dt, Vector3.up) * horizontal;
+            float steerRate = _isSliding ? _slideSteerRate : _steerRate;
+            Vector3 turned = Quaternion.AngleAxis(_steer * steerRate * dt, Vector3.up) * horizontal;
             _velocity.x = turned.x;
             _velocity.z = turned.z;
             horizontal = turned;

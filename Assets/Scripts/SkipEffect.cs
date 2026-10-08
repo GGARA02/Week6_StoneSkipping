@@ -179,15 +179,15 @@ public class SkipEffect : MonoBehaviour
 
     /// <summary>
     /// 지정한 세기로 물보라와 물결을 만든다. 물고기가 튀어 오르거나 잡힐 때도 쓴다.
-    /// point(수면 위 지점)와 power(0~1)를 사용하며, 파티클을 방출하고 물결 배열을 변경한다.
+    /// point(수면 위 지점), power(0~1), rippleScale(물결 세기 배율)을 사용하며, 파티클을 방출하고 물결 배열을 변경한다.
     /// </summary>
-    public void PlaySplash(Vector3 point, float power)
+    public void PlaySplash(Vector3 point, float power, float rippleScale = 1f)
     {
         _splash.transform.position = point;
         ParticleSystem.MainModule main = _splash.main;
         main.startSpeedMultiplier = Mathf.Lerp(0.4f, 1f, power);
         _splash.Emit(Mathf.RoundToInt(_splashCount * Mathf.Lerp(0.3f, 1f, power)));
-        AddRipple(point, Mathf.Lerp(0.3f, 1f, power));
+        AddRipple(point, Mathf.Lerp(0.3f, 1f, power) * rippleScale);
     }
 
     /// <summary>

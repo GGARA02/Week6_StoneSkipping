@@ -50,12 +50,14 @@ public class FishSpawner : MonoBehaviour
     private float _minStoneSpeed = 10f;
     [SerializeField]
     private Color _catchFlashColor = new Color(1f, 0.85f, 0.3f, 0.3f);
-    [Tooltip("복어가 부풀 때 돌을 위로 튕겨 올리는 속도")]
-    [SerializeField]
-    private float _pufferBounce = 10f;
     private readonly List<Fish> _activeFish = new List<Fish>();
     private float _nextSpawnTime;
     public event Action<FishType> OnFishCaught;
+
+    [Header("물결")]
+    [Tooltip("물고기가 튀어 오르거나 물에 들어갈 때 물결 세기 배율")]
+    [SerializeField]
+    private float _fishRippleScale = 2.5f;
 
     public Rigidbody PlayerBody => _playerBody;
     public IReadOnlyList<Fish> FishPrefabs => _fishPrefabs;
@@ -101,22 +103,22 @@ public class FishSpawner : MonoBehaviour
 
     /// <summary>
     /// 물고기가 수면 위로 튀어 오를 때 물보라를 만든다.
-    /// point를 사용하며, 물보라와 물결을 만든다.
+    /// point와 _fishRippleScale을 사용하며, 물보라와 물결을 만든다.
     /// </summary>
     public void HandleFishSurfaced(Vector3 point)
     {
-        _effect.PlaySplash(point, 0.35f);
+        _effect.PlaySplash(point, 0.35f, _fishRippleScale);
     }
 
     /// <summary>
     /// 물고기가 다시 물에 들어가면 물보라를 만들고 없앤다.
-    /// fish를 사용하며, _activeFish에서 제거한다.
+    /// fish와 _fishRippleScale을 사용하며, _activeFish에서 제거한다.
     /// </summary>
     public void HandleFishLanded(Fish fish)
     {
         Vector3 point = fish.transform.position;
         point.y = _waterY;
-        _effect.PlaySplash(point, 0.3f);
+        _effect.PlaySplash(point, 0.3f, _fishRippleScale);
         Remove(fish);
     }
 
@@ -131,16 +133,6 @@ public class FishSpawner : MonoBehaviour
         _effect.PlayImpact(0.8f, _catchFlashColor);
         OnFishCaught?.Invoke(fish.Type);
         Remove(fish);
-    }
-
-    /// <summary>
-    /// 복어가 돌에 닿아 부풀기 시작하면 돌을 위로 튕겨 올리고 화면 효과를 준다. 다 부풀면 HandleFishCaught가 불린다.
-    /// fish를 사용하며, 돌 속도를 변경한다.
-    /// </summary>
-    public void HandlePufferTouched(Fish fish)
-    {
-        _player.AddBounce(_pufferBounce);
-        _effect.PlayImpact(0.7f, _catchFlashColor);
     }
 
     /// <summary>

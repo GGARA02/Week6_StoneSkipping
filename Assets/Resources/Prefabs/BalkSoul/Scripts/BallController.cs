@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class BallController : MonoBehaviour
+public class BallController : FishAbility
 {
     [Header("참조")]
     [SerializeField] private Animator _animator;
