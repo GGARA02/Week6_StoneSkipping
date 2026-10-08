@@ -8222,6 +8222,12 @@ MonoBehaviour:
   - {fileID: 3341601530354568855, guid: 17298c4baaeb071468981e403e2bf6ba, type: 3}
   - {fileID: 114000001, guid: 46f3f3a6ab774a109b958ecfe990b9b2, type: 3}
   - {fileID: -338053525794902233, guid: 0c8de91f24b68ee4796e1fc5906cba8c, type: 3}
+  - {fileID: 114000001, guid: 741aa4ffd93d2e04a8527d3d19d9e21b, type: 3}
+  - {fileID: 114000001, guid: f635d926e29d4fa0b5d623138d75da24, type: 3}
+  - {fileID: 114000001, guid: 09dad68268504264eb033956a041d508, type: 3}
+  - {fileID: 114000001, guid: 50d48c18fc731d64783fe1d33febb46e, type: 3}
+  - {fileID: 4482674079178255689, guid: 214647fc108e40d43b5570e725beafdb, type: 3}
+  - {fileID: 6653721780412713267, guid: 5d9e20f344ddd0c4dbc8c098bce497ed, type: 3}
   _spawnIntervalRange: {x: 0.35, y: 0.9}
   _schoolSizeRange: {x: 1, y: 3}
   _leadTimeRange: {x: 1, y: 2}

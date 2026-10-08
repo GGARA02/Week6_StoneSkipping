@@ -1,5 +1,3 @@
-using System.Collections;
-
 using UnityEngine;
 
 public class BallController : FishAbility
@@ -8,7 +6,7 @@ public class BallController : FishAbility
     [SerializeField] private Animator _animator;
 
     [Header("상태")]
-    private bool _isAttacking;
+    private int _nextAttackIndex = 1;
     private TrailRenderer[] _trails;
 
     void Awake()
@@ -36,48 +34,17 @@ public class BallController : FishAbility
     }
 
     /// <summary>
-    /// 던진 상태에서 SPACE 판정에 성공하면 공격 애니메이션을 재생한다.
-    /// context와 judge는 쓰지 않으며, 공격 재생 상태를 변경한다.
-    /// </summary>
-    public override void OnJudgeSuccess(ThrowContext context, SkipJudge judge)
-    {
-        PlayAttackSequence();
-    }
-
-    /// <summary>
-    /// 수면 타이밍 성공 판정에서 요청한 공격 애니메이션을 순서대로 재생한다.
-    /// 입력값은 없으며, 공격 중이 아닐 때만 코루틴을 시작하고 공격 상태를 변경한다.
+    /// 수면 타이밍 성공 판정마다 공격 1, 2, 3 중 다음 애니메이션 하나를 재생한다.
+    /// 입력값은 없으며, _animator로 공격을 재생하고 다음 공격 번호를 1부터 3까지 순환한다.
     /// </summary>
     public void PlayAttackSequence()
     {
-        if (_isAttacking) return;
-
-        StartCoroutine(AttackSequence());
-    }
-
-    /// <summary>
-    /// 공격 1, 2, 3 애니메이션을 각각 1초 간격으로 재생한다.
-    /// _animator를 사용하며, 재생 대기 명령을 반환하고 _isAttacking을 변경한다.
-    /// </summary>
-    private IEnumerator AttackSequence()
-    {
-        _isAttacking = true;
-
-        _animator.CrossFadeInFixedTime("Attack_Light_1", 0.05f, 0, 0f);
-        yield return new WaitForSeconds(1f);
-
-        _animator.CrossFadeInFixedTime("Attack_Light_2", 0.05f, 0, 0f);
-        yield return new WaitForSeconds(1f);
-
-        _animator.CrossFadeInFixedTime("Attack_Light_3", 0.05f, 0, 0f);
-        yield return new WaitForSeconds(1f);
-
-        _isAttacking = false;
+        _animator.CrossFadeInFixedTime($"Attack_Light_{_nextAttackIndex}", 0.05f, 0, 0f);
+        _nextAttackIndex = _nextAttackIndex % 3 + 1;
     }
 
     void OnDisable()
     {
-        StopAllCoroutines();
-        _isAttacking = false;
+        _nextAttackIndex = 1;
     }
 }

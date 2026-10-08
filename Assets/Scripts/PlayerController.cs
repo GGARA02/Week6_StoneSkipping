@@ -186,6 +186,7 @@ public class PlayerController : MonoBehaviour
     private bool _isSlideSinking;
     private int _slidePushesUsed;
     private int _slidePushCount;
+    public event Action OnSlidePush;
 
     [Header("게임오버")]
     [Tooltip("돌 윗면이 수면 아래로 이만큼 내려가면 가라앉은 것으로 판정")]
@@ -262,6 +263,7 @@ public class PlayerController : MonoBehaviour
         if (_isSliding)
         {
             _slidePushCount++;
+            OnSlidePush?.Invoke();
         }
         // 판정을 기다리는 입력이 있거나 MISS 쿨타임 중이면 새 입력은 받지 않는다.
         else if (!_jumpPending && Time.time >= _cooldownEndTime)

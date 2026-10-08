@@ -87,6 +87,7 @@ public class StoneMeshGenerator : MonoBehaviour
     private float _fishInflate = 1f;
     private Fish _fishInstance;
     private MeshFilter _fishMeshFilter;
+    private Vector3 _fishBodyScale;
 
     [Header("파닥임 (물고기를 던지기 전부터 처음 물에 닿을 때까지)")]
     [Tooltip("초당 파닥이는 횟수")]
@@ -99,8 +100,12 @@ public class StoneMeshGenerator : MonoBehaviour
     [SerializeField]
     private float _flopHop = 0.08f;
     private Vector3[] _baseVertices;
-    private Vector3[] _flopVertices;
     private bool _isFlopping;
+    private Mesh[] _fishFlopMeshes = Array.Empty<Mesh>();
+    private Transform[] _fishFlopTransforms;
+    private Vector3[][] _fishBaseVertices;
+    private Vector3[][] _fishFlopVertices;
+    private Bounds _fishFlopBounds;
 
     [Header("해상도")]
     [SerializeField]
@@ -151,6 +156,7 @@ public class StoneMeshGenerator : MonoBehaviour
 
     void OnDestroy()
     {
+        ClearFish();
         // _generateOnAwake를 끄고 한 번도 생성하지 않았을 수 있다.
         if (_renderMesh != null)
         {
@@ -215,10 +221,13 @@ public class StoneMeshGenerator : MonoBehaviour
         _fishInflate = 1f;
         _isFlopping = false;
         _fishInstance.transform.localPosition = Vector3.zero;
-        _fishInstance.transform.localRotation = Quaternion.Inverse(_fishInstance.Body.localRotation);
+        _fishInstance.transform.localRotation = _fishInstance.Body == _fishInstance.transform
+            ? prefab.transform.localRotation
+            : Quaternion.Inverse(_fishInstance.Body.localRotation);
+        _fishBodyScale = _fishInstance.Body.localScale;
 
         // 프리팹의 큰 Trigger는 포획용이므로 던질 때는 플레이어의 볼록 충돌체만 사용한다.
-        foreach (Collider collider in _fishInstance.GetComponentsInChildren<Collider>())
+        foreach (Collider collider in _fishInstance.GetComponentsInChildren<Collider>(true))
         {
             collider.enabled = false;
         }
@@ -226,12 +235,36 @@ public class StoneMeshGenerator : MonoBehaviour
         fishBody.detectCollisions = false;
         Destroy(fishBody);
 
-        _fishMeshFilter = _fishInstance.Body.GetComponentInChildren<MeshFilter>();
+        MeshFilter[] filters = _fishInstance.GetComponentsInChildren<MeshFilter>(true);
+        SkinnedMeshRenderer[] skinnedRenderers = _fishInstance.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+        _fishFlopMeshes = new Mesh[filters.Length + skinnedRenderers.Length];
+        _fishFlopTransforms = new Transform[_fishFlopMeshes.Length];
+        _fishBaseVertices = new Vector3[_fishFlopMeshes.Length][];
+        _fishFlopVertices = new Vector3[_fishFlopMeshes.Length][];
+        for (int i = 0; i < _fishFlopMeshes.Length; i++)
+        {
+            Mesh mesh = Instantiate(i < filters.Length ? filters[i].sharedMesh : skinnedRenderers[i - filters.Length].sharedMesh);
+            Transform meshTransform = i < filters.Length ? filters[i].transform : skinnedRenderers[i - filters.Length].transform;
+            if (i < filters.Length) filters[i].sharedMesh = mesh;
+            else skinnedRenderers[i - filters.Length].sharedMesh = mesh;
+            _fishFlopMeshes[i] = mesh;
+            _fishFlopTransforms[i] = meshTransform;
+            _fishBaseVertices[i] = mesh.vertices;
+            _fishFlopVertices[i] = new Vector3[mesh.vertexCount];
+            Matrix4x4 toBody = _fishInstance.Body.worldToLocalMatrix * meshTransform.localToWorldMatrix;
+            for (int j = 0; j < mesh.vertexCount; j++)
+            {
+                Vector3 vertex = toBody.MultiplyPoint3x4(_fishBaseVertices[i][j]);
+                if (i == 0 && j == 0) _fishFlopBounds = new Bounds(vertex, Vector3.zero);
+                else _fishFlopBounds.Encapsulate(vertex);
+            }
+        }
+        _fishMeshFilter = filters.Length == 1 && skinnedRenderers.Length == 0 ? filters[0] : null;
         Mesh oldRender = _renderMesh;
-        _renderMesh = Instantiate(_fishMeshFilter.sharedMesh);
-        _fishMeshFilter.sharedMesh = _renderMesh;
+        _renderMesh = _fishMeshFilter != null
+            ? _fishMeshFilter.sharedMesh
+            : BuildCompositeFishMesh();
         _baseVertices = _renderMesh.vertices;
-        _flopVertices = new Vector3[_baseVertices.Length];
         Destroy(oldRender);
         _meshRenderer.enabled = false;
         BuildPrefabGeometry();
@@ -243,6 +276,11 @@ public class StoneMeshGenerator : MonoBehaviour
     /// </summary>
     private void ClearFish()
     {
+        foreach (Mesh mesh in _fishFlopMeshes)
+        {
+            if (mesh != _renderMesh) Destroy(mesh);
+        }
+        _fishFlopMeshes = Array.Empty<Mesh>();
         if (_fishInstance == null) return;
 
         _fishInstance.gameObject.SetActive(false);
@@ -254,12 +292,79 @@ public class StoneMeshGenerator : MonoBehaviour
     }
 
     /// <summary>
+    /// 분리된 일반 메시를 몸 좌표계로 합치고 스킨드 모델은 현재 자세를 추출한다.
+    /// 현재 프리팹의 MeshFilter와 Body를 사용하며, 원본 외형을 변경하지 않는 수면 판정용 메시를 반환한다.
+    /// </summary>
+    private Mesh BuildCompositeFishMesh()
+    {
+        MeshFilter[] filters = _fishInstance.GetComponentsInChildren<MeshFilter>(true);
+
+        List<CombineInstance> parts = new List<CombineInstance>();
+        foreach (MeshFilter filter in filters)
+        {
+            for (int i = 0; i < filter.sharedMesh.subMeshCount; i++)
+            {
+                parts.Add(new CombineInstance
+                {
+                    mesh = filter.sharedMesh,
+                    subMeshIndex = i,
+                    transform = _fishInstance.Body.worldToLocalMatrix * filter.transform.localToWorldMatrix,
+                });
+            }
+        }
+
+        Mesh mesh = new Mesh { name = "Fish_Composite_Geometry" };
+        Mesh skinnedMesh = BakeSkinnedFishMesh();
+        if (skinnedMesh.vertexCount > 0)
+        {
+            parts.Add(new CombineInstance { mesh = skinnedMesh, transform = Matrix4x4.identity });
+        }
+        mesh.CombineMeshes(parts.ToArray(), true, true);
+        Destroy(skinnedMesh);
+        return mesh;
+    }
+
+    /// <summary>
+    /// 스킨드 물고기의 모든 몸 메시를 현재 자세로 합쳐 수면 판정용 메시를 만든다.
+    /// 현재 프리팹의 렌더러와 Body 좌표계를 사용하며, 원본 외형을 변경하지 않는 새 메시를 반환한다.
+    /// </summary>
+    private Mesh BakeSkinnedFishMesh()
+    {
+        List<CombineInstance> parts = new List<CombineInstance>();
+        List<Mesh> bakedMeshes = new List<Mesh>();
+        foreach (SkinnedMeshRenderer renderer in _fishInstance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+        {
+            Mesh bakedMesh = new Mesh();
+            renderer.BakeMesh(bakedMesh, true);
+            bakedMeshes.Add(bakedMesh);
+            for (int i = 0; i < bakedMesh.subMeshCount; i++)
+            {
+                parts.Add(new CombineInstance
+                {
+                    mesh = bakedMesh,
+                    subMeshIndex = i,
+                    transform = _fishInstance.Body.worldToLocalMatrix * renderer.transform.localToWorldMatrix,
+                });
+            }
+        }
+
+        Mesh mesh = new Mesh { name = "Fish_Skinned_Geometry" };
+        mesh.CombineMeshes(parts.ToArray(), true, true);
+        foreach (Mesh bakedMesh in bakedMeshes)
+        {
+            Destroy(bakedMesh);
+        }
+        return mesh;
+    }
+
+    /// <summary>
     /// 프리팹 메시의 실제 형상에서 수면 샘플과 저해상도 볼록 충돌 메시를 만든다.
     /// 몸 메시와 로컬 변환을 사용하며, HullPoints와 면적 데이터, 충돌체를 변경한다.
     /// </summary>
     public void BuildPrefabGeometry()
     {
-        Matrix4x4 toLocal = transform.worldToLocalMatrix * _fishMeshFilter.transform.localToWorldMatrix;
+        Transform meshTransform = _fishMeshFilter != null ? _fishMeshFilter.transform : _fishInstance.Body;
+        Matrix4x4 toLocal = transform.worldToLocalMatrix * meshTransform.localToWorldMatrix;
         HullPoints = new Vector3[_baseVertices.Length];
         for (int i = 0; i < _baseVertices.Length; i++)
         {
@@ -322,15 +427,20 @@ public class StoneMeshGenerator : MonoBehaviour
     /// </summary>
     public void SetFlopping(bool flopping)
     {
-        bool active = flopping && _shapeMode == ShapeMode.Fish;
+        bool active = flopping && _shapeMode == ShapeMode.Fish
+            && _fishFlopMeshes.Length > 0
+            && _fishInstance.GetComponentInChildren<HopakJumpAnimation>(true) == null;
         if (_isFlopping == active) return;
 
         _isFlopping = active;
         if (!active)
         {
-            _renderMesh.vertices = _baseVertices;
-            _renderMesh.RecalculateNormals();
-            _renderMesh.RecalculateBounds();
+            for (int i = 0; i < _fishFlopMeshes.Length; i++)
+            {
+                _fishFlopMeshes[i].vertices = _fishBaseVertices[i];
+                _fishFlopMeshes[i].RecalculateNormals();
+                _fishFlopMeshes[i].RecalculateBounds();
+            }
         }
     }
 
@@ -340,26 +450,30 @@ public class StoneMeshGenerator : MonoBehaviour
     /// </summary>
     private void Flop(float time)
     {
-        float length = _renderMesh.bounds.size.z;
-        float pivot = _renderMesh.bounds.center.z;
+        float length = Mathf.Max(_fishFlopBounds.size.z, 0.0001f);
+        float pivot = _fishFlopBounds.center.z;
         float phase = time * _flopFrequency * Mathf.PI * 2f;
         // 같은 박자로만 움직이면 기계 같아서 세기를 노이즈로 흔든다.
         float strength = 0.35f + 0.65f * Mathf.PerlinNoise(time * 1.7f, 0.37f);
         float bend = Mathf.Sin(phase) * strength * _flopBend * length;
         float hop = Mathf.Abs(Mathf.Sin(phase * 0.5f)) * strength * _flopHop * length;
 
-        for (int i = 0; i < _baseVertices.Length; i++)
+        for (int i = 0; i < _fishFlopMeshes.Length; i++)
         {
-            Vector3 vertex = _baseVertices[i];
-            // 옆으로 누운 몸이라 y 방향으로 휘면 머리와 꼬리가 같이 들리는 C자가 된다.
-            float along = (vertex.z - pivot) / length;
-            vertex.y += along * along * bend + hop;
-            _flopVertices[i] = vertex;
+            Matrix4x4 toBody = _fishInstance.Body.worldToLocalMatrix * _fishFlopTransforms[i].localToWorldMatrix;
+            Matrix4x4 fromBody = toBody.inverse;
+            for (int j = 0; j < _fishBaseVertices[i].Length; j++)
+            {
+                Vector3 vertex = toBody.MultiplyPoint3x4(_fishBaseVertices[i][j]);
+                // 모든 자식 메시를 같은 몸 좌표계에서 휘어 연결된 부위가 함께 움직인다.
+                float along = (vertex.z - pivot) / length;
+                vertex.y += along * along * bend + hop;
+                _fishFlopVertices[i][j] = fromBody.MultiplyPoint3x4(vertex);
+            }
+            _fishFlopMeshes[i].vertices = _fishFlopVertices[i];
+            _fishFlopMeshes[i].RecalculateNormals();
+            _fishFlopMeshes[i].RecalculateBounds();
         }
-
-        _renderMesh.vertices = _flopVertices;
-        _renderMesh.RecalculateNormals();
-        _renderMesh.RecalculateBounds();
     }
 
     /// <summary>
@@ -379,7 +493,6 @@ public class StoneMeshGenerator : MonoBehaviour
         HullPoints = CollectHullPoints(colliderTop, colliderBottom);
 
         _baseVertices = _renderMesh.vertices;
-        _flopVertices = new Vector3[_baseVertices.Length];
 
         _meshFilter.sharedMesh = _renderMesh;
         _meshCollider.sharedMesh = null;
