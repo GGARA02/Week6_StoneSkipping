@@ -384,7 +384,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3382485107955127368}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 1
@@ -398,7 +398,7 @@ Transform:
   - {fileID: 881554624753537438}
   - {fileID: 6211760940653852705}
   m_Father: {fileID: 5869521774108837294}
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4049329968307747968
 GameObject:
   m_ObjectHideFlags: 0
@@ -772,7 +772,7 @@ GameObject:
   - component: {fileID: 9214358072406595231}
   - component: {fileID: 506581538772863496}
   m_Layer: 0
-  m_Name: Fish_Pickpocket
+  m_Name: Pickpocket
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -872,12 +872,3 @@ MonoBehaviour:
     _frictionMultiplier: 1
     _airGravityScale: 1
   _body: {fileID: 5407370577398133741}
-  _renderers:
-  - {fileID: 6384305493835850729}
-  - {fileID: 737628204669249495}
-  - {fileID: 4216565816178304508}
-  - {fileID: 2809266974635491363}
-  - {fileID: 1576934395135558364}
-  - {fileID: 4998768328865927689}
-  - {fileID: 5708308609369936246}
-  - {fileID: 4396711249678726823}
