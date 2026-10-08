@@ -333,7 +333,8 @@ public class StoneMeshGenerator : MonoBehaviour
     /// </summary>
     public void SetFlopping(bool flopping)
     {
-        bool active = flopping && _shapeMode == ShapeMode.Fish;
+        bool active = flopping && _shapeMode == ShapeMode.Fish
+            && _fishInstance.GetComponentInChildren<HopakJumpAnimation>() == null;
         if (_isFlopping == active) return;
 
         _isFlopping = active;

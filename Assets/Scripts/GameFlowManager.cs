@@ -300,8 +300,8 @@ public class GameFlowManager : MonoBehaviour
     }
 
     /// <summary>
-    /// SPACE 판정 결과를 표시하고, 성공하면 선택한 BalkSoul의 공격 애니메이션을 재생한다.
-    /// judge와 timingError(초, 빠르면 음수)를 사용하며, 팝업, 판정 횟수와 공격 재생 상태를 변경한다.
+    /// SPACE 판정 결과를 표시하고, 성공하면 선택한 프리팹의 공격 또는 점프 애니메이션을 재생한다.
+    /// judge와 timingError(초, 빠르면 음수)를 사용하며, 팝업, 판정 횟수와 애니메이션 재생 상태를 변경한다.
     /// </summary>
     private void HandleJudge(SkipJudge judge, float timingError)
     {
@@ -311,6 +311,11 @@ public class GameFlowManager : MonoBehaviour
             if (ballController != null)
             {
                 ballController.PlayAttackSequence();
+            }
+            HopakJumpAnimation hopakAnimation = _stoneGenerator.GetComponentInChildren<HopakJumpAnimation>();
+            if (hopakAnimation != null)
+            {
+                hopakAnimation.PlayJumpSegment();
             }
         }
 
