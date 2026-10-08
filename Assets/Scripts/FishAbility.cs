@@ -21,6 +21,14 @@ public abstract class FishAbility : MonoBehaviour
     }
 
     /// <summary>
+    /// 던진 뒤 튕겨 나가지 못하고 미끄러지기 시작할 때 특수 동작을 한다. 기본 동작은 없다.
+    /// context를 사용하며, 변경하는 상태는 하위 클래스가 정한다.
+    /// </summary>
+    public virtual void OnSlideStart(ThrowContext context)
+    {
+    }
+
+    /// <summary>
     /// 던진 뒤 게임오버 전까지 매 프레임 특수 동작을 갱신한다. 기본 동작은 없다.
     /// context와 dt를 사용하며, 변경하는 상태는 하위 클래스가 정한다.
     /// </summary>
