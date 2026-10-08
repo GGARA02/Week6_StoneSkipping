@@ -8220,6 +8220,7 @@ MonoBehaviour:
   - {fileID: 1491475594710219831, guid: 48b5db1676b3bf94d81260e7a8bffe5e, type: 3}
   - {fileID: 4486523863033485913, guid: 78bd7ecc0c5edfc4c9746feaeb7f6e62, type: 3}
   - {fileID: 3341601530354568855, guid: 17298c4baaeb071468981e403e2bf6ba, type: 3}
+  - {fileID: 114000001, guid: 46f3f3a6ab774a109b958ecfe990b9b2, type: 3}
   _spawnIntervalRange: {x: 0.35, y: 0.9}
   _schoolSizeRange: {x: 1, y: 3}
   _leadTimeRange: {x: 1, y: 2}

@@ -1,24 +1,31 @@
 using System.Collections;
+
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class BallController : MonoBehaviour
 {
+    [Header("참조")]
     [SerializeField] private Animator _animator;
+
+    [Header("상태")]
     private bool _isAttacking;
     private TrailRenderer[] _trails;
 
-    private void Awake()
+    void Awake()
     {
         _trails = GetComponentsInChildren<TrailRenderer>();
         UpdateTrailWidths();
     }
 
-    private void LateUpdate()
+    void LateUpdate()
     {
         UpdateTrailWidths();
     }
 
+    /// <summary>
+    /// 현재 오브젝트 크기에 맞춰 공격 궤적의 폭을 갱신한다.
+    /// transform.localScale.x를 사용하며, 각 TrailRenderer의 widthMultiplier를 변경한다.
+    /// </summary>
     private void UpdateTrailWidths()
     {
         float width = transform.localScale.x * 0.2f;
@@ -28,14 +35,21 @@ public class BallController : MonoBehaviour
         }
     }
 
-    private void Update()
+    /// <summary>
+    /// 수면 타이밍 성공 판정에서 요청한 공격 애니메이션을 순서대로 재생한다.
+    /// 입력값은 없으며, 공격 중이 아닐 때만 코루틴을 시작하고 공격 상태를 변경한다.
+    /// </summary>
+    public void PlayAttackSequence()
     {
-        if (!_isAttacking && Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
-        {
-            StartCoroutine(AttackSequence());
-        }
+        if (_isAttacking) return;
+
+        StartCoroutine(AttackSequence());
     }
 
+    /// <summary>
+    /// 공격 1, 2, 3 애니메이션을 각각 1초 간격으로 재생한다.
+    /// _animator를 사용하며, 재생 대기 명령을 반환하고 _isAttacking을 변경한다.
+    /// </summary>
     private IEnumerator AttackSequence()
     {
         _isAttacking = true;
@@ -52,8 +66,9 @@ public class BallController : MonoBehaviour
         _isAttacking = false;
     }
 
-    private void OnDisable()
+    void OnDisable()
     {
+        StopAllCoroutines();
         _isAttacking = false;
     }
 }
