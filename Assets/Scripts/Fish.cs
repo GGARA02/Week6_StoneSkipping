@@ -38,6 +38,7 @@ public class Fish : MonoBehaviour
     private bool _inflating;
 
     public FishType Type => _type;
+    public Transform Body => _body;
 
     void Update()
     {

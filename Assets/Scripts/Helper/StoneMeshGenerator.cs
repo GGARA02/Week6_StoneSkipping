@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 using UnityEngine;
 
-// 시드 기반으로 울퉁불퉁한 납작돌 메시를 만든다. 돌 대신 던질 물고기 모양도 만든다.
+// 시드 기반으로 납작돌 메시를 만들고, 돌 대신 던질 물고기는 프리팹을 사용한다.
 // 렌더용 각진 메시, 충돌용 볼록 메시, 수면 접촉 계산용 아랫면 샘플점을 같이 만든다.
 [RequireComponent(typeof(MeshFilter))]
 public class StoneMeshGenerator : MonoBehaviour
@@ -85,6 +85,9 @@ public class StoneMeshGenerator : MonoBehaviour
     private ShapeMode _shapeMode;
     private FishType _fishType;
     private float _fishInflate = 1f;
+    private Fish _fishInstance;
+    private MeshFilter _fishMeshFilter;
+    private Vector3 _fishBodyScale;
 
     [Header("파닥임 (물고기를 던지기 전부터 처음 물에 닿을 때까지)")]
     [Tooltip("초당 파닥이는 횟수")]
@@ -187,35 +190,141 @@ public class StoneMeshGenerator : MonoBehaviour
         _thicknessOffsetY = NextOffset(rng);
         _sizeScale = Mathf.Lerp(_sizeRandomRange.x, _sizeRandomRange.y, (float)rng.NextDouble());
 
+        ClearFish();
+        _meshRenderer.enabled = true;
         _shapeMode = ShapeMode.Stone;
         _isFlopping = false;
         Rebuild(_stoneColor);
     }
 
     /// <summary>
-    /// 돌 대신 던질 물고기 모양을 만든다. 옆으로 누운 자세라 옆모습이 아랫면이 된다.
-    /// fish를 사용하며, 메시, 샘플점, 색을 변경하고 OnGenerated를 보낸다.
+    /// 물고기 프리팹을 돌 아래에 생성하고 출현용 동작을 끈 뒤 옆으로 눕혀 던질 준비를 한다.
+    /// prefab의 메시와 머티리얼을 사용하며, 충돌체와 수면 샘플을 변경하고 OnGenerated를 보낸다.
     /// </summary>
-    public void GenerateFish(FishType fish)
+    public void GenerateFish(Fish prefab)
     {
+        ClearFish();
         _shapeMode = ShapeMode.Fish;
-        _fishType = fish;
+        _fishInstance = Instantiate(prefab, transform, false);
+        _fishInstance.enabled = false;
+        _fishType = _fishInstance.Type;
         _fishInflate = 1f;
         _isFlopping = false;
-        Rebuild(fish.Color);
+        _fishInstance.transform.localPosition = Vector3.zero;
+        _fishInstance.transform.localRotation = Quaternion.Inverse(_fishInstance.Body.localRotation);
+        _fishBodyScale = _fishInstance.Body.localScale;
+
+        // 프리팹의 큰 Trigger는 포획용이므로 던질 때는 플레이어의 볼록 충돌체만 사용한다.
+        foreach (Collider collider in _fishInstance.GetComponentsInChildren<Collider>())
+        {
+            collider.enabled = false;
+        }
+        Rigidbody fishBody = _fishInstance.GetComponent<Rigidbody>();
+        fishBody.detectCollisions = false;
+        Destroy(fishBody);
+
+        _fishMeshFilter = _fishInstance.Body.GetComponent<MeshFilter>();
+        Mesh oldRender = _renderMesh;
+        _renderMesh = Instantiate(_fishMeshFilter.sharedMesh);
+        _fishMeshFilter.sharedMesh = _renderMesh;
+        _baseVertices = _renderMesh.vertices;
+        _flopVertices = new Vector3[_baseVertices.Length];
+        Destroy(oldRender);
+        _meshRenderer.enabled = false;
+        BuildPrefabGeometry();
+    }
+
+    /// <summary>
+    /// 이전 물고기 인스턴스를 즉시 숨긴 뒤 제거한다.
+    /// 현재 인스턴스를 사용하며, 프리팹 참조와 파닥임 상태를 초기화한다.
+    /// </summary>
+    private void ClearFish()
+    {
+        if (_fishInstance == null) return;
+
+        _fishInstance.gameObject.SetActive(false);
+        Destroy(_fishInstance.gameObject);
+        _fishInstance = null;
+        _fishMeshFilter = null;
+        _isFlopping = false;
+    }
+
+    /// <summary>
+    /// 프리팹 메시의 실제 형상에서 수면 샘플과 저해상도 볼록 충돌 메시를 만든다.
+    /// 몸 메시와 로컬 변환을 사용하며, HullPoints와 면적 데이터, 충돌체를 변경한다.
+    /// </summary>
+    private void BuildPrefabGeometry()
+    {
+        Matrix4x4 toLocal = transform.worldToLocalMatrix * _fishMeshFilter.transform.localToWorldMatrix;
+        HullPoints = new Vector3[_baseVertices.Length];
+        for (int i = 0; i < _baseVertices.Length; i++)
+        {
+            HullPoints[i] = toLocal.MultiplyPoint3x4(_baseVertices[i]);
+        }
+
+        List<Vector3> samples = new List<Vector3>();
+        List<float> areas = new List<float>();
+        int[] triangles = _renderMesh.triangles;
+        float total = 0f;
+        for (int i = 0; i < triangles.Length; i += 3)
+        {
+            Vector3 a = HullPoints[triangles[i]];
+            Vector3 b = HullPoints[triangles[i + 1]];
+            Vector3 c = HullPoints[triangles[i + 2]];
+            float area = -Vector3.Cross(b - a, c - a).y * 0.5f;
+            if (area <= 0.000001f) continue;
+
+            samples.Add((a + b + c) / 3f);
+            areas.Add(area);
+            total += area;
+        }
+        BottomSamples = samples.ToArray();
+        SampleAreas = areas.ToArray();
+        TotalBottomArea = total;
+
+        Mesh oldCollider = _colliderMesh;
+        BuildGrid(Mathf.Clamp(_colliderSegments, 6, 40), 2, PrefabSurfacePoint, out Vector3[,] top, out Vector3[,] bottom);
+        _colliderMesh = BuildMesh(top, bottom, "Fish_Prefab_Collider");
+        _meshCollider.sharedMesh = null;
+        _meshCollider.convex = true;
+        _meshCollider.sharedMesh = _colliderMesh;
+        Destroy(oldCollider);
+        OnGenerated?.Invoke();
+    }
+
+    /// <summary>
+    /// 프리팹 외형에서 지정 방향으로 가장 멀리 있는 점을 찾아 볼록 충돌체를 근사한다.
+    /// angle, t, top과 HullPoints를 사용하며, 메시 로컬 좌표의 지지점을 반환한다.
+    /// </summary>
+    private Vector3 PrefabSurfacePoint(float angle, float t, bool top)
+    {
+        Vector3 direction = new Vector3(Mathf.Cos(angle) * t, (top ? 1f : -1f) * Mathf.Sqrt(1f - t * t), Mathf.Sin(angle) * t);
+        Vector3 point = HullPoints[0];
+        float farthest = Vector3.Dot(point, direction);
+        for (int i = 1; i < HullPoints.Length; i++)
+        {
+            float distance = Vector3.Dot(HullPoints[i], direction);
+            if (distance <= farthest) continue;
+
+            farthest = distance;
+            point = HullPoints[i];
+        }
+        return point;
     }
 
     /// <summary>
     /// 던진 복어를 부풀린다. 복어가 아니거나 이미 부풀었으면 아무것도 하지 않는다.
-    /// 현재 물고기의 InflateScale을 사용하며, _fishInflate와 메시, 충돌 모양, 샘플점을 변경한다.
+    /// 현재 물고기의 InflateScale과 원래 몸 크기를 사용하며, 프리팹 크기와 충돌체, 샘플점을 변경한다.
     /// </summary>
     public void InflateFish()
     {
         if (_shapeMode != ShapeMode.Fish || _fishType.InflateScale <= 0f || _fishInflate > 1f) return;
 
         _fishInflate = _fishType.InflateScale;
-        _isFlopping = false;
-        Rebuild(_fishType.Color);
+        SetFlopping(false);
+        _fishInstance.Body.localScale = Vector3.Scale(_fishBodyScale,
+            new Vector3(_fishInflate, _fishInflate * 1.3f, 1f + (_fishInflate - 1f) * 0.3f));
+        BuildPrefabGeometry();
     }
 
     /// <summary>
@@ -242,8 +351,8 @@ public class StoneMeshGenerator : MonoBehaviour
     /// </summary>
     private void Flop(float time)
     {
-        float length = _fishType.Length + _fishType.TailLength;
-        float pivot = _fishType.Length * 0.1f;
+        float length = _renderMesh.bounds.size.z;
+        float pivot = _renderMesh.bounds.center.z;
         float phase = time * _flopFrequency * Mathf.PI * 2f;
         // 같은 박자로만 움직이면 기계 같아서 세기를 노이즈로 흔든다.
         float strength = 0.35f + 0.65f * Mathf.PerlinNoise(time * 1.7f, 0.37f);

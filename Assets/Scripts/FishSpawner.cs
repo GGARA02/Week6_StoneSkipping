@@ -58,6 +58,7 @@ public class FishSpawner : MonoBehaviour
     public event Action<FishType> OnFishCaught;
 
     public Rigidbody PlayerBody => _playerBody;
+    public IReadOnlyList<Fish> FishPrefabs => _fishPrefabs;
     public IReadOnlyList<FishType> FishTypes => _fishTypes;
 
     void Awake()
