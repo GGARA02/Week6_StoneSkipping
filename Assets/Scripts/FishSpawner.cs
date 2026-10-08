@@ -54,6 +54,11 @@ public class FishSpawner : MonoBehaviour
     private float _nextSpawnTime;
     public event Action<FishType> OnFishCaught;
 
+    [Header("물결")]
+    [Tooltip("물고기가 튀어 오르거나 물에 들어갈 때 물결 세기 배율")]
+    [SerializeField]
+    private float _fishRippleScale = 2.5f;
+
     public Rigidbody PlayerBody => _playerBody;
     public IReadOnlyList<Fish> FishPrefabs => _fishPrefabs;
     public IReadOnlyList<FishType> FishTypes => _fishTypes;
@@ -98,22 +103,22 @@ public class FishSpawner : MonoBehaviour
 
     /// <summary>
     /// 물고기가 수면 위로 튀어 오를 때 물보라를 만든다.
-    /// point를 사용하며, 물보라와 물결을 만든다.
+    /// point와 _fishRippleScale을 사용하며, 물보라와 물결을 만든다.
     /// </summary>
     public void HandleFishSurfaced(Vector3 point)
     {
-        _effect.PlaySplash(point, 0.35f);
+        _effect.PlaySplash(point, 0.35f, _fishRippleScale);
     }
 
     /// <summary>
     /// 물고기가 다시 물에 들어가면 물보라를 만들고 없앤다.
-    /// fish를 사용하며, _activeFish에서 제거한다.
+    /// fish와 _fishRippleScale을 사용하며, _activeFish에서 제거한다.
     /// </summary>
     public void HandleFishLanded(Fish fish)
     {
         Vector3 point = fish.transform.position;
         point.y = _waterY;
-        _effect.PlaySplash(point, 0.3f);
+        _effect.PlaySplash(point, 0.3f, _fishRippleScale);
         Remove(fish);
     }
 

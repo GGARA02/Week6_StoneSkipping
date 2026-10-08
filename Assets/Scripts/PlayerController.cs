@@ -179,6 +179,9 @@ public class PlayerController : MonoBehaviour
     [Tooltip("미끄러지는 동안 A/D 커브로 진행 방향이 초당 휘는 각도(도). 비행 중 값은 Steer Rate")]
     [SerializeField]
     private float _slideSteerRate = 25f;
+    [Tooltip("미끄러지는 동안에만 수평 속력에서 추가로 빼는 감속도(m/s²). 물 마찰과 Slide Deceleration에 더해진다")]
+    [SerializeField]
+    private float _slideBrakeDeceleration = 3f;
     private bool _isSliding;
     private bool _isSlideSinking;
     private int _slidePushesUsed;
@@ -304,6 +307,7 @@ public class PlayerController : MonoBehaviour
         }
         if (_isSliding)
         {
+            ApplySlideDeceleration(dt);
             ApplySlideFloat(dt);
         }
         ApplySteering(dt);
@@ -669,6 +673,22 @@ public class PlayerController : MonoBehaviour
             _slidePushesUsed++;
         }
         _slidePushCount = 0;
+    }
+
+    /// <summary>
+    /// 미끄러지는 동안 수평 속력을 일정한 감속도로 줄인다. 멈춘 뒤 반대로 밀리지는 않는다.
+    /// dt와 _slideBrakeDeceleration을 사용하며, _velocity의 수평 성분을 변경한다.
+    /// </summary>
+    private void ApplySlideDeceleration(float dt)
+    {
+        Vector3 horizontal = Horizontal(_velocity);
+        float speed = horizontal.magnitude;
+        if (speed < 0.0001f) return;
+
+        float slowed = Mathf.Max(speed - _slideBrakeDeceleration * dt, 0f);
+        horizontal *= slowed / speed;
+        _velocity.x = horizontal.x;
+        _velocity.z = horizontal.z;
     }
 
     /// <summary>
