@@ -211,7 +211,9 @@ public class StoneMeshGenerator : MonoBehaviour
         _fishInflate = 1f;
         _isFlopping = false;
         _fishInstance.transform.localPosition = Vector3.zero;
-        _fishInstance.transform.localRotation = Quaternion.Inverse(_fishInstance.Body.localRotation);
+        _fishInstance.transform.localRotation = _fishInstance.Body == _fishInstance.transform
+            ? prefab.transform.localRotation
+            : Quaternion.Inverse(_fishInstance.Body.localRotation);
         _fishBodyScale = _fishInstance.Body.localScale;
 
         // 프리팹의 큰 Trigger는 포획용이므로 던질 때는 플레이어의 볼록 충돌체만 사용한다.
@@ -227,7 +229,7 @@ public class StoneMeshGenerator : MonoBehaviour
         Mesh oldRender = _renderMesh;
         _renderMesh = _fishMeshFilter != null
             ? Instantiate(_fishMeshFilter.sharedMesh)
-            : BakeSkinnedFishMesh();
+            : BuildCompositeFishMesh();
         if (_fishMeshFilter != null)
         {
             _fishMeshFilter.sharedMesh = _renderMesh;
@@ -252,6 +254,34 @@ public class StoneMeshGenerator : MonoBehaviour
         _fishInstance = null;
         _fishMeshFilter = null;
         _isFlopping = false;
+    }
+
+    /// <summary>
+    /// 분리된 일반 메시를 몸 좌표계로 합치고 스킨드 모델은 현재 자세를 추출한다.
+    /// 현재 프리팹의 MeshFilter와 Body를 사용하며, 원본 외형을 변경하지 않는 수면 판정용 메시를 반환한다.
+    /// </summary>
+    private Mesh BuildCompositeFishMesh()
+    {
+        MeshFilter[] filters = _fishInstance.Body.GetComponentsInChildren<MeshFilter>();
+        if (filters.Length == 0) return BakeSkinnedFishMesh();
+
+        List<CombineInstance> parts = new List<CombineInstance>();
+        foreach (MeshFilter filter in filters)
+        {
+            for (int i = 0; i < filter.sharedMesh.subMeshCount; i++)
+            {
+                parts.Add(new CombineInstance
+                {
+                    mesh = filter.sharedMesh,
+                    subMeshIndex = i,
+                    transform = _fishInstance.Body.worldToLocalMatrix * filter.transform.localToWorldMatrix,
+                });
+            }
+        }
+
+        Mesh mesh = new Mesh { name = "Fish_Composite_Geometry" };
+        mesh.CombineMeshes(parts.ToArray(), true, true);
+        return mesh;
     }
 
     /// <summary>
