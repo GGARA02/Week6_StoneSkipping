@@ -36,6 +36,16 @@ public class Fish : MonoBehaviour
     public FishType Type => _type;
     public Transform Body => _body;
 
+    /// <summary>
+    /// 현재 오브젝트와 하위 오브젝트의 모든 Renderer를 수집한다.
+    /// 비활성 오브젝트를 포함해 renderers 배열을 갱신한다.
+    /// </summary>
+    [ContextMenu("Collect Child Renderers")]
+    private void CollectChildRenderers()
+    {
+        _renderers = GetComponentsInChildren<Renderer>(true);
+    }
+
     void Update()
     {
         if (!_jumped)
