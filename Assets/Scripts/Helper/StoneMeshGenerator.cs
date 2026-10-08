@@ -226,7 +226,7 @@ public class StoneMeshGenerator : MonoBehaviour
         fishBody.detectCollisions = false;
         Destroy(fishBody);
 
-        _fishMeshFilter = _fishInstance.Body.GetComponent<MeshFilter>();
+        _fishMeshFilter = _fishInstance.Body.GetComponentInChildren<MeshFilter>();
         Mesh oldRender = _renderMesh;
         _renderMesh = Instantiate(_fishMeshFilter.sharedMesh);
         _fishMeshFilter.sharedMesh = _renderMesh;

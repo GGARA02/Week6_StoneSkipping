@@ -145,7 +145,8 @@ MonoBehaviour:
     _frictionMultiplier: 1
     _airGravityScale: 1
   _body: {fileID: 876439166668990689}
-  _bodyRenderer: {fileID: 3193043846535268330}
+  _renderers:
+  - {fileID: 3193043846535268330}
 --- !u!1 &4991467971936218174
 GameObject:
   m_ObjectHideFlags: 0

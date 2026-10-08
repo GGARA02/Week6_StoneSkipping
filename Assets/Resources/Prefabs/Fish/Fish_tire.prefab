@@ -197,11 +197,11 @@ MonoBehaviour:
     _thickness: 0.8
     _tailLength: 0
     _dorsalFin: 0
-    _inflateScale: 0
     _speedMultiplier: 0.85
     _spinMultiplier: 1.2
     _liftMultiplier: 0.8
     _frictionMultiplier: 0.3
     _airGravityScale: 1
   _body: {fileID: 8759398802979901943}
-  _bodyRenderer: {fileID: 5725027403667768551}
+  _renderers:
+  - {fileID: 5725027403667768551}

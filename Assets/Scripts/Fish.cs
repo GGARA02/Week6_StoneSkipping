@@ -19,7 +19,7 @@ public class Fish : MonoBehaviour
     [SerializeField]
     private Transform _body;
     [SerializeField]
-    private Renderer _bodyRenderer;
+    private Renderer[] _renderers;
 
     [Header("상태")]
     private FishSpawner _spawner;
@@ -44,7 +44,7 @@ public class Fish : MonoBehaviour
             if (_delay > 0f) return;
 
             _jumped = true;
-            _bodyRenderer.enabled = true;
+            SetRenderersEnabled(true);
             _spawner.HandleFishSurfaced(_startPosition);
         }
 
@@ -82,7 +82,19 @@ public class Fish : MonoBehaviour
         _waterY = waterY;
         _gravity = -Physics.gravity.y;
         transform.position = start;
-        _bodyRenderer.enabled = false;
+        SetRenderersEnabled(false);
+    }
+
+    /// <summary>
+    /// 모든 하위 렌더러의 활성화 상태를 일괄 변경한다.
+    /// isEnabled를 사용하며, _renderers에 포함된 모든 Renderer의 enabled 상태를 변경한다.
+    /// </summary>
+    private void SetRenderersEnabled(bool isEnabled)
+    {
+        for (int i = 0; i < _renderers.Length; i++)
+        {
+            _renderers[i].enabled = isEnabled;
+        }
     }
 
     /// <summary>
