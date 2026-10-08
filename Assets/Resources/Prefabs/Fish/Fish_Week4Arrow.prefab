@@ -5298,7 +5298,6 @@ MonoBehaviour:
     _frictionMultiplier: 1
     _airGravityScale: 1
   _body: {fileID: 7720000000000000002}
-  _bodyRenderer: {fileID: 1701258641602969945}
 --- !u!114 &114000002
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5314,3 +5313,6 @@ MonoBehaviour:
   _bobHeight: 0.5
   _bobFrequency: 0.5
   _gainEffectPrefab: {fileID: 2877511606033482346, guid: e97407117aad4fcaa9c210acbd1aa6d9, type: 3}
+  _trail: {fileID: 2697299557148188994}
+  _thrownTrailTime: 0.12
+  _particle: {fileID: 7994600138975757343}
