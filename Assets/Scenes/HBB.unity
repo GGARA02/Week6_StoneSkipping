@@ -8232,7 +8232,6 @@ MonoBehaviour:
   _maxFish: 16
   _minStoneSpeed: 10
   _catchFlashColor: {r: 1, g: 0.85, b: 0.3, a: 0.3}
-  _pufferBounce: 10
 --- !u!114 &403970199
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -38227,6 +38226,14 @@ MonoBehaviour:
   _goodWindow: 0.15
   _bonusLift: 4
   _bonusSpeedRefund: 0.6
+  _missCooldown: 0.5
+  _slideEnterTime: 0.5
+  _slidePushSpeed: 5
+  _slideMaxPushes: 20
+  _slideFloatDepth: 0.02
+  _slideRiseSpeed: 2
+  _slideSinkSpeed: 1
+  _slideSteerRate: 25
   _sinkDepth: 0.8
   _stopSpeed: 0.5
   _stopTime: 1.5
