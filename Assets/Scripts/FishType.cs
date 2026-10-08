@@ -28,6 +28,11 @@ public class FishType
     [SerializeField]
     private float _spawnWeight = 1f;
 
+    [Header("선택 미리보기")]
+    [Tooltip("공개하면 회색 반투명 모델, 공개하지 않으면 물음표로 표시한다. 도감 등록 여부와는 별개다")]
+    [SerializeField]
+    private bool _isRevealed = true;
+
     [Header("몸")]
     [SerializeField]
     private FishShape _shape = FishShape.Fish;
@@ -64,6 +69,7 @@ public class FishType
     public int Value => _value;
     public Color Color => _color;
     public float SpawnWeight => _spawnWeight;
+    public bool IsRevealed => _isRevealed;
     public FishShape Shape => _shape;
     public float Length => _length;
     public float Height => _height;

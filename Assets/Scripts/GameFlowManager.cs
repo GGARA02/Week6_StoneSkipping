@@ -71,7 +71,9 @@ public class GameFlowManager : MonoBehaviour
     private GUIStyle _popupStyle;
     private GUIStyle _debugStyle;
     private GUIStyle _buttonStyle;
+    private GUIStyle _previewStyle;
     private float _styleScale = -1f;
+    private FishSelectionPreview _fishSelectionPreview;
 
     void Start()
     {
@@ -93,6 +95,7 @@ public class GameFlowManager : MonoBehaviour
         _bestSkips = PlayerPrefs.GetInt(BEST_SKIPS_KEY, 0);
         _bestDistance = PlayerPrefs.GetFloat(BEST_DISTANCE_KEY, 0f);
         _state = State.Ready;
+        _fishSelectionPreview = new FishSelectionPreview();
     }
 
     void OnDestroy()
@@ -104,6 +107,7 @@ public class GameFlowManager : MonoBehaviour
         _playerController.OnWaterContact -= HandleWaterContact;
         _fishSpawner.OnFishCaught -= HandleFishCaught;
         _inputActions.Dispose();
+        _fishSelectionPreview.Dispose();
     }
 
     void Update()
@@ -154,6 +158,21 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
         Throw();
+    }
+
+    void LateUpdate()
+    {
+        if (!_showHud || _state != State.Ready) return;
+        int optionCount = _fishSpawner.FishTypes.Count + 1;
+        for (int offset = -2; offset <= 2; offset++)
+        {
+            if (offset == 0 || Mathf.Abs(offset) >= optionCount) continue;
+            int option = ((_projectileIndex + 1 + offset) % optionCount + optionCount) % optionCount;
+            if (option > 0 && _fishSpawner.FishTypes[option - 1].IsRevealed)
+            {
+                _fishSelectionPreview.PrepareTexture(_fishSpawner.FishPrefabs[option - 1]);
+            }
+        }
     }
 
     void OnGUI()
@@ -452,6 +471,45 @@ public class GameFlowManager : MonoBehaviour
         string projectile = fish != null ? fish.DisplayName : "STONE";
         ShadowLabel(new Rect(0f, height * _spaceHintHeight, width, 40f * scale),
             $"<  Q/LB   THROW: {projectile}   E/RB  >", _centerSubStyle, new Color(1f, 0.92f, 0.7f));
+        DrawFishPreviews(width, height, scale);
+    }
+
+    /// <summary>
+    /// 전체 선택 목록에서 현재 항목의 앞뒤 두 개를 표시한다. 미등록 항목은 선택 불가 문구로 구분한다.
+    /// 화면 크기, scale, 공개 여부와 도감 등록 상태를 사용하며, 회색 모델 또는 물음표를 그린다.
+    /// </summary>
+    private void DrawFishPreviews(float width, float height, float scale)
+    {
+        int optionCount = _fishSpawner.FishTypes.Count + 1;
+        float slotWidth = Mathf.Min(156f * scale, width / 6f);
+        float slotHeight = 104f * scale;
+        float top = height * _spaceHintHeight - slotHeight - 34f * scale;
+        for (int offset = -2; offset <= 2; offset++)
+        {
+            if (offset == 0 || Mathf.Abs(offset) >= optionCount) continue;
+            int option = ((_projectileIndex + 1 + offset) % optionCount + optionCount) % optionCount;
+            Rect rect = new Rect(width * 0.5f + offset * slotWidth - slotWidth * 0.5f, top, slotWidth, slotHeight);
+            if (option == 0)
+            {
+                ShadowLabel(rect, "STONE", _centerSubStyle, new Color(0.75f, 0.75f, 0.75f, 0.7f));
+                continue;
+            }
+
+            FishType fish = _fishSpawner.FishTypes[option - 1];
+            if (fish.IsRevealed)
+            {
+                GUI.DrawTexture(rect, _fishSelectionPreview.GetTexture(_fishSpawner.FishPrefabs[option - 1]), ScaleMode.ScaleToFit, true);
+            }
+            else
+            {
+                ShadowLabel(rect, "?", _centerStyle, new Color(0.75f, 0.75f, 0.75f, 0.7f));
+            }
+
+            string label = fish.IsRevealed ? fish.DisplayName : "";
+            if (!_progress.IsFishRegistered(fish)) label += "\nLOCKED";
+            ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 42f * scale), label, _previewStyle,
+                new Color(0.75f, 0.75f, 0.75f, 0.7f));
+        }
     }
 
     /// <summary>
@@ -564,6 +622,8 @@ public class GameFlowManager : MonoBehaviour
         _smallStyle = MakeStyle(22, TextAnchor.UpperLeft, scale);
         _centerStyle = MakeStyle(56, TextAnchor.MiddleCenter, scale);
         _centerSubStyle = MakeStyle(22, TextAnchor.UpperCenter, scale);
+        _previewStyle = MakeStyle(16, TextAnchor.UpperCenter, scale);
+        _previewStyle.wordWrap = true;
         _popupStyle = MakeStyle(52, TextAnchor.MiddleCenter, scale);
         _debugStyle = MakeStyle(18, TextAnchor.UpperRight, scale);
         _debugStyle.fontStyle = FontStyle.Normal;
