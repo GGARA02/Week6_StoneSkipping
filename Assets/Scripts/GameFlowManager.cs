@@ -269,7 +269,7 @@ public class GameFlowManager : MonoBehaviour
         FishType fish = SelectedFish();
         if (fish != null)
         {
-            _stoneGenerator.GenerateFish(fish);
+            _stoneGenerator.GenerateFish(_fishSpawner.FishPrefabs[_projectileIndex]);
             _stoneGenerator.SetFlopping(true);
         }
         else
