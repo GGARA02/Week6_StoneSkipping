@@ -50,9 +50,6 @@ public class FishSpawner : MonoBehaviour
     private float _minStoneSpeed = 10f;
     [SerializeField]
     private Color _catchFlashColor = new Color(1f, 0.85f, 0.3f, 0.3f);
-    [Tooltip("복어가 부풀 때 돌을 위로 튕겨 올리는 속도")]
-    [SerializeField]
-    private float _pufferBounce = 10f;
     private readonly List<Fish> _activeFish = new List<Fish>();
     private float _nextSpawnTime;
     public event Action<FishType> OnFishCaught;
@@ -131,16 +128,6 @@ public class FishSpawner : MonoBehaviour
         _effect.PlayImpact(0.8f, _catchFlashColor);
         OnFishCaught?.Invoke(fish.Type);
         Remove(fish);
-    }
-
-    /// <summary>
-    /// 복어가 돌에 닿아 부풀기 시작하면 돌을 위로 튕겨 올리고 화면 효과를 준다. 다 부풀면 HandleFishCaught가 불린다.
-    /// fish를 사용하며, 돌 속도를 변경한다.
-    /// </summary>
-    public void HandlePufferTouched(Fish fish)
-    {
-        _player.AddBounce(_pufferBounce);
-        _effect.PlayImpact(0.7f, _catchFlashColor);
     }
 
     /// <summary>

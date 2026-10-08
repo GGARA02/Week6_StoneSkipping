@@ -2,7 +2,7 @@ using System.Collections;
 
 using UnityEngine;
 
-public class BallController : MonoBehaviour
+public class BallController : FishAbility
 {
     [Header("참조")]
     [SerializeField] private Animator _animator;
@@ -33,6 +33,15 @@ public class BallController : MonoBehaviour
         {
             trail.widthMultiplier = width;
         }
+    }
+
+    /// <summary>
+    /// 던진 상태에서 SPACE 판정에 성공하면 공격 애니메이션을 재생한다.
+    /// context와 judge는 쓰지 않으며, 공격 재생 상태를 변경한다.
+    /// </summary>
+    public override void OnJudgeSuccess(ThrowContext context, SkipJudge judge)
+    {
+        PlayAttackSequence();
     }
 
     /// <summary>

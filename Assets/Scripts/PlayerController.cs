@@ -214,8 +214,11 @@ public class PlayerController : MonoBehaviour
             ApplyAimPose();
             return;
         }
+        if (_isGameOver) return;
+
+        UpdateAbilityFlight(Time.deltaTime);
         // 던지는 데 쓴 SPACE 입력을 첫 타이밍 입력으로 세지 않는다.
-        if (_isGameOver || Time.frameCount == _throwFrame) return;
+        if (Time.frameCount == _throwFrame) return;
 
         if (_inputActions.Player.Jump.WasPressedThisFrame())
         {
@@ -371,12 +374,17 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// 돌을 위로 튕겨 올린다. 부푼 복어에 닿았을 때 쓴다.
-    /// upSpeed를 사용하며, Rigidbody 속도를 변경한다.
+    /// 비행 중 공중 중력 배율을 바꾼다. 다음에 던질 때는 던지는 물체의 원래 배율로 돌아간다.
+    /// scale을 사용하며, _modifiers의 공중 중력 배율을 변경한다.
     /// </summary>
-    public void AddBounce(float upSpeed)
+    public void SetAirGravityScale(float scale)
     {
-        _playerRB.linearVelocity += Vector3.up * upSpeed;
+        _modifiers = new ThrowModifiers(
+            _modifiers.SpeedMultiplier,
+            _modifiers.SpinMultiplier,
+            _modifiers.LiftMultiplier,
+            _modifiers.FrictionMultiplier,
+            scale);
     }
 
     /// <summary>
@@ -527,7 +535,7 @@ public class PlayerController : MonoBehaviour
             // 너무 일찍 눌렀다.
             _jumpPending = false;
             _bonusLocked = true;
-            OnJudge?.Invoke(SkipJudge.Miss, float.NegativeInfinity);
+            ReportJudge(SkipJudge.Miss, float.NegativeInfinity);
         }
     }
 
@@ -591,7 +599,7 @@ public class PlayerController : MonoBehaviour
 
     /// <summary>
     /// 착수 시각과 SPACE 입력 시각의 차이로 판정하고, 성공하면 상승 속도와 스핀을 보충한다.
-    /// timingError(초, 빠르면 음수)를 사용하며, _contactJudge, _velocity, Rigidbody 각속도를 변경하고 OnJudge로 오차를 보낸다.
+    /// timingError(초, 빠르면 음수)를 사용하며, _contactJudge, _velocity, Rigidbody 각속도를 변경하고 특수 동작과 OnJudge로 결과를 보낸다.
     /// </summary>
     private void Judge(float timingError)
     {
@@ -615,7 +623,49 @@ public class PlayerController : MonoBehaviour
             float restored = Mathf.Max(Mathf.Abs(spin), Mathf.Lerp(Mathf.Abs(spin), throwSpin, quality)) * sign;
             _playerRB.angularVelocity = angular + up * (restored - spin);
         }
-        OnJudge?.Invoke(_contactJudge, timingError);
+        ReportJudge(_contactJudge, timingError);
+    }
+
+    /// <summary>
+    /// 판정 결과를 던진 물고기의 특수 동작에 먼저 알리고 OnJudge로 보낸다. Perfect와 Good은 성공, Miss는 실패다.
+    /// judge와 timingError(초, 빠르면 음수)를 사용하며, 특수 동작 상태를 변경하고 OnJudge를 보낸다.
+    /// </summary>
+    private void ReportJudge(SkipJudge judge, float timingError)
+    {
+        FishAbility ability = _stone.CurrentAbility;
+        if (ability != null)
+        {
+            if (judge == SkipJudge.Miss)
+            {
+                ability.OnJudgeMiss(AbilityContext());
+            }
+            else
+            {
+                ability.OnJudgeSuccess(AbilityContext(), judge);
+            }
+        }
+        OnJudge?.Invoke(judge, timingError);
+    }
+
+    /// <summary>
+    /// 던진 뒤 게임오버 전까지 던진 물고기의 특수 동작을 갱신한다.
+    /// dt와 현재 특수 동작을 사용하며, 특수 동작 상태를 변경한다.
+    /// </summary>
+    private void UpdateAbilityFlight(float dt)
+    {
+        FishAbility ability = _stone.CurrentAbility;
+        if (ability == null) return;
+
+        ability.UpdateFlight(AbilityContext(), dt);
+    }
+
+    /// <summary>
+    /// 특수 동작에 넘길 대상 묶음을 만든다.
+    /// 이 컨트롤러와 _stone을 사용하며, ThrowContext를 반환한다.
+    /// </summary>
+    private ThrowContext AbilityContext()
+    {
+        return new ThrowContext(this, _stone, _stone.FishBody);
     }
 
     /// <summary>

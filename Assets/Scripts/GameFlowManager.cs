@@ -300,20 +300,11 @@ public class GameFlowManager : MonoBehaviour
     }
 
     /// <summary>
-    /// SPACE 판정 결과를 표시하고, 성공하면 선택한 BalkSoul의 공격 애니메이션을 재생한다.
-    /// judge와 timingError(초, 빠르면 음수)를 사용하며, 팝업, 판정 횟수와 공격 재생 상태를 변경한다.
+    /// SPACE 판정 결과를 빠름/늦음과 함께 띄우고 판정 횟수를 기록한다.
+    /// judge와 timingError(초, 빠르면 음수)를 사용하며, 팝업과 판정 횟수를 변경한다.
     /// </summary>
     private void HandleJudge(SkipJudge judge, float timingError)
     {
-        if (judge == SkipJudge.Perfect || judge == SkipJudge.Good)
-        {
-            BallController ballController = _stoneGenerator.GetComponentInChildren<BallController>();
-            if (ballController != null)
-            {
-                ballController.PlayAttackSequence();
-            }
-        }
-
         string direction = timingError < 0f ? "EARLY" : "LATE";
         switch (judge)
         {
@@ -333,13 +324,12 @@ public class GameFlowManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 처음 물에 닿는 순간 던진 물고기의 파닥임을 멈추고, 복어면 부풀린다.
-    /// point와 speed는 쓰지 않으며, 던질 거리의 파닥임과 모양을 변경한다.
+    /// 처음 물에 닿는 순간 던진 물고기의 파닥임을 멈춘다.
+    /// point와 speed는 쓰지 않으며, 던질 거리의 파닥임을 변경한다.
     /// </summary>
     private void HandleWaterContact(Vector3 point, float speed)
     {
         _stoneGenerator.SetFlopping(false);
-        _stoneGenerator.InflateFish();
     }
 
     /// <summary>

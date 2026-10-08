@@ -44,9 +44,6 @@ public class FishType
     [Tooltip("등지느러미 크기. 0이면 없다 (상어용)")]
     [SerializeField]
     private float _dorsalFin = 0f;
-    [Tooltip("닿으면 부푸는 배율. 0이면 부풀지 않는다 (복어용)")]
-    [SerializeField]
-    private float _inflateScale = 0f;
 
     [Header("돌 대신 던질 때")]
     [SerializeField]
@@ -73,7 +70,6 @@ public class FishType
     public float Thickness => _thickness;
     public float TailLength => _tailLength;
     public float DorsalFin => _dorsalFin;
-    public float InflateScale => _inflateScale;
 
     /// <summary>
     /// 이 물고기를 던질 때 적용할 배율을 만든다. 던지는 힘과 스핀 업그레이드 배율을 곱한다.
