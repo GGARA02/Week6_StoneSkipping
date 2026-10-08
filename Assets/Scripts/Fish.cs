@@ -18,8 +18,6 @@ public class Fish : MonoBehaviour
     [Tooltip("메시를 가진 자식 몸 오브젝트. 복어는 이 오브젝트를 부풀린다")]
     [SerializeField]
     private Transform _body;
-    [SerializeField]
-    private Renderer[] _renderers;
 
     [Header("상태")]
     private FishSpawner _spawner;
@@ -36,16 +34,6 @@ public class Fish : MonoBehaviour
     public FishType Type => _type;
     public Transform Body => _body;
 
-    /// <summary>
-    /// 현재 오브젝트와 하위 오브젝트의 모든 Renderer를 수집한다.
-    /// 비활성 오브젝트를 포함해 renderers 배열을 갱신한다.
-    /// </summary>
-    [ContextMenu("Collect Child Renderers")]
-    private void CollectChildRenderers()
-    {
-        _renderers = GetComponentsInChildren<Renderer>(true);
-    }
-
     void Update()
     {
         if (!_jumped)
@@ -54,7 +42,10 @@ public class Fish : MonoBehaviour
             if (_delay > 0f) return;
 
             _jumped = true;
-            SetRenderersEnabled(true);
+            foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
+            {
+                renderer.enabled = true;
+            }
             _spawner.HandleFishSurfaced(_startPosition);
         }
 
@@ -92,18 +83,9 @@ public class Fish : MonoBehaviour
         _waterY = waterY;
         _gravity = -Physics.gravity.y;
         transform.position = start;
-        SetRenderersEnabled(false);
-    }
-
-    /// <summary>
-    /// 모든 하위 렌더러의 활성화 상태를 일괄 변경한다.
-    /// isEnabled를 사용하며, _renderers에 포함된 모든 Renderer의 enabled 상태를 변경한다.
-    /// </summary>
-    private void SetRenderersEnabled(bool isEnabled)
-    {
-        for (int i = 0; i < _renderers.Length; i++)
+        foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
         {
-            _renderers[i].enabled = isEnabled;
+            renderer.enabled = false;
         }
     }
 
