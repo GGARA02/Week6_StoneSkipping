@@ -44,6 +44,7 @@ GameObject:
   - component: {fileID: 1612873478765492355}
   - component: {fileID: 2590612363827592098}
   - component: {fileID: -338053525794902233}
+  - component: {fileID: 4195537519974168420}
   m_Layer: 0
   m_Name: Fish_Baguette
   m_TagString: Baguette
@@ -147,6 +148,26 @@ MonoBehaviour:
   _body: {fileID: 876439166668990689}
   _renderers:
   - {fileID: 3193043846535268330}
+--- !u!114 &4195537519974168420
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3192825985473028765}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b62c9278b6dee64448197337de2648b6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BaguetteMoisture
+  _baguetteRenderer: {fileID: 3193043846535268330}
+  _baguetteMaterials:
+  - {fileID: 2100000, guid: f89f029399c691c4da6e216f8fb1652e, type: 2}
+  - {fileID: 2100000, guid: 040899d52997f9046a9d059de40f0867, type: 2}
+  - {fileID: 2100000, guid: b149a72bb2e516f41b862f8d2563a7b8, type: 2}
+  - {fileID: 2100000, guid: 88d885fb8a65c4f4b88aaedb0501bc18, type: 2}
+  _maxSpeed: 50
+  _minSpeed: 12
 --- !u!1 &4991467971936218174
 GameObject:
   m_ObjectHideFlags: 0
