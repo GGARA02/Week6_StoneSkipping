@@ -225,8 +225,13 @@ public class StoneMeshGenerator : MonoBehaviour
 
         _fishMeshFilter = _fishInstance.Body.GetComponent<MeshFilter>();
         Mesh oldRender = _renderMesh;
-        _renderMesh = Instantiate(_fishMeshFilter.sharedMesh);
-        _fishMeshFilter.sharedMesh = _renderMesh;
+        _renderMesh = _fishMeshFilter != null
+            ? Instantiate(_fishMeshFilter.sharedMesh)
+            : BakeSkinnedFishMesh();
+        if (_fishMeshFilter != null)
+        {
+            _fishMeshFilter.sharedMesh = _renderMesh;
+        }
         _baseVertices = _renderMesh.vertices;
         _flopVertices = new Vector3[_baseVertices.Length];
         Destroy(oldRender);
@@ -250,12 +255,46 @@ public class StoneMeshGenerator : MonoBehaviour
     }
 
     /// <summary>
+    /// 스킨드 물고기의 모든 몸 메시를 현재 자세로 합쳐 수면 판정용 메시를 만든다.
+    /// 현재 프리팹의 렌더러와 Body 좌표계를 사용하며, 원본 외형을 변경하지 않는 새 메시를 반환한다.
+    /// </summary>
+    private Mesh BakeSkinnedFishMesh()
+    {
+        List<CombineInstance> parts = new List<CombineInstance>();
+        List<Mesh> bakedMeshes = new List<Mesh>();
+        foreach (SkinnedMeshRenderer renderer in _fishInstance.Body.GetComponentsInChildren<SkinnedMeshRenderer>())
+        {
+            Mesh bakedMesh = new Mesh();
+            renderer.BakeMesh(bakedMesh, true);
+            bakedMeshes.Add(bakedMesh);
+            for (int i = 0; i < bakedMesh.subMeshCount; i++)
+            {
+                parts.Add(new CombineInstance
+                {
+                    mesh = bakedMesh,
+                    subMeshIndex = i,
+                    transform = _fishInstance.Body.worldToLocalMatrix * renderer.transform.localToWorldMatrix,
+                });
+            }
+        }
+
+        Mesh mesh = new Mesh { name = "Fish_Skinned_Geometry" };
+        mesh.CombineMeshes(parts.ToArray(), true, true);
+        foreach (Mesh bakedMesh in bakedMeshes)
+        {
+            Destroy(bakedMesh);
+        }
+        return mesh;
+    }
+
+    /// <summary>
     /// 프리팹 메시의 실제 형상에서 수면 샘플과 저해상도 볼록 충돌 메시를 만든다.
     /// 몸 메시와 로컬 변환을 사용하며, HullPoints와 면적 데이터, 충돌체를 변경한다.
     /// </summary>
     private void BuildPrefabGeometry()
     {
-        Matrix4x4 toLocal = transform.worldToLocalMatrix * _fishMeshFilter.transform.localToWorldMatrix;
+        Transform meshTransform = _fishMeshFilter != null ? _fishMeshFilter.transform : _fishInstance.Body;
+        Matrix4x4 toLocal = transform.worldToLocalMatrix * meshTransform.localToWorldMatrix;
         HullPoints = new Vector3[_baseVertices.Length];
         for (int i = 0; i < _baseVertices.Length; i++)
         {
@@ -334,6 +373,7 @@ public class StoneMeshGenerator : MonoBehaviour
     public void SetFlopping(bool flopping)
     {
         bool active = flopping && _shapeMode == ShapeMode.Fish
+            && _fishMeshFilter != null
             && _fishInstance.GetComponentInChildren<HopakJumpAnimation>() == null;
         if (_isFlopping == active) return;
 

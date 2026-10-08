@@ -49,6 +49,10 @@ public class Fish : MonoBehaviour
 
             _jumped = true;
             _bodyRenderer.enabled = true;
+            foreach (Renderer renderer in _body.GetComponentsInChildren<Renderer>())
+            {
+                renderer.enabled = true;
+            }
             _spawner.HandleFishSurfaced(_startPosition);
         }
 
@@ -103,6 +107,10 @@ public class Fish : MonoBehaviour
         _gravity = -Physics.gravity.y;
         transform.position = start;
         _bodyRenderer.enabled = false;
+        foreach (Renderer renderer in _body.GetComponentsInChildren<Renderer>())
+        {
+            renderer.enabled = false;
+        }
     }
 
     /// <summary>
