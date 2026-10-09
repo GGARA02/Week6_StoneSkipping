@@ -68,8 +68,8 @@ MonoBehaviour:
     _dorsalFin: 0
     _speedMultiplier: 1
     _spinMultiplier: 1
-    _liftMultiplier: 1
-    _frictionMultiplier: 1
+    _liftMultiplier: 0.0070312503
+    _frictionMultiplier: 0.0021614584
     _airGravityScale: 1
   _body: {fileID: 2578489893940134203}
 --- !u!4 &2578489893940134203 stripped
