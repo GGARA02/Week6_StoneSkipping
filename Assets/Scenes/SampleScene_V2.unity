@@ -38217,7 +38217,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   _water: {fileID: 1272931870}
   _fish: {fileID: 747180400}
-  _throwVelocity: {x: 0, y: 10, z: 50}
+  _throwVelocity: {x: 0, y: 7, z: 50}
   _throwSpin: 30
   _randomPitchRange: {x: 0, y: 30}
   _randomRollRange: 25
@@ -38295,7 +38295,7 @@ Transform:
   m_GameObject: {fileID: 1936740314}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 7, z: 0}
+  m_LocalPosition: {x: 0, y: 12.2, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
