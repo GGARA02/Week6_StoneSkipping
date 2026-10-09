@@ -98,10 +98,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Fish
   _type:
     _id: umbrella
-    _displayName: UMBRELLA
+    _displayName: UMBRELLAJJANG
     _value: 50
     _color: {r: 1, g: 1, b: 1, a: 1}
     _spawnWeight: 0.2
+    _requiresEjection: 0
+    _allowRepeatEjection: 1
+    _maxConcurrent: 0
+    _stopAfterCatch: 0
+    _isRevealed: 1
     _shape: 0
     _length: 1
     _height: 1

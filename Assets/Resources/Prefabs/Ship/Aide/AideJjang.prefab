@@ -294,14 +294,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Fish
   _type:
     _id: aide
-    _displayName: AIDE
+    _displayName: AIDEJJANG
     _value: 50
     _color: {r: 1, g: 1, b: 1, a: 1}
-    _spawnWeight: 0.2
+    _spawnWeight: 2
     _requiresEjection: 1
     _allowRepeatEjection: 0
     _maxConcurrent: 1
-    _stopAfterCatch: 0
+    _stopAfterCatch: 1
     _isRevealed: 1
     _shape: 0
     _length: 1
