@@ -467,10 +467,8 @@ public class GameFlowManager : MonoBehaviour
         ShadowLabel(new Rect(0f, height * 0.18f + 112f * scale, width, 40f * scale),
             "PAD   A throw/skip    R-stick tilt    L-stick/triggers curve    Y new stone", _centerSubStyle, new Color(1f, 1f, 1f, 0.7f));
 
-        FishType fish = SelectedFish();
-        string projectile = fish != null ? fish.DisplayName : "STONE";
         ShadowLabel(new Rect(0f, height * _spaceHintHeight, width, 40f * scale),
-            $"<  Q/LB   THROW: {projectile}   E/RB  >", _centerSubStyle, new Color(1f, 0.92f, 0.7f));
+            "<  Q/LB   THROW   E/RB  >", _centerSubStyle, new Color(1f, 0.92f, 0.7f));
         DrawFishPreviews(width, height, scale);
     }
 
@@ -481,17 +479,26 @@ public class GameFlowManager : MonoBehaviour
     private void DrawFishPreviews(float width, float height, float scale)
     {
         int optionCount = _fishSpawner.FishTypes.Count + 1;
-        float slotWidth = Mathf.Min(156f * scale, width / 6f);
-        float slotHeight = 104f * scale;
-        float top = height * _spaceHintHeight - slotHeight - 34f * scale;
+        float slotWidth = Mathf.Min(234f * scale, width * 0.16f);
+        float slotHeight = slotWidth * 2f / 3f;
+        float slotSpacing = width * 0.21f;
+        float top = height * _spaceHintHeight - slotHeight - 58f * scale;
         for (int offset = -2; offset <= 2; offset++)
         {
-            if (offset == 0 || Mathf.Abs(offset) >= optionCount) continue;
+            Rect rect = new Rect(width * 0.5f + offset * slotSpacing - slotWidth * 0.5f, top, slotWidth, slotHeight);
+            if (offset == 0)
+            {
+                FishType selectedFish = SelectedFish();
+                ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 54f * scale),
+                    selectedFish != null ? selectedFish.DisplayName : "STONE", _previewStyle, new Color(1f, 0.92f, 0.7f));
+                continue;
+            }
+            if (Mathf.Abs(offset) >= optionCount) continue;
             int option = ((_projectileIndex + 1 + offset) % optionCount + optionCount) % optionCount;
-            Rect rect = new Rect(width * 0.5f + offset * slotWidth - slotWidth * 0.5f, top, slotWidth, slotHeight);
             if (option == 0)
             {
-                ShadowLabel(rect, "STONE", _centerSubStyle, new Color(0.75f, 0.75f, 0.75f, 0.7f));
+                ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 54f * scale),
+                    "STONE", _previewStyle, new Color(0.75f, 0.75f, 0.75f, 0.7f));
                 continue;
             }
 
@@ -507,7 +514,7 @@ public class GameFlowManager : MonoBehaviour
 
             string label = fish.IsRevealed ? fish.DisplayName : "";
             if (!_progress.IsFishRegistered(fish)) label += "\nLOCKED";
-            ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 42f * scale), label, _previewStyle,
+            ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 54f * scale), label, _previewStyle,
                 new Color(0.75f, 0.75f, 0.75f, 0.7f));
         }
     }
@@ -622,7 +629,7 @@ public class GameFlowManager : MonoBehaviour
         _smallStyle = MakeStyle(22, TextAnchor.UpperLeft, scale);
         _centerStyle = MakeStyle(56, TextAnchor.MiddleCenter, scale);
         _centerSubStyle = MakeStyle(22, TextAnchor.UpperCenter, scale);
-        _previewStyle = MakeStyle(16, TextAnchor.UpperCenter, scale);
+        _previewStyle = MakeStyle(24, TextAnchor.UpperCenter, scale);
         _previewStyle.wordWrap = true;
         _popupStyle = MakeStyle(52, TextAnchor.MiddleCenter, scale);
         _debugStyle = MakeStyle(18, TextAnchor.UpperRight, scale);
