@@ -12,6 +12,7 @@ public class PlayerProgress : MonoBehaviour
     private const string MONEY_KEY = "SkipStoneV2.Money";
     private const string FISH_KEY_PREFIX = "SkipStoneV2.Fish.";
     private const string UPGRADE_KEY_PREFIX = "SkipStoneV2.Upgrade.";
+    private const string WALL_MESH_KEY = "SkipStoneV2.WallMesh";
 
     [Header("업그레이드")]
     [Tooltip("단계별 가격. 길이가 최대 단계 수다")]
@@ -86,6 +87,28 @@ public class PlayerProgress : MonoBehaviour
         Money += fish.Value;
         PlayerPrefs.SetInt(FISH_KEY_PREFIX + fish.Id, 1);
         Save();
+    }
+
+    /// <summary>
+    /// mesh와 scale을 사용해 마지막으로 접촉한 Wall 조각의 모양을 영구 저장한다.
+    /// 저장된 크기 보정 데이터를 새 메시로 반환하며 다음 선택과 재실행에서 같은 모양을 사용한다.
+    /// </summary>
+    public Mesh SaveWallMesh(Mesh mesh, Vector3 scale)
+    {
+        WallFishMeshData data = new WallFishMeshData(mesh, scale);
+        PlayerPrefs.SetString(WALL_MESH_KEY, JsonUtility.ToJson(data));
+        PlayerPrefs.Save();
+        return data.ToMesh();
+    }
+
+    /// <summary>
+    /// 저장된 Wall 메시 데이터를 읽어 독립된 메시로 반환한다.
+    /// 입력값은 없으며 아직 접촉한 조각이 없으면 null을 반환한다.
+    /// </summary>
+    public Mesh LoadWallMesh()
+    {
+        if (!PlayerPrefs.HasKey(WALL_MESH_KEY)) return null;
+        return JsonUtility.FromJson<WallFishMeshData>(PlayerPrefs.GetString(WALL_MESH_KEY)).ToMesh();
     }
 
     /// <summary>

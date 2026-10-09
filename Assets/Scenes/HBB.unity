@@ -31048,7 +31048,8 @@ PrefabInstance:
       propertyPath: m_LocalRotation.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 8845494397762002710, guid: c6f54f4f503cf944c9d7a11baa536466, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
@@ -38441,8 +38442,8 @@ MonoBehaviour:
   _exitClearance: 0.05
   _perfectWindow: 0.06
   _goodWindow: 0.15
-  _bonusLift: 4
-  _bonusSpeedRefund: 0.6
+  _bonusLift: 10
+  _bonusSpeedRefund: 1
   _missCooldown: 0.5
   _slideEnterTime: 0.5
   _slidePushSpeed: 5

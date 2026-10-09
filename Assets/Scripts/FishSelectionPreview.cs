@@ -62,6 +62,17 @@ public sealed class FishSelectionPreview : IDisposable
     }
 
     /// <summary>
+    /// prefab을 사용해 이전 메쉬의 미리보기 텍스처를 해제한다.
+    /// 캐시에서 제거하여 다음 준비 시 마지막 접촉한 Wall 메쉬를 다시 렌더링한다.
+    /// </summary>
+    public void InvalidateTexture(Fish prefab)
+    {
+        if (!_textures.Remove(prefab, out RenderTexture texture)) return;
+        texture.Release();
+        UnityEngine.Object.Destroy(texture);
+    }
+
+    /// <summary>
     /// prefab의 메시와 변환 계층을 사용해 투척 자세의 회색 미리보기를 한 번 렌더링한다.
     /// OnGUI 밖에서 호출하며, prefab별 투명 배경 RenderTexture를 캐시에 저장한다.
     /// </summary>
