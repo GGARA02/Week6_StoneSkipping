@@ -561,7 +561,7 @@ public class PlayerController : MonoBehaviour
 
     /// <summary>
     /// 접촉 시작과 끝, 미끄러짐 시작을 판정하고, 대기 중인 SPACE 입력을 지금 또는 방금 끝난 접촉으로 판정하거나 만료시킨다.
-    /// _bottomHeight와 SPACE 입력 시각, 착수 시각을 사용하며, 접촉 상태와 _isSliding, _jumpPending을 변경한다.
+    /// _bottomHeight와 SPACE 입력 시각, 착수 시각을 사용하며, 접촉 상태와 _isSliding, _jumpPending을 변경하고 미끄러짐 시작을 특수 동작에 알린다.
     /// </summary>
     private void UpdateContact()
     {
@@ -581,6 +581,12 @@ public class PlayerController : MonoBehaviour
             _isSliding = true;
             _jumpPending = false;
             _slidePushCount = 0;
+
+            FishAbility ability = _stone.CurrentAbility;
+            if (ability != null)
+            {
+                ability.OnSlideStart(AbilityContext());
+            }
         }
 
         if (!_jumpPending) return;

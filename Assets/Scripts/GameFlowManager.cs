@@ -92,7 +92,7 @@ public class GameFlowManager : MonoBehaviour
         _playerController.OnGameOver += HandleGameOver;
         _playerController.OnWaterContact += HandleWaterContact;
         _fishSpawner.OnFishCaught += HandleFishCaught;
-        _cameraController.Initialize();
+        _cameraController.Initialize(_stoneGenerator);
 
         _bestSkips = PlayerPrefs.GetInt(BEST_SKIPS_KEY, 0);
         _bestDistance = PlayerPrefs.GetFloat(BEST_DISTANCE_KEY, 0f);
