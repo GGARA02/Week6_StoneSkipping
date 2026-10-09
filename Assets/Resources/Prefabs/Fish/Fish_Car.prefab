@@ -418,7 +418,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7997a1a0d8e90bf4599020f80708d275, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Car
-  _doduk: {fileID: 8541028851135796197, guid: bbf1a3b08dcb74b439367a3452fd1bd1, type: 3}
+  _doduk: {fileID: 8541028851135796197, guid: 738183c919d288c4e9447a679e6fd957, type: 3}
   _spawnPos:
   - {fileID: 8133718063343548169}
   - {fileID: 8519773459282295311}
