@@ -85,7 +85,7 @@ public class GameFlowManager : MonoBehaviour
         _inputActions.UI.Enable();
         _inputActions.Player.Enable();
 
-        _playerController.Initialize(_inputActions);
+        _playerController.Initialize(_inputActions, _fishSpawner);
         _playerController.OnSkip += HandleSkip;
         _playerController.OnJudge += HandleJudge;
         _playerController.OnSlidePush += HandleSlidePush;
@@ -368,7 +368,7 @@ public class GameFlowManager : MonoBehaviour
         FishAbility ability = _fishGenerator.CurrentAbility;
         if (ability != null)
         {
-            ThrowContext context = new ThrowContext(_playerController, _fishGenerator, _fishGenerator.FishBody);
+            ThrowContext context = new ThrowContext(_playerController, _fishGenerator, _fishGenerator.FishBody, _fishSpawner);
             ability.OnJudgeSuccess(context, SkipJudge.Good);
         }
         PlayFishInteraction();

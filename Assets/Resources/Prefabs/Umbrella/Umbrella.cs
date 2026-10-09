@@ -29,13 +29,11 @@ public class Umbrella : FishAbility
     }
 
     /// <summary>
-    /// 수면 타이밍 판정에 성공하면 우산을 펼치고 공중 중력을 줄인다. 미끄러짐 입력은 제외한다.
+    /// 수면 타이밍 성공 또는 미끄러짐 중 SPACE 입력에서 우산을 펼치고 공중 중력을 줄인다.
     /// context의 플레이어와 judge의 성공 콜백을 사용하며, 몸 머티리얼과 공중 중력 배율을 변경한다.
     /// </summary>
     public override void OnJudgeSuccess(ThrowContext context, SkipJudge judge)
     {
-        if (context.Player.IsSliding) return;
-
         SetOpen(context, true);
     }
 

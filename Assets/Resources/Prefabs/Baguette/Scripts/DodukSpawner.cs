@@ -1,16 +1,8 @@
-using System;
-
 using UnityEngine;
-using UnityEngine.Serialization;
 
-// 도둑 스포너 위치에서 DodukSpread 도둑 오브젝트를 생성하고 정면(Z축+) 방향으로 발사한다.
+// 창문 위치에서 정면과 위쪽 속도를 계산하고 공용 사출 능력에 생성을 요청한다.
 public class DodukSpawner : MonoBehaviour
 {
-    [Header("프리팹")]
-    [FormerlySerializedAs("_dodukl")]
-    [SerializeField]
-    private GameObject _dodukPrefab;
-
     [Header("발사 설정")]
     [Tooltip("창문 밖으로 튀어나가는 기본 발사 속도")]
     [SerializeField]
@@ -19,66 +11,15 @@ public class DodukSpawner : MonoBehaviour
     [SerializeField]
     private float _upwardSpeed = 6f;
 
-    [Header("상태")]
-    private SkipEffect _skipEffect;
-    private float _waterY;
-    private bool _isInitialized;
-
-    void Start()
-    {
-        InitializeReferences();
-    }
-
     /// <summary>
-    /// 씬에서 물보라 이펙트와 수면 높이를 탐색하여 초기화한다.
-    /// 씬의 SkipEffect와 Water 콜라이더를 사용하며, _skipEffect와 _waterY를 설정한다.
+    /// 창문의 전방 방향과 위쪽 속도에 무작위 편차를 적용하여 공용 사출을 요청한다.
+    /// context, ability, judge와 발사 설정을 사용하며, 프리팹의 원래 크기로 도둑 Fish를 사출한다.
     /// </summary>
-    private void InitializeReferences()
+    public void SpawnDoDuk(ThrowContext context, EjectFishAbility ability, SkipJudge judge)
     {
-        if (_isInitialized) return;
-
-        _skipEffect = FindFirstObjectByType<SkipEffect>();
-        GameObject water = GameObject.FindWithTag("Water");
-        if (water != null && water.TryGetComponent<Collider>(out Collider waterCollider))
-        {
-            _waterY = waterCollider.bounds.max.y;
-        }
-        else
-        {
-            _waterY = 0f;
-        }
-
-        _isInitialized = true;
-    }
-
-    /// <summary>
-    /// 스포너의 위치와 전방 방향을 기준으로 DodukSpread 도둑을 생성하여 발사한다.
-    /// _dodukPrefab, _launchSpeed, _upwardSpeed를 사용하며, DodukSpread를 발사한다.
-    /// </summary>
-    public void SpawnDoDuk()
-    {
-        if (_dodukPrefab == null) return;
-
-        if (!_isInitialized)
-        {
-            InitializeReferences();
-        }
-
-        Vector3 spawnPosition = transform.position;
-        Quaternion spawnRotation = transform.rotation;
-        GameObject dodukObj = Instantiate(_dodukPrefab, spawnPosition, spawnRotation);
-
-        DodukSpread doduk = dodukObj.GetComponent<DodukSpread>();
-        if (doduk == null)
-        {
-            doduk = dodukObj.AddComponent<DodukSpread>();
-        }
-
-        // 스포너 전방 방향과 상향 속도를 조합하여 발사
-        float speed = _launchSpeed * UnityEngine.Random.Range(0.85f, 1.15f);
-        float upward = _upwardSpeed * UnityEngine.Random.Range(0.85f, 1.15f);
-        Vector3 launchVelocity = (transform.forward * speed) + (Vector3.up * upward);
-
-        doduk.Launch(launchVelocity, _waterY, _skipEffect);
+        float speed = Random.Range(0.85f, 1.15f) * _launchSpeed;
+        float upward = Random.Range(0.85f, 1.15f) * _upwardSpeed;
+        Vector3 launchVelocity = transform.forward * speed + Vector3.up * upward;
+        ability.TryEjectFrom(context, judge, transform, launchVelocity, ability.FishPrefab.transform.localScale);
     }
 }

@@ -30,9 +30,11 @@ public class Fish : MonoBehaviour
     private float _waterY;
     private bool _jumped;
     private bool _caught;
+    private bool _isEjected;
 
     public FishType Type => _type;
     public Transform Body => _body;
+    public bool IsEjected => _isEjected;
 
     void Update()
     {
@@ -63,7 +65,7 @@ public class Fish : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (_caught || !_jumped || other.attachedRigidbody != _spawner.PlayerBody) return;
+        if (_isEjected || _caught || !_jumped || other.attachedRigidbody != _spawner.PlayerBody) return;
 
         _caught = true;
         _spawner.HandleFishCaught(this);
@@ -82,10 +84,29 @@ public class Fish : MonoBehaviour
         _delay = delay;
         _waterY = waterY;
         _gravity = -Physics.gravity.y;
+        _airTime = 0f;
+        _jumped = false;
+        _caught = false;
+        _isEjected = false;
         transform.position = start;
         foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
         {
             renderer.enabled = false;
+        }
+    }
+
+    /// <summary>
+    /// 공중의 start에서 launchVelocity로 즉시 사출하고 입수 전까지 포획을 막는다.
+    /// spawner와 waterY를 사용하며, 표시 상태와 사출 이동 상태를 초기화한다.
+    /// </summary>
+    public void Eject(FishSpawner spawner, Vector3 start, Vector3 launchVelocity, float waterY)
+    {
+        Launch(spawner, start, launchVelocity, 0f, waterY);
+        _jumped = true;
+        _isEjected = true;
+        foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
+        {
+            renderer.enabled = true;
         }
     }
 

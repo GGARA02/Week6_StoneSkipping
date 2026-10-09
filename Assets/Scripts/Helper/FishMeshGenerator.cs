@@ -226,6 +226,7 @@ public class FishMeshGenerator : MonoBehaviour
         _fishInstance.transform.localRotation = _fishInstance.Body == _fishInstance.transform
             ? prefab.transform.localRotation
             : Quaternion.Inverse(_fishInstance.Body.localRotation);
+        if (CurrentAbility != null) CurrentAbility.OnPrepareThrow();
         _fishBodyScale = _fishInstance.Body.localScale;
 
         // 프리팹의 큰 Trigger는 포획용이므로 던질 때는 플레이어의 볼록 충돌체만 사용한다.
