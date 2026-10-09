@@ -6,7 +6,6 @@ public class Fish : MonoBehaviour
 {
     private const float WIGGLE_SPEED = 14f;
     private const float WIGGLE_ANGLE = 12f;
-    private const float CRAB_SPIN_SPEED = 420f;
     private const float TIRE_ROLL_SPEED = 360f;
     private const float CAN_FLIP_SPEED = 620f;
 
@@ -32,9 +31,11 @@ public class Fish : MonoBehaviour
     private bool _caught;
     private bool _isWall;
     private Mesh _wallMesh;
+    private bool _isEjected;
 
     public FishType Type => _type;
     public Transform Body => _body;
+    public bool IsEjected => _isEjected;
 
     void Update()
     {
@@ -66,7 +67,7 @@ public class Fish : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (_caught || !_jumped || other.attachedRigidbody != _spawner.PlayerBody) return;
+        if (_isEjected || _caught || !_jumped || other.attachedRigidbody != _spawner.PlayerBody) return;
 
         _caught = true;
         _spawner.HandleFishCaught(this);
@@ -115,6 +116,10 @@ public class Fish : MonoBehaviour
         _delay = delay;
         _waterY = waterY;
         _gravity = -Physics.gravity.y;
+        _airTime = 0f;
+        _jumped = false;
+        _caught = false;
+        _isEjected = false;
         transform.position = start;
         foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
         {
@@ -123,15 +128,26 @@ public class Fish : MonoBehaviour
     }
 
     /// <summary>
-    /// 날아가는 동안의 몸 방향을 구한다. 물고기는 머리가 진행 방향을 보며 몸을 흔들고, 게는 납작하게 빙글빙글 돈다.
+    /// 공중의 start에서 launchVelocity로 즉시 사출하고 입수 전까지 포획을 막는다.
+    /// spawner와 waterY를 사용하며, 표시 상태와 사출 이동 상태를 초기화한다.
+    /// </summary>
+    public void Eject(FishSpawner spawner, Vector3 start, Vector3 launchVelocity, float waterY)
+    {
+        Launch(spawner, start, launchVelocity, 0f, waterY);
+        _jumped = true;
+        _isEjected = true;
+        foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
+        {
+            renderer.enabled = true;
+        }
+    }
+
+    /// <summary>
+    /// 날아가는 동안의 몸 방향을 구한다. 머리가 진행 방향을 보며 몸을 흔들고, 타이어와 캔은 굴러가거나 뒤집힌다.
     /// _velocity, _airTime, 종류 모양을 사용하며, 회전을 반환한다.
     /// </summary>
     private Quaternion BodyRotation()
     {
-        if (Type.Shape == FishShape.Crab)
-        {
-            return Quaternion.Euler(Mathf.Sin(_airTime * 6f) * 20f, _airTime * CRAB_SPIN_SPEED, 0f);
-        }
         if (Type.Shape == FishShape.Tire)
         {
             // 굴러가듯 세워서 돌면서 좌우로 털썩털썩 흔들린다.

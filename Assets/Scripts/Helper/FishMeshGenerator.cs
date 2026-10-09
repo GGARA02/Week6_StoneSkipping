@@ -109,6 +109,13 @@ public class FishMeshGenerator : MonoBehaviour
     private Vector3[][] _fishFlopVertices;
     private Bounds _fishFlopBounds;
 
+    [Header("평평한 바닥 충돌체")]
+    [Tooltip("최저점부터 박스가 덮는 높이 (외형 전체 높이 대비 비율)")]
+    [Range(0.05f, 1f)]
+    [SerializeField]
+    private float _flatBottomHeightRatio = 0.5f;
+    private BoxCollider _flatBottomCollider;
+
     [Header("해상도")]
     [SerializeField]
     private int _segments = 40;
@@ -142,6 +149,8 @@ public class FishMeshGenerator : MonoBehaviour
     {
         _meshFilter = GetComponent<MeshFilter>();
         _meshCollider = GetComponent<MeshCollider>();
+        _flatBottomCollider = gameObject.AddComponent<BoxCollider>();
+        _flatBottomCollider.sharedMaterial = _meshCollider.sharedMaterial;
         _meshRenderer = GetComponent<MeshRenderer>();
         _propertyBlock = new MaterialPropertyBlock();
         if (_generateOnAwake)
@@ -227,6 +236,7 @@ public class FishMeshGenerator : MonoBehaviour
         _fishInstance.transform.localRotation = _fishInstance.Body == _fishInstance.transform
             ? prefab.transform.localRotation
             : Quaternion.Inverse(_fishInstance.Body.localRotation);
+        if (CurrentAbility != null) CurrentAbility.OnPrepareThrow();
         _fishBodyScale = _fishInstance.Body.localScale;
 
         // 프리팹의 큰 Trigger는 포획용이므로 던질 때는 플레이어의 볼록 충돌체만 사용한다.
@@ -374,7 +384,7 @@ public class FishMeshGenerator : MonoBehaviour
 
     /// <summary>
     /// 프리팹 메시의 실제 형상에서 수면 샘플과 저해상도 볼록 충돌 메시를 만든다.
-    /// 몸 메시와 로컬 변환을 사용하며, HullPoints와 면적 데이터, 충돌체를 변경한다.
+    /// 몸 메시와 로컬 변환을 사용하며, HullPoints와 면적 데이터, 볼록 충돌체와 바닥 박스 충돌체를 변경한다.
     /// </summary>
     public void BuildPrefabGeometry()
     {
@@ -412,6 +422,7 @@ public class FishMeshGenerator : MonoBehaviour
         _meshCollider.sharedMesh = null;
         _meshCollider.convex = true;
         _meshCollider.sharedMesh = _colliderMesh;
+        FitFlatBottomCollider();
         Destroy(oldCollider);
         OnGenerated?.Invoke();
     }
@@ -434,6 +445,24 @@ public class FishMeshGenerator : MonoBehaviour
             point = HullPoints[i];
         }
         return point;
+    }
+
+    /// <summary>
+    /// 외형의 최저점을 바닥면으로 하는 박스 충돌체를 외형 아래쪽에 맞춰 바닥을 평평하게 만든다.
+    /// HullPoints와 _flatBottomHeightRatio를 사용하며, _flatBottomCollider의 center와 size를 변경한다.
+    /// </summary>
+    private void FitFlatBottomCollider()
+    {
+        Bounds bounds = new Bounds(HullPoints[0], Vector3.zero);
+        for (int i = 1; i < HullPoints.Length; i++)
+        {
+            bounds.Encapsulate(HullPoints[i]);
+        }
+
+        // 바닥면을 최저점에 맞춰 수면 판정의 최저 높이와 충돌체 바닥이 어긋나지 않게 한다.
+        float height = bounds.size.y * _flatBottomHeightRatio;
+        _flatBottomCollider.center = new Vector3(bounds.center.x, bounds.min.y + height * 0.5f, bounds.center.z);
+        _flatBottomCollider.size = new Vector3(bounds.size.x, height, bounds.size.z);
     }
 
     /// <summary>
@@ -495,7 +524,7 @@ public class FishMeshGenerator : MonoBehaviour
 
     /// <summary>
     /// 현재 모양 설정으로 렌더/충돌 메시와 샘플점을 다시 만들고 색을 입힌다.
-    /// color와 현재 모양 모드를 사용하며, 메시, HullPoints, 샘플점, 렌더러 색을 변경한다.
+    /// color와 현재 모양 모드를 사용하며, 메시, HullPoints, 바닥 박스 충돌체, 샘플점, 렌더러 색을 변경한다.
     /// </summary>
     private void Rebuild(Color color)
     {
@@ -515,6 +544,7 @@ public class FishMeshGenerator : MonoBehaviour
         _meshCollider.sharedMesh = null;
         _meshCollider.convex = true;
         _meshCollider.sharedMesh = _colliderMesh;
+        FitFlatBottomCollider();
 
         // 첫 생성 때는 이전 메시가 없다.
         if (oldRender != null)
@@ -591,6 +621,7 @@ public class FishMeshGenerator : MonoBehaviour
     {
         switch (fish.Shape)
         {
+            case FishShape.Starfish:
             case FishShape.Crab: return CrabOutlinePoint(angle, fish);
             case FishShape.Tire: return TireOutlinePoint(angle, fish);
             case FishShape.Can: return CanOutlinePoint(angle, fish);
@@ -696,7 +727,7 @@ public class FishMeshGenerator : MonoBehaviour
             float dent = 1f + Mathf.Sin(angle * 7f + (top ? 0f : 2.1f)) * 0.25f * t;
             height = fish.Thickness * 0.5f * Mathf.Sqrt(Mathf.Max(0f, 1f - Mathf.Pow(t, 4f))) * dent;
         }
-        else if (fish.Shape == FishShape.Crab)
+        else if (fish.Shape == FishShape.Crab || fish.Shape == FishShape.Starfish)
         {
             float profile = top
                 ? Mathf.Pow(Mathf.Max(0f, 1f - t * t), 0.5f)

@@ -8,6 +8,7 @@ public enum FishShape
     Crab,
     Tire,
     Can,
+    Starfish,
 }
 
 // 물고기 한 종류의 값, 생김새, 던질 때의 물리 특성.
@@ -27,6 +28,17 @@ public class FishType
     [Tooltip("출현 확률 가중치")]
     [SerializeField]
     private float _spawnWeight = 1f;
+
+    [Header("사출물 출현 정책")]
+    [Tooltip("사출 후 입수한 다음 판부터 자연 출현한다")]
+    [SerializeField] private bool _requiresEjection;
+    [Tooltip("바다에 등록된 뒤에도 다시 사출할 수 있다")]
+    [SerializeField] private bool _allowRepeatEjection = true;
+    [Tooltip("출수 대기와 사출 중인 개체도 포함한다. 0이면 제한하지 않는다")]
+    [Min(0)]
+    [SerializeField] private int _maxConcurrent;
+    [Tooltip("획득한 뒤 자연 출현과 사출을 중단한다")]
+    [SerializeField] private bool _stopAfterCatch;
 
     [Header("선택 미리보기")]
     [Tooltip("공개하면 회색 반투명 모델, 공개하지 않으면 물음표로 표시한다. 도감 등록 여부와는 별개다")]
@@ -70,6 +82,10 @@ public class FishType
     public Color Color => _color;
     public float SpawnWeight => _spawnWeight;
     public bool IsRevealed => _isRevealed;
+    public bool RequiresEjection => _requiresEjection;
+    public bool AllowRepeatEjection => _allowRepeatEjection;
+    public int MaxConcurrent => _maxConcurrent;
+    public bool StopAfterCatch => _stopAfterCatch;
     public FishShape Shape => _shape;
     public float Length => _length;
     public float Height => _height;

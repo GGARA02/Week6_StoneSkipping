@@ -44,12 +44,27 @@ Shader "Custom/WaterV3"
         _RippleLifetime ("Ripple Lifetime", Float) = 1.8
         _RippleNormalStrength ("Ripple Normal Strength", Range(0, 2)) = 0.8
         _RippleFoam ("Ripple Foam", Range(0, 1)) = 0.8
+
+        [Header(Water Hole)]
+        // 바다는 NotEqual로 구멍 자리를 비우고, 구멍 안쪽 벽이나 양동이 속 물처럼 구멍 안에서도 보여야 하는 물은 Always로 둔다.
+        [Enum(UnityEngine.Rendering.CompareFunction)] _HoleStencilComp ("Hole Stencil Comp", Float) = 6
+        // 켜면 구멍 벽용으로 그린다. 뒤를 비추지 않고 아주 깊은 물처럼 채우며, 파도는 면을 따라 아래로 흘러내린다.
+        [Toggle(_WATER_HOLE_WALL)] _WaterHoleWall ("Water Hole Wall", Float) = 0
+        _WallFlowSpeed ("Wall Flow Speed", Float) = 1.5
     }
 
     SubShader
     {
         // 물 아래 장면을 굴절시키려면 Opaque Texture 복사 뒤에 그려야 하므로 Transparent 큐 앞쪽에 둔다.
         Tags { "RenderType" = "Transparent" "Queue" = "Transparent-100" "RenderPipeline" = "UniversalPipeline" }
+
+        // 파낸 물 구멍(WaterHoleMask)이 표시한 곳에는 수면을 그리지 않는다. 비교 방식은 머티리얼의 _HoleStencilComp를 따른다.
+        Stencil
+        {
+            Ref 128
+            ReadMask 128
+            Comp [_HoleStencilComp]
+        }
 
         Pass
         {
@@ -64,6 +79,7 @@ Shader "Custom/WaterV3"
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
             #pragma multi_compile_fog
+            #pragma shader_feature_local _WATER_HOLE_WALL
 
             // 물은 깊이 텍스처에 없으므로 화면 공간 그림자 대신 그림자 맵을 직접 샘플링한다.
             #define _SURFACE_TYPE_TRANSPARENT 1
@@ -113,6 +129,7 @@ Shader "Custom/WaterV3"
                 float _RippleLifetime;
                 half _RippleNormalStrength;
                 half _RippleFoam;
+                float _WallFlowSpeed;
             CBUFFER_END
 
             float4 _SkipRippleData[RIPPLE_COUNT];
@@ -120,6 +137,9 @@ Shader "Custom/WaterV3"
             struct Attributes
             {
                 float4 positionOS : POSITION;
+            #if defined(_WATER_HOLE_WALL)
+                float3 normalOS : NORMAL;
+            #endif
             };
 
             struct Varyings
@@ -127,6 +147,9 @@ Shader "Custom/WaterV3"
                 float4 positionCS : SV_POSITION;
                 float3 positionWS : TEXCOORD0;
                 half fogFactor : TEXCOORD1;
+            #if defined(_WATER_HOLE_WALL)
+                float3 normalWS : TEXCOORD2;
+            #endif
             };
 
             // slope: 수면 기울기, pinch: 마루를 뾰족하게 만드는 법선 y 감소량, height: 파고.
@@ -147,6 +170,9 @@ Shader "Custom/WaterV3"
                 output.positionCS = positions.positionCS;
                 output.positionWS = positions.positionWS;
                 output.fogFactor = ComputeFogFactor(positions.positionCS.z);
+            #if defined(_WATER_HOLE_WALL)
+                output.normalWS = TransformObjectToWorldNormal(input.normalOS);
+            #endif
                 return output;
             }
 
@@ -338,13 +364,26 @@ Shader "Custom/WaterV3"
             {
                 float3 positionWS = input.positionWS;
                 float time = _Time.y;
-                float footprint = max(length(ddx(positionWS.xz)), length(ddy(positionWS.xz)));
+            #if defined(_WATER_HOLE_WALL)
+                // 면을 기준으로 한 좌표로 파도를 샘플한다. 옆면은 세로축을 시간만큼 밀어 물이 아래로 흘러내리게 한다.
+                float3 faceNormal = normalize(input.normalWS);
+                float3 faceTangent = abs(faceNormal.y) > 0.5 ? float3(1.0, 0.0, 0.0) : normalize(cross(float3(0.0, 1.0, 0.0), faceNormal));
+                float3 faceBitangent = cross(faceNormal, faceTangent);
+                float2 waveCoord = float2(dot(positionWS, faceTangent), dot(positionWS, faceBitangent) + time * _WallFlowSpeed);
+            #else
+                float2 waveCoord = positionWS.xz;
+            #endif
+                float footprint = max(length(ddx(waveCoord)), length(ddy(waveCoord)));
 
-                WaveSample waves = SampleWaves(positionWS.xz, time, footprint);
+                WaveSample waves = SampleWaves(waveCoord, time, footprint);
                 float2 slope = waves.slope;
                 float foam = 0.0;
+            #if defined(_WATER_HOLE_WALL)
+                float3 normalWS = normalize(faceNormal * max(1.0 - _Choppiness * waves.pinch, 0.2) - faceTangent * slope.x - faceBitangent * slope.y);
+            #else
                 AddRipples(positionWS.xz, time, slope, foam);
                 float3 normalWS = normalize(float3(-slope.x, max(1.0 - _Choppiness * waves.pinch, 0.2), -slope.y));
+            #endif
 
                 float3 viewDirWS = GetWorldSpaceNormalizeViewDir(positionWS);
                 float viewDistance = distance(GetCameraPositionWS(), positionWS);
@@ -357,6 +396,11 @@ Shader "Custom/WaterV3"
                 float alpha = sqrt(baseAlpha * baseAlpha + 2.0 * waves.variance);
                 float perceptualRoughness = sqrt(alpha);
 
+                half3 scatterLight = ambient + mainLight.color * (saturate(mainLight.direction.y) * shadow * 0.5);
+            #if defined(_WATER_HOLE_WALL)
+                // 벽 뒤 장면을 비추지 않고, 빛이 모두 흡수된 아주 깊은 물처럼 산란색으로만 채운다.
+                half3 underwater = _ScatteringColor.rgb * scatterLight;
+            #else
                 // 물결 법선만큼 화면 UV를 밀고, 그 자리에 물 위 물체가 있으면 원래 UV를 쓴다.
                 float3 screen = WorldToScreen(positionWS);
                 float surfaceDepth = screen.z;
@@ -375,8 +419,8 @@ Shader "Custom/WaterV3"
                 float pathLength = max(refractDepth - surfaceDepth, 0.0) * depthToPath;
                 float3 absorption = -log(max(_RefractionColor.rgb, 1e-3)) / _AbsorptionDistance;
                 float3 transmittance = exp(-absorption * pathLength);
-                half3 scatterLight = ambient + mainLight.color * (saturate(mainLight.direction.y) * shadow * 0.5);
                 half3 underwater = SampleOpaqueColor(refractUV) * transmittance + _ScatteringColor.rgb * scatterLight * (1.0 - transmittance);
+            #endif
 
                 // 햇빛을 등지고 본 파도 마루는 빛이 얇은 물을 통과해 밝은 청록색으로 보인다.
                 float crest = saturate(waves.height / max(waves.amplitude * 0.5, 1e-4));
@@ -404,9 +448,11 @@ Shader "Custom/WaterV3"
                 half3 color = lerp(underwater, reflection, fresnel * _ReflectionStrength);
                 color += SunSpecular(normalWS, viewDirWS, mainLight.direction, alpha) * _SpecularStrength * shadow * mainLight.color;
 
+            #if !defined(_WATER_HOLE_WALL)
                 // 물체와 맞닿은 얕은 곳에 생기는 거품.
                 float verticalDepth = max(sceneDepth - surfaceDepth, 0.0) * depthToPath * viewDirWS.y;
                 foam += saturate(1.0 - verticalDepth / _EdgeFoamDistance) * _EdgeFoamStrength;
+            #endif
 
                 // 거품 양이 적을수록 기포 노이즈의 밝은 부분만 남긴다. 먼 곳은 노이즈를 평균값으로 바꿔 깜빡임을 막는다.
                 float2 foamUV = positionWS.xz * _FoamBubbleScale;
