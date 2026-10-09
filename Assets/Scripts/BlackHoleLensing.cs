@@ -72,8 +72,8 @@ public class BlackHoleLensing : MonoBehaviour
         _properties.SetColor("_LensBackgroundColor", camera.backgroundColor);
         _properties.SetFloat("_DiskEnabled", _accretionDisk.enabled && _accretionDisk.gameObject.activeInHierarchy ? 1f : 0f);
         _properties.SetMatrix("_DiskWorldToLocal", _accretionDisk.transform.worldToLocalMatrix);
-        _properties.SetColor("_DiskInnerColor", material.GetColor("_InnerColor"));
-        _properties.SetColor("_DiskOuterColor", material.GetColor("_OuterColor"));
+        _properties.SetVector("_DiskInnerColor", material.GetColor("_InnerColor"));
+        _properties.SetVector("_DiskOuterColor", material.GetColor("_OuterColor"));
         foreach (var property in _diskFloatProperties)
             _properties.SetFloat(property.Target, material.GetFloat(property.Source));
         _eventHorizon.SetPropertyBlock(_properties);
