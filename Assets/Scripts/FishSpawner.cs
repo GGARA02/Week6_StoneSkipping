@@ -55,6 +55,7 @@ public class FishSpawner : MonoBehaviour
     private readonly List<Fish> _activeFish = new List<Fish>();
     private float _nextSpawnTime;
     public event Action<FishType> OnFishCaught;
+    public event Action OnCleared;
 
     [Header("물결")]
     [Tooltip("물고기가 튀어 오르거나 물에 들어갈 때 물결 세기 배율")]
@@ -91,7 +92,7 @@ public class FishSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// 떠 있는 물고기를 모두 없앤다. 재시작할 때 쓴다.
+    /// 떠 있는 물고기를 모두 없애고 맵에 놓인 물고기가 다시 나타나도록 OnCleared를 보낸다. 재시작할 때 쓴다.
     /// 입력값은 없으며, _activeFish를 비운다.
     /// </summary>
     public void Clear()
@@ -101,6 +102,7 @@ public class FishSpawner : MonoBehaviour
             Destroy(fish.gameObject);
         }
         _activeFish.Clear();
+        OnCleared?.Invoke();
     }
 
     /// <summary>
@@ -135,6 +137,18 @@ public class FishSpawner : MonoBehaviour
         _effect.PlayImpact(0.8f, _catchFlashColor);
         OnFishCaught?.Invoke(fish.Type);
         Remove(fish);
+    }
+
+    /// <summary>
+    /// 맵에 놓인 물고기에 던진 물고기가 닿으면 도감에 등록하고 돈을 주며 화면 효과와 포획 이벤트를 보낸다.
+    /// type과 효과 위치 point를 사용하며, 진행 상황(돈, 도감 등록)을 변경한다. 오브젝트는 없애지 않는다.
+    /// </summary>
+    public void HandlePlacedFishCaught(FishType type, Vector3 point)
+    {
+        _progress.AddFish(type);
+        _effect.PlaySplash(point, 0.6f);
+        _effect.PlayImpact(0.8f, _catchFlashColor);
+        OnFishCaught?.Invoke(type);
     }
 
     /// <summary>
