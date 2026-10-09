@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 using UnityEngine;
 
 public sealed class WallCuttingTip : MonoBehaviour
@@ -6,6 +8,8 @@ public sealed class WallCuttingTip : MonoBehaviour
     private PlayerController _player;
     private Vector3 _previousPosition;
     private float _radius;
+    private readonly HashSet<CuttableWall> _contactWalls = new HashSet<CuttableWall>();
+    private readonly HashSet<CuttableWall> _currentWalls = new HashSet<CuttableWall>();
 
     /// <summary>
     /// player와 팔 끝의 현재 위치를 사용해 접촉 감지를 준비한다.
@@ -23,6 +27,7 @@ public sealed class WallCuttingTip : MonoBehaviour
         Vector3 current = transform.position;
         if (!_player.IsThrown || _player.IsGameOver)
         {
+            _contactWalls.Clear();
             _previousPosition = current;
             return;
         }
@@ -33,14 +38,22 @@ public sealed class WallCuttingTip : MonoBehaviour
         if (normal.sqrMagnitude < 0.000001f) normal = Vector3.Cross(_player.Velocity, Vector3.up);
         if (normal.sqrMagnitude < 0.000001f) normal = _player.transform.right;
 
+        _currentWalls.Clear();
         foreach (Collider collider in Physics.OverlapCapsule(_previousPosition, current, _radius, ~0, QueryTriggerInteraction.Ignore))
         {
             if (collider.TryGetComponent(out CuttableWall wall))
             {
+                if (_contactWalls.Contains(wall))
+                {
+                    _currentWalls.Add(wall);
+                    continue;
+                }
                 Vector3 contact = collider.ClosestPoint(current);
-                wall.Cut(contact, normal);
+                if (wall.Cut(contact, normal)) _currentWalls.Add(wall);
             }
         }
+        _contactWalls.Clear();
+        _contactWalls.UnionWith(_currentWalls);
         _previousPosition = current;
     }
 }

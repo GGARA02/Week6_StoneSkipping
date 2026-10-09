@@ -245,6 +245,7 @@ public class GameFlowManager : MonoBehaviour
     /// </summary>
     private void Throw()
     {
+        _fishSpawner.ResetWalls();
         FishType fish = SelectedFish();
         ThrowModifiers modifiers = fish != null
             ? fish.ToThrowModifiers(_progress.PowerMultiplier, _progress.SpinMultiplier)

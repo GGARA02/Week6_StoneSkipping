@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 using UnityEngine;
 
 public class AlkagiLaser : MonoBehaviour
@@ -11,6 +13,7 @@ public class AlkagiLaser : MonoBehaviour
     private GameObject _beam;
     private CapsuleCollider _beamCollider;
     private float _remainingTime;
+    private readonly HashSet<CuttableWall> _cutWalls = new HashSet<CuttableWall>();
 
     void Update()
     {
@@ -36,6 +39,7 @@ public class AlkagiLaser : MonoBehaviour
     /// </summary>
     public void Fire()
     {
+        _cutWalls.Clear();
         if (_beam == null)
         {
             _beam = Instantiate(_beamPrefab, _eye, false);
@@ -73,10 +77,10 @@ public class AlkagiLaser : MonoBehaviour
         foreach (Collider collider in Physics.OverlapCapsule(center - direction * halfLength, center + direction * halfLength,
                      radius, ~0, QueryTriggerInteraction.Ignore))
         {
-            if (collider.TryGetComponent(out CuttableWall wall))
+            if (collider.TryGetComponent(out CuttableWall wall) && !_cutWalls.Contains(wall))
             {
                 Vector3 contact = collider.ClosestPoint(_eye.position + _eye.forward * Vector3.Dot(collider.bounds.center - _eye.position, _eye.forward));
-                wall.Cut(contact, _eye.up);
+                if (wall.Cut(contact, _eye.up)) _cutWalls.Add(wall);
             }
         }
     }

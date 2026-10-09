@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 using UnityEngine;
 
 public sealed class CuttableWall : MonoBehaviour
@@ -8,21 +10,62 @@ public sealed class CuttableWall : MonoBehaviour
 
     [Header("상태")]
     private FishSpawner _spawner;
-    private bool _cut;
+    private MeshFilter _meshFilter;
+    private Mesh _originalMesh;
+    private Collider _originalCollider;
+    private MeshCollider _remainingCollider;
     private Mesh _remainingMesh;
+    private readonly List<GameObject> _pieces = new List<GameObject>();
 
     void OnDestroy()
     {
+        ClearPieces();
         if (_remainingMesh != null) Destroy(_remainingMesh);
     }
 
     /// <summary>
-    /// spawner를 사용해 절단 조각을 등록할 물고기 스포너를 저장한다.
-    /// 벽의 렌더링과 충돌 상태는 변경하지 않는다.
+    /// spawner를 저장하고 새 throw에서 복원할 원본 메쉬와 충돌체를 보관한다.
+    /// 밑둥용 충돌체를 비활성 상태로 준비하여 최초 벽의 렌더링과 충돌은 유지한다.
     /// </summary>
     public void Initialize(FishSpawner spawner)
     {
         _spawner = spawner;
+        _meshFilter = GetComponent<MeshFilter>();
+        _originalMesh = _meshFilter.sharedMesh;
+        _originalCollider = GetComponent<Collider>();
+        _remainingCollider = gameObject.AddComponent<MeshCollider>();
+        _remainingCollider.convex = true;
+        _remainingCollider.enabled = false;
+    }
+
+    /// <summary>
+    /// 보관한 원본 메쉬와 충돌체를 사용해 새 throw의 온전한 벽으로 복원한다.
+    /// 입력값은 없으며 이전 절단 조각과 밑둥 메쉬를 해제하고 재절단 가능한 상태로 되돌린다.
+    /// </summary>
+    public void ResetWall()
+    {
+        ClearPieces();
+        _meshFilter.sharedMesh = _originalMesh;
+        _remainingCollider.enabled = false;
+        _remainingCollider.sharedMesh = null;
+        _originalCollider.enabled = true;
+        if (_remainingMesh != null) Destroy(_remainingMesh);
+        _remainingMesh = null;
+    }
+
+    /// <summary>
+    /// 이 벽에서 생성한 조각 목록을 사용해 이전 throw의 물고기 조각을 제거한다.
+    /// 이미 포획된 조각은 건너뛰며 나머지를 즉시 비활성화하고 목록을 비운다.
+    /// </summary>
+    private void ClearPieces()
+    {
+        foreach (GameObject piece in _pieces)
+        {
+            if (piece == null) continue;
+            piece.SetActive(false);
+            Destroy(piece);
+        }
+        _pieces.Clear();
     }
 
     /// <summary>
@@ -31,11 +74,11 @@ public sealed class CuttableWall : MonoBehaviour
     /// </summary>
     public bool Cut(Vector3 point, Vector3 normal)
     {
-        if (_cut || normal.sqrMagnitude < 0.000001f) return false;
+        if (normal.sqrMagnitude < 0.000001f) return false;
 
         normal.Normalize();
         if (Mathf.Abs(normal.y) < 0.0001f) normal = Vector3.up;
-        Mesh mesh = GetComponent<MeshFilter>().sharedMesh;
+        Mesh mesh = _meshFilter.sharedMesh;
         Vector3 localPoint = transform.InverseTransformPoint(point);
         Vector3 localNormal = transform.localToWorldMatrix.transpose.MultiplyVector(normal).normalized;
         float minProjection = float.PositiveInfinity;
@@ -54,19 +97,18 @@ public sealed class CuttableWall : MonoBehaviour
         localPoint += localNormal * (cutProjection - pointProjection);
         if (!WallMeshCutter.Slice(mesh, new Plane(localNormal, localPoint), out Mesh positive, out Mesh negative)) return false;
 
-        _cut = true;
         bool positiveIsUpper = GetWorldCentroid(positive).y >= GetWorldCentroid(negative).y;
         Mesh upper = positiveIsUpper ? positive : negative;
+        Mesh previous = _remainingMesh;
         _remainingMesh = positiveIsUpper ? negative : positive;
         CreatePiece(upper, positiveIsUpper ? normal : -normal);
 
-        GetComponent<MeshFilter>().sharedMesh = _remainingMesh;
-        Collider originalCollider = GetComponent<Collider>();
-        originalCollider.enabled = false;
-        Destroy(originalCollider);
-        MeshCollider remainingCollider = gameObject.AddComponent<MeshCollider>();
-        remainingCollider.convex = true;
-        remainingCollider.sharedMesh = _remainingMesh;
+        _meshFilter.sharedMesh = _remainingMesh;
+        _originalCollider.enabled = false;
+        _remainingCollider.sharedMesh = null;
+        _remainingCollider.sharedMesh = _remainingMesh;
+        _remainingCollider.enabled = true;
+        if (previous != null) Destroy(previous);
         return true;
     }
 
@@ -124,6 +166,7 @@ public sealed class CuttableWall : MonoBehaviour
         body.interpolation = RigidbodyInterpolation.Interpolate;
         body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
         piece.AddComponent<Fish>().InitializeWall(_spawner, _spawner.WallFish.Type, mesh);
+        _pieces.Add(piece);
         body.AddForce(separation * EJECTION_SPEED + Vector3.up * UPWARD_SPEED, ForceMode.VelocityChange);
     }
 }

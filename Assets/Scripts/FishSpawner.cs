@@ -27,6 +27,7 @@ public class FishSpawner : MonoBehaviour
     private FishType[] _fishTypes;
     private Fish _wallFish;
     private Mesh _wallCatalogMesh;
+    private CuttableWall[] _walls = Array.Empty<CuttableWall>();
 
     [Header("출현")]
     [Tooltip("물고기가 튀어 오르는 간격 범위(초)")]
@@ -110,10 +111,21 @@ public class FishSpawner : MonoBehaviour
         int count = _fishPrefabs.Length;
         Array.Resize(ref _fishPrefabs, count + 1);
         _fishPrefabs[count] = _wallFish;
-        foreach (MeshFilter wall in walls)
+        _walls = new CuttableWall[walls.Length];
+        for (int i = 0; i < walls.Length; i++)
         {
-            wall.gameObject.AddComponent<CuttableWall>().Initialize(this);
+            _walls[i] = walls[i].gameObject.AddComponent<CuttableWall>();
+            _walls[i].Initialize(this);
         }
+    }
+
+    /// <summary>
+    /// 초기화 때 보관한 벽 목록을 사용해 모든 장애물을 새 throw의 원본 큐브로 복원한다.
+    /// 이전 조각은 제거하지만 도감에 등록된 Wall 메쉬와 해금 상태는 유지한다.
+    /// </summary>
+    public void ResetWalls()
+    {
+        foreach (CuttableWall wall in _walls) wall.ResetWall();
     }
 
     void Update()
