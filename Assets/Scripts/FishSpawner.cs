@@ -25,6 +25,8 @@ public class FishSpawner : MonoBehaviour
     [SerializeField]
     private Fish[] _fishPrefabs;
     private FishType[] _fishTypes;
+    private Fish _wallFish;
+    private Mesh _wallCatalogMesh;
 
     [Header("출현")]
     [Tooltip("물고기가 튀어 오르는 간격 범위(초)")]
@@ -64,15 +66,53 @@ public class FishSpawner : MonoBehaviour
     public Rigidbody PlayerBody => _playerBody;
     public IReadOnlyList<Fish> FishPrefabs => _fishPrefabs;
     public IReadOnlyList<FishType> FishTypes => _fishTypes;
+    public Fish WallFish => _wallFish;
 
     void Awake()
     {
         _playerBody = _player.GetComponent<Rigidbody>();
         _waterY = _water.GetComponent<Collider>().bounds.max.y;
+        InitializeWalls();
         _fishTypes = new FishType[_fishPrefabs.Length];
         for (int i = 0; i < _fishPrefabs.Length; i++)
         {
             _fishTypes[i] = _fishPrefabs[i].Type;
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (_wallFish != null) Destroy(_wallFish.gameObject);
+        if (_wallCatalogMesh != null) Destroy(_wallCatalogMesh);
+    }
+
+    /// <summary>
+    /// 씬의 Wall 자식 큐브와 저장 메시를 사용해 절단 대상과 Wall 선택 항목을 준비한다.
+    /// 자연 출현 목록의 끝에 비활성 Wall 템플릿을 추가하고 각 큐브에 절단 동작을 연결한다.
+    /// </summary>
+    private void InitializeWalls()
+    {
+        GameObject wallRoot = GameObject.Find("Wall");
+        if (wallRoot == null) return;
+        MeshFilter[] walls = wallRoot.GetComponentsInChildren<MeshFilter>();
+        if (walls.Length == 0) return;
+
+        GameObject template = new GameObject("Wall Fish Catalog");
+        template.SetActive(false);
+        template.transform.SetParent(transform, false);
+        MeshFilter filter = template.AddComponent<MeshFilter>();
+        _wallCatalogMesh = _progress.LoadWallMesh();
+        filter.sharedMesh = _wallCatalogMesh != null ? _wallCatalogMesh : walls[0].sharedMesh;
+        template.AddComponent<MeshRenderer>().sharedMaterials = walls[0].GetComponent<MeshRenderer>().sharedMaterials;
+        template.AddComponent<Rigidbody>().isKinematic = true;
+        _wallFish = template.AddComponent<Fish>();
+        _wallFish.InitializeWall(this, FishType.CreateWall(), null);
+        int count = _fishPrefabs.Length;
+        Array.Resize(ref _fishPrefabs, count + 1);
+        _fishPrefabs[count] = _wallFish;
+        foreach (MeshFilter wall in walls)
+        {
+            wall.gameObject.AddComponent<CuttableWall>().Initialize(this);
         }
     }
 
@@ -130,6 +170,13 @@ public class FishSpawner : MonoBehaviour
     /// </summary>
     public void HandleFishCaught(Fish fish)
     {
+        if (fish.Type.Id == "wall")
+        {
+            Mesh previous = _wallCatalogMesh;
+            _wallCatalogMesh = _progress.SaveWallMesh(fish.GetComponent<MeshFilter>().sharedMesh, fish.transform.lossyScale);
+            _wallFish.GetComponent<MeshFilter>().sharedMesh = _wallCatalogMesh;
+            if (previous != null) Destroy(previous);
+        }
         _progress.AddFish(fish.Type);
         _effect.PlaySplash(fish.transform.position, 0.6f);
         _effect.PlayImpact(0.8f, _catchFlashColor);
@@ -185,10 +232,11 @@ public class FishSpawner : MonoBehaviour
         float pick = UnityEngine.Random.Range(0f, total);
         foreach (Fish prefab in _fishPrefabs)
         {
+            if (prefab.Type.SpawnWeight <= 0f) continue;
             pick -= prefab.Type.SpawnWeight;
             if (pick <= 0f) return prefab;
         }
-        return _fishPrefabs[_fishPrefabs.Length - 1];
+        return _fishPrefabs[0];
     }
 
     /// <summary>

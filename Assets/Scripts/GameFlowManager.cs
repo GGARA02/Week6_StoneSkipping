@@ -171,7 +171,8 @@ public class GameFlowManager : MonoBehaviour
         {
             if (offset == 0 || Mathf.Abs(offset) >= optionCount) continue;
             int option = ((_projectileIndex + 1 + offset) % optionCount + optionCount) % optionCount;
-            if (option > 0 && _fishSpawner.FishTypes[option - 1].IsRevealed)
+            if (option > 0 && (_fishSpawner.FishTypes[option - 1].IsRevealed
+                || _progress.IsFishRegistered(_fishSpawner.FishTypes[option - 1])))
             {
                 _fishSelectionPreview.PrepareTexture(_fishSpawner.FishPrefabs[option - 1]);
             }
@@ -432,6 +433,7 @@ public class GameFlowManager : MonoBehaviour
     /// </summary>
     private void HandleFishCaught(FishType fish)
     {
+        if (fish.Id == "wall") _fishSelectionPreview.InvalidateTexture(_fishSpawner.WallFish);
         ShowPopup($"+{fish.Value} G   {fish.DisplayName}", new Color(1f, 0.85f, 0.3f));
     }
 
@@ -494,7 +496,8 @@ public class GameFlowManager : MonoBehaviour
             {
                 FishType selectedFish = SelectedFish();
                 ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 54f * scale),
-                    selectedFish != null ? selectedFish.DisplayName : "FISH", _previewStyle, new Color(1f, 0.92f, 0.7f));
+                    selectedFish == null ? "FISH" : selectedFish.IsRevealed || _progress.IsFishRegistered(selectedFish)
+                        ? selectedFish.DisplayName : "?", _previewStyle, new Color(1f, 0.92f, 0.7f));
                 continue;
             }
             if (Mathf.Abs(offset) >= optionCount) continue;
@@ -508,7 +511,9 @@ public class GameFlowManager : MonoBehaviour
             }
 
             FishType fish = _fishSpawner.FishTypes[option - 1];
-            if (fish.IsRevealed)
+            bool registered = _progress.IsFishRegistered(fish);
+            bool revealed = fish.IsRevealed || registered;
+            if (revealed)
             {
                 GUI.DrawTexture(rect, _fishSelectionPreview.GetTexture(_fishSpawner.FishPrefabs[option - 1]), ScaleMode.ScaleToFit, true);
             }
@@ -517,8 +522,8 @@ public class GameFlowManager : MonoBehaviour
                 ShadowLabel(rect, "?", _centerStyle, new Color(0.75f, 0.75f, 0.75f, 0.7f));
             }
 
-            string label = fish.IsRevealed ? fish.DisplayName : "";
-            if (!_progress.IsFishRegistered(fish)) label += "\nLOCKED";
+            string label = revealed ? fish.DisplayName : "?";
+            if (!registered) label += "\nLOCKED";
             ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 54f * scale), label, _previewStyle,
                 new Color(0.75f, 0.75f, 0.75f, 0.7f));
         }

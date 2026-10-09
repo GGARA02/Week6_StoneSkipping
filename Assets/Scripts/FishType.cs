@@ -78,6 +78,23 @@ public class FishType
     public float DorsalFin => _dorsalFin;
 
     /// <summary>
+    /// 입력값 없이 절단 조각의 Wall 종류를 생성해 반환한다.
+    /// 자연 출현을 끄고 미등록 외형과 이름을 숨기는 고정 도감 ID를 설정한다.
+    /// </summary>
+    public static FishType CreateWall()
+    {
+        return new FishType
+        {
+            _id = "wall",
+            _displayName = "Wall",
+            _value = 0,
+            _spawnWeight = 0f,
+            _isRevealed = false,
+            _liftMultiplier = 1f,
+        };
+    }
+
+    /// <summary>
     /// 이 물고기를 던질 때 적용할 배율을 만든다. 던지는 힘과 스핀 업그레이드 배율을 곱한다.
     /// powerMultiplier, spinMultiplier를 사용하며, ThrowModifiers를 반환한다.
     /// </summary>

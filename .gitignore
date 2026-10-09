@@ -108,6 +108,8 @@ InitTestScene*.unity*
 # AI
 .ai
 .omo
+**/Temp
+**/Temp.meta
 
 #IDE
 .idea
