@@ -8,6 +8,7 @@ public enum FishShape
     Crab,
     Tire,
     Can,
+    Starfish,
 }
 
 // 물고기 한 종류의 값, 생김새, 던질 때의 물리 특성.
