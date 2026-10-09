@@ -8231,6 +8231,7 @@ MonoBehaviour:
   - {fileID: 114000001, guid: fa6a000ddcb247bbafcd8b664357a8ed, type: 3}
   - {fileID: 1498389336928686755, guid: 01df2630786a95b40b499c67f2671730, type: 3}
   - {fileID: 6346417647817295571, guid: d8891e97b725ab648833e0c164715ff6, type: 3}
+  - {fileID: 5300040391838543060, guid: 1507765b7f2eb0e4195641a1aa9b560a, type: 3}
   _spawnIntervalRange: {x: 0.35, y: 0.9}
   _schoolSizeRange: {x: 1, y: 3}
   _leadTimeRange: {x: 1, y: 2}
@@ -40662,7 +40663,7 @@ BoxCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
