@@ -96,6 +96,7 @@ public class GameFlowManager : MonoBehaviour
         _bestDistance = PlayerPrefs.GetFloat(BEST_DISTANCE_KEY, 0f);
         _state = State.Ready;
         _fishSelectionPreview = new FishSelectionPreview();
+        _fishSelectionPreview.PrepareStoneTexture(_stoneGenerator.GetComponent<MeshFilter>().sharedMesh);
     }
 
     void OnDestroy()
@@ -302,6 +303,7 @@ public class GameFlowManager : MonoBehaviour
         else
         {
             _stoneGenerator.Generate();
+            _fishSelectionPreview.PrepareStoneTexture(_stoneGenerator.GetComponent<MeshFilter>().sharedMesh);
         }
     }
 
@@ -497,6 +499,7 @@ public class GameFlowManager : MonoBehaviour
             int option = ((_projectileIndex + 1 + offset) % optionCount + optionCount) % optionCount;
             if (option == 0)
             {
+                GUI.DrawTexture(rect, _fishSelectionPreview.StoneTexture, ScaleMode.ScaleToFit, true);
                 ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 54f * scale),
                     "STONE", _previewStyle, new Color(0.75f, 0.75f, 0.75f, 0.7f));
                 continue;

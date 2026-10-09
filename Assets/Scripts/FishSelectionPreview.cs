@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 /// <summary>
-/// 물고기 프리팹의 메시만 복사하여 회색 반투명 선택 미리보기 텍스처를 보관한다.
+/// 돌 메시와 물고기 프리팹의 메시만 복사하여 회색 반투명 선택 미리보기 텍스처를 보관한다.
 /// 게임 동작, 충돌체와 애니메이션은 생성하지 않는다.
 /// </summary>
 public sealed class FishSelectionPreview : IDisposable
@@ -18,6 +18,8 @@ public sealed class FishSelectionPreview : IDisposable
     private readonly GameObject _root;
     private readonly Camera _camera;
     private readonly Material _material;
+
+    public RenderTexture StoneTexture { get; private set; }
 
     /// <summary>
     /// 입력값 없이 게임 공간에서 떨어진 미리보기 카메라와 반투명 회색 머티리얼을 만든다.
@@ -44,6 +46,7 @@ public sealed class FishSelectionPreview : IDisposable
         _material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
         _material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
         _material.SetFloat("_ZWrite", 0f);
+        _material.SetFloat("_Cull", (float)CullMode.Off);
         _material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
         _material.SetOverrideTag("RenderType", "Transparent");
         _material.renderQueue = (int)RenderQueue.Transparent;
@@ -76,6 +79,31 @@ public sealed class FishSelectionPreview : IDisposable
             AddMesh(model.transform, renderer.sharedMesh, prefab.transform.worldToLocalMatrix * renderer.transform.localToWorldMatrix);
         }
 
+        _textures.Add(prefab, RenderModel(model));
+    }
+
+    /// <summary>
+    /// stoneMesh를 사용해 현재 돌의 회색 미리보기를 렌더링한다.
+    /// 이전 돌 텍스처를 해제하고 새 결과를 StoneTexture에 저장한다.
+    /// </summary>
+    public void PrepareStoneTexture(Mesh stoneMesh)
+    {
+        if (StoneTexture != null)
+        {
+            StoneTexture.Release();
+            UnityEngine.Object.Destroy(StoneTexture);
+        }
+        GameObject model = new GameObject("Stone Preview Model");
+        AddMesh(model.transform, stoneMesh, Matrix4x4.identity);
+        StoneTexture = RenderModel(model);
+    }
+
+    /// <summary>
+    /// model의 메시 경계로 크기와 카메라를 맞춰 미리보기를 렌더링한다.
+    /// 렌더링 전용 모델을 제거하고 투명 배경 RenderTexture를 반환한다.
+    /// </summary>
+    private RenderTexture RenderModel(GameObject model)
+    {
         model.transform.localRotation = Quaternion.Euler(12f, 65f, 0f);
         Renderer[] renderers = model.GetComponentsInChildren<Renderer>();
         Bounds bounds = new Bounds(model.transform.position, Vector3.zero);
@@ -98,7 +126,7 @@ public sealed class FishSelectionPreview : IDisposable
         _camera.targetTexture = null;
         model.SetActive(false);
         UnityEngine.Object.Destroy(model);
-        _textures.Add(prefab, texture);
+        return texture;
     }
 
     /// <summary>
@@ -133,6 +161,12 @@ public sealed class FishSelectionPreview : IDisposable
             UnityEngine.Object.Destroy(texture);
         }
         _textures.Clear();
+        if (StoneTexture != null)
+        {
+            StoneTexture.Release();
+            UnityEngine.Object.Destroy(StoneTexture);
+            StoneTexture = null;
+        }
         UnityEngine.Object.Destroy(_material);
         UnityEngine.Object.Destroy(_root);
     }
