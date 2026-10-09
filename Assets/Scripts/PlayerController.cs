@@ -246,6 +246,7 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        if (Time.timeScale == 0f) return;
         // 던지기 전에는 방향키로 자세를 맞추고, 떠 있는 물고기에 바로 보여준다.
         if (!_isThrown)
         {

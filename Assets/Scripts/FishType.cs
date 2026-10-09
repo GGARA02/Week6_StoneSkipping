@@ -95,6 +95,26 @@ public class FishType
     }
 
     /// <summary>
+    /// 입력값 없이 캡처 이미지를 사용하는 SCREEN 종류를 반환한다.
+    /// 자연 출현을 끄고 16:9 패널 크기와 도감 ID를 설정한다.
+    /// </summary>
+    public static FishType CreateScreen()
+    {
+        return new FishType
+        {
+            _id = "screen",
+            _displayName = "SCREEN",
+            _value = 0,
+            _spawnWeight = 0f,
+            _isRevealed = false,
+            _height = 3.2f,
+            _length = 1.8f,
+            _thickness = 0.08f,
+            _liftMultiplier = 1f,
+        };
+    }
+
+    /// <summary>
     /// 이 물고기를 던질 때 적용할 배율을 만든다. 던지는 힘과 스핀 업그레이드 배율을 곱한다.
     /// powerMultiplier, spinMultiplier를 사용하며, ThrowModifiers를 반환한다.
     /// </summary>

@@ -26,6 +26,7 @@ public class FishSpawner : MonoBehaviour
     private Fish[] _fishPrefabs;
     private FishType[] _fishTypes;
     private Fish _wallFish;
+    private ScreenFishCapture _screenCapture;
     private Mesh _wallCatalogMesh;
     private CuttableWall[] _walls = Array.Empty<CuttableWall>();
 
@@ -68,12 +69,18 @@ public class FishSpawner : MonoBehaviour
     public IReadOnlyList<Fish> FishPrefabs => _fishPrefabs;
     public IReadOnlyList<FishType> FishTypes => _fishTypes;
     public Fish WallFish => _wallFish;
+    public ScreenFishCapture ScreenCapture => _screenCapture;
 
     void Awake()
     {
         _playerBody = _player.GetComponent<Rigidbody>();
         _waterY = _water.GetComponent<Collider>().bounds.max.y;
         InitializeWalls();
+        _screenCapture = gameObject.AddComponent<ScreenFishCapture>();
+        Fish screenFish = _screenCapture.Initialize(_progress);
+        int count = _fishPrefabs.Length;
+        Array.Resize(ref _fishPrefabs, count + 1);
+        _fishPrefabs[count] = screenFish;
         _fishTypes = new FishType[_fishPrefabs.Length];
         for (int i = 0; i < _fishPrefabs.Length; i++)
         {

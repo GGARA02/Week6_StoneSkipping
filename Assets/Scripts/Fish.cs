@@ -92,6 +92,17 @@ public class Fish : MonoBehaviour
     }
 
     /// <summary>
+    /// 입력값 없이 이미지 패널을 SCREEN 선택 템플릿으로 초기화한다.
+    /// 종류와 몸 참조를 설정하고 자연 출현용 이동을 끈다.
+    /// </summary>
+    public void InitializeScreen()
+    {
+        _type = FishType.CreateScreen();
+        _body = transform;
+        enabled = false;
+    }
+
+    /// <summary>
     /// delay 뒤 start에서 launchVelocity로 튀어 오르게 준비하고, 튀어 오르기 전까지 몸을 숨긴다.
     /// 각 인자를 사용하며, 이동 상태와 몸 표시 여부를 변경한다.
     /// </summary>

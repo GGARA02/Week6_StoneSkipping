@@ -45,6 +45,8 @@ public class GameFlowManager : MonoBehaviour
     private int _perfectCount;
     private int _goodCount;
     private int _missCount;
+    private int _waterContactCount;
+    private bool _screenCaptureTriggered;
 
     [Header("HUD")]
     [SerializeField]
@@ -92,6 +94,7 @@ public class GameFlowManager : MonoBehaviour
         _playerController.OnGameOver += HandleGameOver;
         _playerController.OnWaterContact += HandleWaterContact;
         _fishSpawner.OnFishCaught += HandleFishCaught;
+        _fishSpawner.ScreenCapture.OnUnlocked += HandleScreenUnlocked;
         _cameraController.Initialize(_fishGenerator);
 
         _bestSkips = PlayerPrefs.GetInt(BEST_SKIPS_KEY, 0);
@@ -109,12 +112,14 @@ public class GameFlowManager : MonoBehaviour
         _playerController.OnGameOver -= HandleGameOver;
         _playerController.OnWaterContact -= HandleWaterContact;
         _fishSpawner.OnFishCaught -= HandleFishCaught;
+        _fishSpawner.ScreenCapture.OnUnlocked -= HandleScreenUnlocked;
         _inputActions.Dispose();
         _fishSelectionPreview.Dispose();
     }
 
     void Update()
     {
+        if (_fishSpawner.ScreenCapture.IsCapturing) return;
         Keyboard keyboard = Keyboard.current;
         Gamepad gamepad = Gamepad.current;
         if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
@@ -174,13 +179,15 @@ public class GameFlowManager : MonoBehaviour
             if (option > 0 && (_fishSpawner.FishTypes[option - 1].IsRevealed
                 || _progress.IsFishRegistered(_fishSpawner.FishTypes[option - 1])))
             {
-                _fishSelectionPreview.PrepareTexture(_fishSpawner.FishPrefabs[option - 1]);
+                if (_fishSpawner.FishTypes[option - 1].Id != "screen")
+                    _fishSelectionPreview.PrepareTexture(_fishSpawner.FishPrefabs[option - 1]);
             }
         }
     }
 
     void OnGUI()
     {
+        if (_fishSpawner.ScreenCapture.IsCapturing && _fishSpawner.ScreenCapture.HasFrame) return;
         if (!_showHud) return;
 
         EnsureStyles();
@@ -251,6 +258,8 @@ public class GameFlowManager : MonoBehaviour
             ? fish.ToThrowModifiers(_progress.PowerMultiplier, _progress.SpinMultiplier)
             : ThrowModifiers.ForFish(_progress.PowerMultiplier, _progress.SpinMultiplier);
         _state = State.Flying;
+        _waterContactCount = 0;
+        _screenCaptureTriggered = false;
         _playerController.Throw(modifiers);
     }
 
@@ -359,6 +368,21 @@ public class GameFlowManager : MonoBehaviour
                 ShowPopup($"MISS  TOO {direction}", JudgeColor(judge));
                 break;
         }
+        if ((judge == SkipJudge.Perfect || judge == SkipJudge.Good)
+            && _waterContactCount == 1 && !_screenCaptureTriggered && SelectedFish()?.Id == "blackhole")
+        {
+            _screenCaptureTriggered = true;
+            _fishSpawner.ScreenCapture.Capture(_fishGenerator.FishBody);
+        }
+    }
+
+    /// <summary>
+    /// SCREEN 캡처 완료 이벤트를 받아 해금 팝업을 표시한다.
+    /// 입력값 없이 팝업 상태를 변경한다.
+    /// </summary>
+    private void HandleScreenUnlocked()
+    {
+        ShowPopup("SCREEN UNLOCKED!", new Color(1f, 0.85f, 0.3f));
     }
 
     /// <summary>
@@ -405,6 +429,7 @@ public class GameFlowManager : MonoBehaviour
     /// </summary>
     private void HandleWaterContact(Vector3 point, float speed)
     {
+        _waterContactCount++;
         _fishGenerator.SetFlopping(false);
     }
 
@@ -516,7 +541,9 @@ public class GameFlowManager : MonoBehaviour
             bool revealed = fish.IsRevealed || registered;
             if (revealed)
             {
-                GUI.DrawTexture(rect, _fishSelectionPreview.GetTexture(_fishSpawner.FishPrefabs[option - 1]), ScaleMode.ScaleToFit, true);
+                Texture preview = fish.Id == "screen" ? _fishSpawner.ScreenCapture.Image
+                    : _fishSelectionPreview.GetTexture(_fishSpawner.FishPrefabs[option - 1]);
+                GUI.DrawTexture(rect, preview, ScaleMode.ScaleToFit, true);
             }
             else
             {
