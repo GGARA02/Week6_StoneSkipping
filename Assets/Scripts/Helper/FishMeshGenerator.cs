@@ -577,6 +577,7 @@ public class FishMeshGenerator : MonoBehaviour
     {
         switch (fish.Shape)
         {
+            case FishShape.Starfish:
             case FishShape.Crab: return CrabOutlinePoint(angle, fish);
             case FishShape.Tire: return TireOutlinePoint(angle, fish);
             case FishShape.Can: return CanOutlinePoint(angle, fish);
@@ -682,7 +683,7 @@ public class FishMeshGenerator : MonoBehaviour
             float dent = 1f + Mathf.Sin(angle * 7f + (top ? 0f : 2.1f)) * 0.25f * t;
             height = fish.Thickness * 0.5f * Mathf.Sqrt(Mathf.Max(0f, 1f - Mathf.Pow(t, 4f))) * dent;
         }
-        else if (fish.Shape == FishShape.Crab)
+        else if (fish.Shape == FishShape.Crab || fish.Shape == FishShape.Starfish)
         {
             float profile = top
                 ? Mathf.Pow(Mathf.Max(0f, 1f - t * t), 0.5f)
