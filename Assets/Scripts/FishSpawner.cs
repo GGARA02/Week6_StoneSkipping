@@ -26,6 +26,8 @@ public class FishSpawner : MonoBehaviour
     [Tooltip("출현하는 물고기 프리팹. 이 순서대로 던질 거리 선택 목록에 나온다")]
     [SerializeField]
     private Fish[] _fishPrefabs;
+    // 던질 거리 선택 목록. 처음에는 _fishPrefabs와 같고, ReplaceSelection으로 자리만 바뀐다.
+    private Fish[] _selectablePrefabs;
     private FishType[] _fishTypes;
     private readonly HashSet<string> _seaTypes = new HashSet<string>();
     private readonly HashSet<string> _pendingSeaTypes = new HashSet<string>();
@@ -59,6 +61,7 @@ public class FishSpawner : MonoBehaviour
     private readonly List<Fish> _activeFish = new List<Fish>();
     private float _nextSpawnTime;
     public event Action<FishType> OnFishCaught;
+    public event Action OnCleared;
 
     [Header("물결")]
     [Tooltip("물고기가 튀어 오르거나 물에 들어갈 때 물결 세기 배율")]
@@ -66,7 +69,7 @@ public class FishSpawner : MonoBehaviour
     private float _fishRippleScale = 2.5f;
 
     public Rigidbody PlayerBody => _playerBody;
-    public IReadOnlyList<Fish> FishPrefabs => _fishPrefabs;
+    public IReadOnlyList<Fish> FishPrefabs => _selectablePrefabs;
     public IReadOnlyList<FishType> FishTypes => _fishTypes;
 
     void Awake()
@@ -74,10 +77,11 @@ public class FishSpawner : MonoBehaviour
         _playerBody = _player.GetComponent<Rigidbody>();
         _waterY = _water.GetComponent<Collider>().bounds.max.y;
         RegisterEjectedPrefabs();
-        _fishTypes = new FishType[_fishPrefabs.Length];
-        for (int i = 0; i < _fishPrefabs.Length; i++)
+        _selectablePrefabs = (Fish[])_fishPrefabs.Clone();
+        _fishTypes = new FishType[_selectablePrefabs.Length];
+        for (int i = 0; i < _selectablePrefabs.Length; i++)
         {
-            _fishTypes[i] = _fishPrefabs[i].Type;
+            _fishTypes[i] = _selectablePrefabs[i].Type;
             if (PlayerPrefs.GetInt(SEA_KEY_PREFIX + _fishTypes[i].Id, 0) > 0)
             {
                 _seaTypes.Add(_fishTypes[i].Id);
@@ -100,8 +104,8 @@ public class FishSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// 재시작 시 떠 있는 물고기를 없애고 이번 판의 입수 종류를 다음 판 출현에 반영한다.
-    /// 입력값은 없으며, 활성 목록과 대기 기록을 비우고 출현 가능 종류와 시간을 갱신한다.
+    /// 재시작 시 떠 있는 물고기를 없애고 입수 종류를 다음 판 출현에 반영한 뒤 맵 물고기의 재등장을 알린다.
+    /// 입력값은 없으며, 활성 목록과 대기 기록, 출현 가능 종류와 시간을 갱신하고 OnCleared를 보낸다.
     /// </summary>
     public void Clear()
     {
@@ -113,6 +117,7 @@ public class FishSpawner : MonoBehaviour
         _seaTypes.UnionWith(_pendingSeaTypes);
         _pendingSeaTypes.Clear();
         _nextSpawnTime = Time.time;
+        OnCleared?.Invoke();
     }
 
     /// <summary>
@@ -153,6 +158,29 @@ public class FishSpawner : MonoBehaviour
         _effect.PlayImpact(0.8f, _catchFlashColor);
         OnFishCaught?.Invoke(fish.Type);
         Remove(fish);
+    }
+
+    /// <summary>
+    /// 맵에 놓인 물고기에 던진 물고기가 닿으면 도감에 등록하고 돈을 주며 화면 효과와 포획 이벤트를 보낸다.
+    /// type과 효과 위치 point를 사용하며, 진행 상황(돈, 도감 등록)을 변경한다. 오브젝트는 없애지 않는다.
+    /// </summary>
+    public void HandlePlacedFishCaught(FishType type, Vector3 point)
+    {
+        _progress.AddFish(type);
+        _effect.PlaySplash(point, 0.6f);
+        _effect.PlayImpact(0.8f, _catchFlashColor);
+        OnFishCaught?.Invoke(type);
+    }
+
+    /// <summary>
+    /// 던질 거리 선택 목록에서 from 자리를 to로 바꾼다. 물에서 튀어 오르는 목록(_fishPrefabs)은 그대로 둔다.
+    /// from과 to를 사용하며, _selectablePrefabs와 _fishTypes의 해당 자리를 변경한다.
+    /// </summary>
+    public void ReplaceSelection(Fish from, Fish to)
+    {
+        int index = Array.IndexOf(_selectablePrefabs, from);
+        _selectablePrefabs[index] = to;
+        _fishTypes[index] = to.Type;
     }
 
     /// <summary>
