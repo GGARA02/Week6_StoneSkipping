@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // 수면 아래에서 기다렸다가 포물선으로 튀어 오르는 물고기(또는 게) 한 마리. 물고기 프리팹의 루트에 붙는다.
-// 돌에 맞거나 다시 물에 들어가면 스포너에 알린다.
+// 던진 물고기에 맞거나 다시 물에 들어가면 스포너에 알린다.
 public class Fish : MonoBehaviour
 {
     private const float WIGGLE_SPEED = 14f;

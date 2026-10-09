@@ -201,7 +201,7 @@ public class SkipEffect : MonoBehaviour
 
     /// <summary>
     /// 수면을 쓸고 가는 동안 진행 방향 양옆 뒤로 갈라지는 물줄기를 방출한다.
-    /// point, count, power(0~1 속도 비율)와 돌 속도를 사용하며, 물보라 파티클을 방출한다.
+    /// point, count, power(0~1 속도 비율)와 물고기 속도를 사용하며, 물보라 파티클을 방출한다.
     /// </summary>
     private void EmitWakeSpray(Vector3 point, int count, float power)
     {
@@ -213,7 +213,7 @@ public class SkipEffect : MonoBehaviour
         ParticleSystem.EmitParams emitParams = new ParticleSystem.EmitParams();
         for (int i = 0; i < count; i++)
         {
-            // 배가 물을 가르듯 좌우로 번갈아 갈라지고, 돌 속도의 일부를 이어받아 앞으로도 흐른다.
+            // 배가 물을 가르듯 좌우로 번갈아 갈라지고, 물고기 속도의 일부를 이어받아 앞으로도 흐른다.
             float sideSign = (i & 1) == 0 ? 1f : -1f;
             emitParams.position = point + side * (sideSign * Random.Range(0.3f, 0.9f));
             emitParams.velocity = forward * (velocity.magnitude * Random.Range(0.1f, 0.3f))
@@ -238,8 +238,8 @@ public class SkipEffect : MonoBehaviour
     }
 
     /// <summary>
-    /// 튕길 때 돌 속도에 비례한 세기로 진동한다. SPACE로 튕긴 경우(GOOD 이상)에만 화면을 흔들고 번쩍이며, PERFECT면 금색이다.
-    /// count, judge, 돌 속도를 사용하며, 진동을 울리거나 PlayImpact를 호출한다.
+    /// 튕길 때 물고기 속도에 비례한 세기로 진동한다. SPACE로 튕긴 경우(GOOD 이상)에만 화면을 흔들고 번쩍이며, PERFECT면 금색이다.
+    /// count, judge, 물고기 속도를 사용하며, 진동을 울리거나 PlayImpact를 호출한다.
     /// </summary>
     private void HandleSkip(int count, SkipJudge judge)
     {

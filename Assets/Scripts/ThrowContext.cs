@@ -4,14 +4,14 @@ using UnityEngine;
 public readonly struct ThrowContext
 {
     public PlayerController Player { get; }
-    public StoneMeshGenerator Shape { get; }
+    public FishMeshGenerator Shape { get; }
     public Transform Body { get; }
 
     /// <summary>
     /// 대상 묶음을 만든다.
     /// 각 대상을 그대로 저장한다.
     /// </summary>
-    public ThrowContext(PlayerController player, StoneMeshGenerator shape, Transform body)
+    public ThrowContext(PlayerController player, FishMeshGenerator shape, Transform body)
     {
         Player = player;
         Shape = shape;

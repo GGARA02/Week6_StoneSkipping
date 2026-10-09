@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 /// <summary>
-/// 돌 메시와 물고기 프리팹의 메시만 복사하여 회색 반투명 선택 미리보기 텍스처를 보관한다.
+/// 생성 메시와 물고기 프리팹의 메시만 복사하여 회색 반투명 선택 미리보기 텍스처를 보관한다.
 /// 게임 동작, 충돌체와 애니메이션은 생성하지 않는다.
 /// </summary>
 public sealed class FishSelectionPreview : IDisposable
@@ -19,7 +19,7 @@ public sealed class FishSelectionPreview : IDisposable
     private readonly Camera _camera;
     private readonly Material _material;
 
-    public RenderTexture StoneTexture { get; private set; }
+    public RenderTexture DefaultFishTexture { get; private set; }
 
     /// <summary>
     /// 입력값 없이 게임 공간에서 떨어진 미리보기 카메라와 반투명 회색 머티리얼을 만든다.
@@ -62,7 +62,7 @@ public sealed class FishSelectionPreview : IDisposable
     }
 
     /// <summary>
-    /// prefab의 메시와 자식 변환을 사용해 회색 미리보기를 한 번 렌더링한다.
+    /// prefab의 메시와 변환 계층을 사용해 투척 자세의 회색 미리보기를 한 번 렌더링한다.
     /// OnGUI 밖에서 호출하며, prefab별 투명 배경 RenderTexture를 캐시에 저장한다.
     /// </summary>
     public void PrepareTexture(Fish prefab)
@@ -70,32 +70,60 @@ public sealed class FishSelectionPreview : IDisposable
         if (_textures.ContainsKey(prefab)) return;
 
         GameObject model = new GameObject("Preview Model");
+        Transform visualRoot = new GameObject("Preview Visual Root").transform;
+        visualRoot.SetParent(model.transform, false);
+        visualRoot.localScale = prefab.transform.localScale;
+        visualRoot.localRotation = prefab.Body == prefab.transform
+            ? prefab.transform.localRotation
+            : Quaternion.Inverse(prefab.Body.localRotation);
+        Dictionary<Transform, Transform> transforms = new Dictionary<Transform, Transform>
+        {
+            { prefab.transform, visualRoot },
+        };
         foreach (MeshFilter filter in prefab.GetComponentsInChildren<MeshFilter>())
         {
-            AddMesh(model.transform, filter.sharedMesh, prefab.transform.worldToLocalMatrix * filter.transform.localToWorldMatrix);
+            AddMesh(CopyTransform(filter.transform, transforms), filter.sharedMesh);
         }
         foreach (SkinnedMeshRenderer renderer in prefab.GetComponentsInChildren<SkinnedMeshRenderer>())
         {
-            AddMesh(model.transform, renderer.sharedMesh, prefab.transform.worldToLocalMatrix * renderer.transform.localToWorldMatrix);
+            AddMesh(CopyTransform(renderer.transform, transforms), renderer.sharedMesh);
         }
 
         _textures.Add(prefab, RenderModel(model));
     }
 
     /// <summary>
-    /// stoneMesh를 사용해 현재 돌의 회색 미리보기를 렌더링한다.
-    /// 이전 돌 텍스처를 해제하고 새 결과를 StoneTexture에 저장한다.
+    /// fishMesh를 사용해 기본 투척물의 회색 미리보기를 렌더링한다.
+    /// 이전 기본 텍스처를 해제하고 새 결과를 DefaultFishTexture에 저장한다.
     /// </summary>
-    public void PrepareStoneTexture(Mesh stoneMesh)
+    public void PrepareDefaultFishTexture(Mesh fishMesh)
     {
-        if (StoneTexture != null)
+        if (DefaultFishTexture != null)
         {
-            StoneTexture.Release();
-            UnityEngine.Object.Destroy(StoneTexture);
+            DefaultFishTexture.Release();
+            UnityEngine.Object.Destroy(DefaultFishTexture);
         }
-        GameObject model = new GameObject("Stone Preview Model");
-        AddMesh(model.transform, stoneMesh, Matrix4x4.identity);
-        StoneTexture = RenderModel(model);
+        GameObject model = new GameObject("Default Fish Preview Model");
+        AddMesh(model.transform, fishMesh);
+        DefaultFishTexture = RenderModel(model);
+    }
+
+    /// <summary>
+    /// source와 transforms 캐시를 사용해 부모 계층과 로컬 변환을 그대로 복사한다.
+    /// 음수·비균일 스케일을 보존한 미리보기 Transform을 반환하고 캐시에 저장한다.
+    /// </summary>
+    private static Transform CopyTransform(Transform source, Dictionary<Transform, Transform> transforms)
+    {
+        if (transforms.TryGetValue(source, out Transform copy)) return copy;
+
+        Transform parent = CopyTransform(source.parent, transforms);
+        copy = new GameObject(source.name).transform;
+        copy.SetParent(parent, false);
+        copy.localPosition = source.localPosition;
+        copy.localRotation = source.localRotation;
+        copy.localScale = source.localScale;
+        transforms.Add(source, copy);
+        return copy;
     }
 
     /// <summary>
@@ -130,16 +158,13 @@ public sealed class FishSelectionPreview : IDisposable
     }
 
     /// <summary>
-    /// mesh와 프리팹 루트 기준 matrix를 사용해 렌더링 전용 자식 메시를 만든다.
+    /// mesh를 사용해 parent의 로컬 원점에 렌더링 전용 자식 메시를 만든다.
     /// parent 아래에 회색 머티리얼을 쓰는 MeshFilter와 MeshRenderer를 추가한다.
     /// </summary>
-    private void AddMesh(Transform parent, Mesh mesh, Matrix4x4 matrix)
+    private void AddMesh(Transform parent, Mesh mesh)
     {
         GameObject part = new GameObject("Preview Mesh") { layer = PREVIEW_LAYER };
         part.transform.SetParent(parent, false);
-        part.transform.localPosition = matrix.GetColumn(3);
-        part.transform.localRotation = matrix.rotation;
-        part.transform.localScale = matrix.lossyScale;
         part.AddComponent<MeshFilter>().sharedMesh = mesh;
         MeshRenderer renderer = part.AddComponent<MeshRenderer>();
         Material[] materials = new Material[mesh.subMeshCount];
@@ -161,11 +186,11 @@ public sealed class FishSelectionPreview : IDisposable
             UnityEngine.Object.Destroy(texture);
         }
         _textures.Clear();
-        if (StoneTexture != null)
+        if (DefaultFishTexture != null)
         {
-            StoneTexture.Release();
-            UnityEngine.Object.Destroy(StoneTexture);
-            StoneTexture = null;
+            DefaultFishTexture.Release();
+            UnityEngine.Object.Destroy(DefaultFishTexture);
+            DefaultFishTexture = null;
         }
         UnityEngine.Object.Destroy(_material);
         UnityEngine.Object.Destroy(_root);

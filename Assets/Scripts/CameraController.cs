@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // 조작 없이 알아서 따라가는 카메라. 진행 방향 뒤에서 보고, 빠를수록 멀리서 앞을 더 보여주고,
-// 돌이 높이 뜨면 각도를 높여 앞쪽 수면이 보이게 한다. 튕김 흔들림과 속도에 따른 FOV도 처리한다.
+// 물고기가 높이 뜨면 각도를 높여 앞쪽 수면이 보이게 한다. 튕김 흔들림과 속도에 따른 FOV도 처리한다.
 public class CameraController : MonoBehaviour
 {
     [Header("참조")]
@@ -14,18 +14,18 @@ public class CameraController : MonoBehaviour
     private float _waterY;
 
     [Header("자동 추적")]
-    [Tooltip("느릴 때 / 가장 빠를 때 돌과의 거리")]
+    [Tooltip("느릴 때 / 가장 빠를 때 물고기와의 거리")]
     [SerializeField]
     private Vector2 _distanceRange = new Vector2(16f, 26f);
     [Tooltip("이 수평 속도(m/s)에서 거리, 앞보기, FOV가 최대가 된다")]
     [SerializeField]
     private float _fullSpeed = 60f;
-    [Tooltip("가장 빠를 때 돌보다 얼마나 앞을 바라볼지(m)")]
+    [Tooltip("가장 빠를 때 물고기보다 얼마나 앞을 바라볼지(m)")]
     [SerializeField]
     private float _lookAhead = 14f;
     [SerializeField]
     private float _basePitch = 14f;
-    [Tooltip("돌이 수면 위로 1m 뜰 때마다 높아지는 내려다보는 각도(도)")]
+    [Tooltip("물고기가 수면 위로 1m 뜰 때마다 높아지는 내려다보는 각도(도)")]
     [SerializeField]
     private float _pitchPerHeight = 1.2f;
     [SerializeField]
@@ -38,7 +38,7 @@ public class CameraController : MonoBehaviour
     [Tooltip("각도와 거리가 바뀌는 빠르기")]
     [SerializeField]
     private float _framingSpeed = 2f;
-    [Tooltip("돌을 따라가는 부드러움 (작을수록 딱 붙음)")]
+    [Tooltip("물고기를 따라가는 부드러움 (작을수록 딱 붙음)")]
     [SerializeField]
     private float _followSmoothTime = 0.12f;
     [SerializeField]
@@ -100,7 +100,7 @@ public class CameraController : MonoBehaviour
     }
 
     /// <summary>
-    /// 대상과 물 높이를 준비하고 카메라를 돌 뒤로 맞춘다.
+    /// 대상과 물 높이를 준비하고 카메라를 물고기 뒤로 맞춘다.
     /// 입력값은 없으며, 카메라 참조와 _waterY, 카메라 위치를 변경한다.
     /// </summary>
     public void Initialize()

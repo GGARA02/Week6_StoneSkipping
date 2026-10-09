@@ -8144,7 +8144,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameFlowManager
   _playerController: {fileID: 1936740315}
   _cameraController: {fileID: 330585549}
-  _stoneGenerator: {fileID: 747180400}
+  _fishGenerator: {fileID: 747180400}
   _progress: {fileID: 403970199}
   _fishSpawner: {fileID: 403970198}
   _showHud: 1
@@ -8236,7 +8236,7 @@ MonoBehaviour:
   _jumpHeightRange: {x: 3, y: 8}
   _crossSpeedRange: {x: 2, y: 5}
   _maxFish: 16
-  _minStoneSpeed: 10
+  _minFishSpeed: 10
   _catchFlashColor: {r: 1, g: 0.85, b: 0.3, a: 0.3}
 --- !u!114 &403970199
 MonoBehaviour:
@@ -15607,7 +15607,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f188903547bf44a7b9324035e3cdce70, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StoneMeshGenerator
+  m_EditorClassIdentifier: Assembly-CSharp::FishMeshGenerator
   _useFixedSeed: 0
   _seed: 0
   _generateOnAwake: 1
@@ -15624,7 +15624,7 @@ MonoBehaviour:
   _surfaceFrequency: 2.2
   _thicknessNoise: 0.45
   _bottomFlatness: 4
-  _stoneColor: {r: 0.66, g: 0.63, b: 0.58, a: 1}
+  _generatedFishColor: {r: 0.66, g: 0.63, b: 0.58, a: 1}
   _flopFrequency: 6
   _flopBend: 0.35
   _flopHop: 0.08
@@ -38202,7 +38202,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   _water: {fileID: 1272931870}
-  _stone: {fileID: 747180400}
+  _fish: {fileID: 747180400}
   _throwVelocity: {x: 0, y: 10, z: 50}
   _throwSpin: 30
   _randomPitchRange: {x: 0, y: 30}
