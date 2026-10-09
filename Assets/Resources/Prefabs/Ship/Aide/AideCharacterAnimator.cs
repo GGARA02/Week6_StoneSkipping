@@ -130,6 +130,16 @@ public class AideCharacterAnimator : MonoBehaviour
     }
 
     /// <summary>
+    /// enabled 입력으로 임시 표정 순환을 켜거나 끈다.
+    /// 현재 표정은 유지하고 미리보기 타이머를 초기화한다.
+    /// </summary>
+    public void SetExpressionPreview(bool enabled)
+    {
+        _previewExpressions = enabled;
+        _previewElapsed = 0f;
+    }
+
+    /// <summary>
     /// 이미지 이름 expressionName과 일치하는 표정으로 캐릭터 이미지를 변경한다.
     /// 파일 확장자 없는 이름을 대소문자 구분 없이 비교하며 변경 성공 여부를 반환한다.
     /// </summary>

@@ -61,6 +61,7 @@ public class FishSpawner : MonoBehaviour
     private readonly List<Fish> _activeFish = new List<Fish>();
     private float _nextSpawnTime;
     public event Action<FishType> OnFishCaught;
+    public event Action OnClearing;
     public event Action OnCleared;
 
     [Header("물결")]
@@ -109,6 +110,7 @@ public class FishSpawner : MonoBehaviour
     /// </summary>
     public void Clear()
     {
+        OnClearing?.Invoke();
         foreach (Fish fish in _activeFish)
         {
             Destroy(fish.gameObject);
@@ -137,9 +139,7 @@ public class FishSpawner : MonoBehaviour
     {
         if (fish.IsEjected)
         {
-            _pendingSeaTypes.Add(fish.Type.Id);
-            PlayerPrefs.SetInt(SEA_KEY_PREFIX + fish.Type.Id, 1);
-            PlayerPrefs.Save();
+            QueueSeaUnlock(fish.Type);
         }
         Vector3 point = fish.transform.position;
         point.y = _waterY;
@@ -181,6 +181,38 @@ public class FishSpawner : MonoBehaviour
         int index = Array.IndexOf(_selectablePrefabs, from);
         _selectablePrefabs[index] = to;
         _fishTypes[index] = to.Type;
+    }
+
+    /// <summary>
+    /// prefab을 종류 ID 기준으로 출현 및 투척 선택 목록에 한 번만 등록한다.
+    /// 기존 선택 교체 결과를 유지하며 새 종류의 저장된 바다 해금 상태를 복원한다.
+    /// </summary>
+    public void RegisterPrefab(Fish prefab)
+    {
+        foreach (Fish registered in _fishPrefabs)
+        {
+            if (registered.Type.Id == prefab.Type.Id) return;
+        }
+
+        Array.Resize(ref _fishPrefabs, _fishPrefabs.Length + 1);
+        _fishPrefabs[_fishPrefabs.Length - 1] = prefab;
+        Array.Resize(ref _selectablePrefabs, _selectablePrefabs.Length + 1);
+        _selectablePrefabs[_selectablePrefabs.Length - 1] = prefab;
+        Array.Resize(ref _fishTypes, _fishTypes.Length + 1);
+        _fishTypes[_fishTypes.Length - 1] = prefab.Type;
+        if (PlayerPrefs.GetInt(SEA_KEY_PREFIX + prefab.Type.Id, 0) > 0)
+            _seaTypes.Add(prefab.Type.Id);
+    }
+
+    /// <summary>
+    /// 등록된 type의 자연 출현을 다음 판부터 허용하도록 예약한다.
+    /// 현재 판의 출현 목록은 유지하고 예약 상태와 PlayerPrefs를 저장한다.
+    /// </summary>
+    public void QueueSeaUnlock(FishType type)
+    {
+        if (_seaTypes.Contains(type.Id) || !_pendingSeaTypes.Add(type.Id)) return;
+        PlayerPrefs.SetInt(SEA_KEY_PREFIX + type.Id, 1);
+        PlayerPrefs.Save();
     }
 
     /// <summary>

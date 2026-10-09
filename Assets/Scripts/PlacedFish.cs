@@ -18,19 +18,21 @@ public class PlacedFish : MonoBehaviour
 
     void Awake()
     {
+        if (_spawner == null) _spawner = FindFirstObjectByType<FishSpawner>();
+        if (_spawner == null) return;
         // 숨어 있는 동안에도 다시 나타날 수 있도록 활성 상태와 상관없이 구독을 유지한다.
         _spawner.OnCleared += HandleCleared;
     }
 
     void OnDestroy()
     {
-        _spawner.OnCleared -= HandleCleared;
+        if (_spawner != null) _spawner.OnCleared -= HandleCleared;
     }
 
     void OnTriggerEnter(Collider other)
     {
         // 같은 물리 단계에서 접촉이 겹쳐 두 번 잡히지 않도록 이미 숨었으면 무시한다.
-        if (!gameObject.activeSelf || other.attachedRigidbody != _spawner.PlayerBody) return;
+        if (_spawner == null || !gameObject.activeSelf || other.attachedRigidbody != _spawner.PlayerBody) return;
 
         gameObject.SetActive(false);
         _spawner.HandlePlacedFishCaught(_fishPrefab.Type, transform.position);
