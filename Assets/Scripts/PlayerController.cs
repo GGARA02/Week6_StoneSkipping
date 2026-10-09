@@ -33,6 +33,7 @@ public class PlayerController : MonoBehaviour
     private FishMeshGenerator _fish;
     private InputSystem_Actions _inputActions;
     private Rigidbody _playerRB;
+    private FishSpawner _fishSpawner;
     private Transform _fishTransform;
     private Matrix4x4 _fishLocalMatrix = Matrix4x4.identity;
     private Quaternion _fishLocalRotation = Quaternion.identity;
@@ -343,10 +344,11 @@ public class PlayerController : MonoBehaviour
 
     /// <summary>
     /// 입력과 물, 물고기 메시 참조를 준비하고 시작 위치를 기록한 뒤 던지기 전 상태로 되돌린다.
-    /// input을 사용하며, 물 높이와 시작 포즈, 물고기 로컬 변환을 저장한다.
+    /// input과 fishSpawner를 사용하며, 물 높이와 시작 포즈, 물고기 로컬 변환과 사출용 스포너를 저장한다.
     /// </summary>
-    public void Initialize(InputSystem_Actions input)
+    public void Initialize(InputSystem_Actions input, FishSpawner fishSpawner)
     {
+        _fishSpawner = fishSpawner;
         _inputActions = input;
         _playerRB = GetComponent<Rigidbody>();
         _fishTransform = _fish.transform;
@@ -805,7 +807,7 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private ThrowContext AbilityContext()
     {
-        return new ThrowContext(this, _fish, _fish.FishBody);
+        return new ThrowContext(this, _fish, _fish.FishBody, _fishSpawner);
     }
 
     /// <summary>

@@ -5,6 +5,31 @@ using UnityEngine;
 public abstract class FishAbility : MonoBehaviour
 {
     /// <summary>
+    /// 플레이어가 던질 개체의 외형을 충돌체 생성 전에 준비한다. 기본 동작은 없다.
+    /// 입력값은 없으며, 변경하는 상태는 하위 클래스가 정한다.
+    /// </summary>
+    public virtual void OnPrepareThrow()
+    {
+    }
+
+    /// <summary>
+    /// 사출된 개체의 초기 속도와 외형을 준비한다. 기본 동작은 입력 속도를 유지한다.
+    /// velocity를 사용하며, 사출에 사용할 속도를 반환한다.
+    /// </summary>
+    public virtual Vector3 OnEjected(Vector3 velocity)
+    {
+        return velocity;
+    }
+
+    /// <summary>
+    /// 수면에서 출현할 개체의 외형을 준비한다. 기본 동작은 없다.
+    /// 입력값은 없으며, 변경하는 상태는 하위 클래스가 정한다.
+    /// </summary>
+    public virtual void OnWaterSpawn()
+    {
+    }
+
+    /// <summary>
     /// 던진 상태에서 SPACE 판정에 성공했을 때 특수 동작을 한다. 기본 동작은 없다.
     /// context와 judge(Perfect 또는 Good)를 사용하며, 변경하는 상태는 하위 클래스가 정한다.
     /// </summary>
