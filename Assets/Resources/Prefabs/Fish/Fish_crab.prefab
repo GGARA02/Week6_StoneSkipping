@@ -109,7 +109,7 @@ GameObject:
   - component: {fileID: 2940273826646693981}
   - component: {fileID: -139852783947677351}
   m_Layer: 0
-  m_Name: Fish_Crab
+  m_Name: Fish_crab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -187,7 +187,7 @@ ParticleSystem:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7357585696549338393}
   serializedVersion: 8
-  lengthInSec: 0.35
+  lengthInSec: 0.4
   simulationSpeed: 1
   stopAction: 0
   cullingMode: 0
@@ -262,7 +262,7 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.3
+      scalar: 0.7
       minScalar: 0.65
       maxCurve:
         serializedVersion: 2
@@ -315,7 +315,7 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 10
+      scalar: 15
       minScalar: 2.5
       maxCurve:
         serializedVersion: 2
@@ -1126,7 +1126,7 @@ ParticleSystem:
       countCurve:
         serializedVersion: 2
         minMaxState: 0
-        scalar: 50
+        scalar: 80
         minScalar: 30
         maxCurve:
           serializedVersion: 2
@@ -5034,7 +5034,7 @@ ParticleSystemRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: aeb4f6fd8c0899340b789c83d3feeee9, type: 2}
+  - {fileID: 2100000, guid: 05bc6bc797951af42bedd765125f33e4, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

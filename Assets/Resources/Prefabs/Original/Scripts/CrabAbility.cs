@@ -14,10 +14,6 @@ public class CrabAbility : FishAbility
     /// </summary>
     public override void OnJudgeSuccess(ThrowContext context, SkipJudge judge)
     {
-        if (_crabBubble == null) return;
-
-        // 이미 재생 중인 경우 초기화 후 즉시 다시 뿜어내도록 재생한다.
-        _crabBubble.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         _crabBubble.Play();
     }
 }
