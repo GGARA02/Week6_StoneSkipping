@@ -45,6 +45,8 @@ public class GameFlowManager : MonoBehaviour
     private int _perfectCount;
     private int _goodCount;
     private int _missCount;
+    private int _waterContactCount;
+    private bool _screenCaptureTriggered;
 
     [Header("HUD")]
     [SerializeField]
@@ -92,6 +94,7 @@ public class GameFlowManager : MonoBehaviour
         _playerController.OnGameOver += HandleGameOver;
         _playerController.OnWaterContact += HandleWaterContact;
         _fishSpawner.OnFishCaught += HandleFishCaught;
+        _fishSpawner.ScreenCapture.OnUnlocked += HandleScreenUnlocked;
         _cameraController.Initialize(_fishGenerator);
 
         _bestSkips = PlayerPrefs.GetInt(BEST_SKIPS_KEY, 0);
@@ -109,12 +112,14 @@ public class GameFlowManager : MonoBehaviour
         _playerController.OnGameOver -= HandleGameOver;
         _playerController.OnWaterContact -= HandleWaterContact;
         _fishSpawner.OnFishCaught -= HandleFishCaught;
+        _fishSpawner.ScreenCapture.OnUnlocked -= HandleScreenUnlocked;
         _inputActions.Dispose();
         _fishSelectionPreview.Dispose();
     }
 
     void Update()
     {
+        if (_fishSpawner.ScreenCapture.IsCapturing) return;
         Keyboard keyboard = Keyboard.current;
         Gamepad gamepad = Gamepad.current;
         if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
@@ -171,15 +176,18 @@ public class GameFlowManager : MonoBehaviour
         {
             if (offset == 0 || Mathf.Abs(offset) >= optionCount) continue;
             int option = ((_projectileIndex + 1 + offset) % optionCount + optionCount) % optionCount;
-            if (option > 0 && _fishSpawner.FishTypes[option - 1].IsRevealed)
+            if (option > 0 && (_fishSpawner.FishTypes[option - 1].IsRevealed
+                || _progress.IsFishRegistered(_fishSpawner.FishTypes[option - 1])))
             {
-                _fishSelectionPreview.PrepareTexture(_fishSpawner.FishPrefabs[option - 1]);
+                if (_fishSpawner.FishTypes[option - 1].Id != "screen")
+                    _fishSelectionPreview.PrepareTexture(_fishSpawner.FishPrefabs[option - 1]);
             }
         }
     }
 
     void OnGUI()
     {
+        if (_fishSpawner.ScreenCapture.IsCapturing && _fishSpawner.ScreenCapture.HasFrame) return;
         if (!_showHud) return;
 
         EnsureStyles();
@@ -244,11 +252,14 @@ public class GameFlowManager : MonoBehaviour
     /// </summary>
     private void Throw()
     {
+        _fishSpawner.ResetWalls();
         FishType fish = SelectedFish();
         ThrowModifiers modifiers = fish != null
             ? fish.ToThrowModifiers(_progress.PowerMultiplier, _progress.SpinMultiplier)
             : ThrowModifiers.ForFish(_progress.PowerMultiplier, _progress.SpinMultiplier);
         _state = State.Flying;
+        _waterContactCount = 0;
+        _screenCaptureTriggered = false;
         _playerController.Throw(modifiers);
     }
 
@@ -357,6 +368,21 @@ public class GameFlowManager : MonoBehaviour
                 ShowPopup($"MISS  TOO {direction}", JudgeColor(judge));
                 break;
         }
+        if ((judge == SkipJudge.Perfect || judge == SkipJudge.Good)
+            && _waterContactCount == 1 && !_screenCaptureTriggered && SelectedFish()?.Id == "blackhole")
+        {
+            _screenCaptureTriggered = true;
+            _fishSpawner.ScreenCapture.Capture(_fishGenerator.FishBody);
+        }
+    }
+
+    /// <summary>
+    /// SCREEN 캡처 완료 이벤트를 받아 해금 팝업을 표시한다.
+    /// 입력값 없이 팝업 상태를 변경한다.
+    /// </summary>
+    private void HandleScreenUnlocked()
+    {
+        ShowPopup("SCREEN UNLOCKED!", new Color(1f, 0.85f, 0.3f));
     }
 
     /// <summary>
@@ -403,6 +429,7 @@ public class GameFlowManager : MonoBehaviour
     /// </summary>
     private void HandleWaterContact(Vector3 point, float speed)
     {
+        _waterContactCount++;
         _fishGenerator.SetFlopping(false);
     }
 
@@ -432,6 +459,7 @@ public class GameFlowManager : MonoBehaviour
     /// </summary>
     private void HandleFishCaught(FishType fish)
     {
+        if (fish.Id == "wall") _fishSelectionPreview.InvalidateTexture(_fishSpawner.WallFish);
         ShowPopup($"+{fish.Value} G   {fish.DisplayName}", new Color(1f, 0.85f, 0.3f));
     }
 
@@ -494,7 +522,8 @@ public class GameFlowManager : MonoBehaviour
             {
                 FishType selectedFish = SelectedFish();
                 ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 54f * scale),
-                    selectedFish != null ? selectedFish.DisplayName : "FISH", _previewStyle, new Color(1f, 0.92f, 0.7f));
+                    selectedFish == null ? "FISH" : selectedFish.IsRevealed || _progress.IsFishRegistered(selectedFish)
+                        ? selectedFish.DisplayName : "?", _previewStyle, new Color(1f, 0.92f, 0.7f));
                 continue;
             }
             if (Mathf.Abs(offset) >= optionCount) continue;
@@ -508,17 +537,21 @@ public class GameFlowManager : MonoBehaviour
             }
 
             FishType fish = _fishSpawner.FishTypes[option - 1];
-            if (fish.IsRevealed)
+            bool registered = _progress.IsFishRegistered(fish);
+            bool revealed = fish.IsRevealed || registered;
+            if (revealed)
             {
-                GUI.DrawTexture(rect, _fishSelectionPreview.GetTexture(_fishSpawner.FishPrefabs[option - 1]), ScaleMode.ScaleToFit, true);
+                Texture preview = fish.Id == "screen" ? _fishSpawner.ScreenCapture.Image
+                    : _fishSelectionPreview.GetTexture(_fishSpawner.FishPrefabs[option - 1]);
+                GUI.DrawTexture(rect, preview, ScaleMode.ScaleToFit, true);
             }
             else
             {
                 ShadowLabel(rect, "?", _centerStyle, new Color(0.75f, 0.75f, 0.75f, 0.7f));
             }
 
-            string label = fish.IsRevealed ? fish.DisplayName : "";
-            if (!_progress.IsFishRegistered(fish)) label += "\nLOCKED";
+            string label = revealed ? fish.DisplayName : "?";
+            if (!registered) label += "\nLOCKED";
             ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 54f * scale), label, _previewStyle,
                 new Color(0.75f, 0.75f, 0.75f, 0.7f));
         }

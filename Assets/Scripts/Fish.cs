@@ -29,6 +29,8 @@ public class Fish : MonoBehaviour
     private float _waterY;
     private bool _jumped;
     private bool _caught;
+    private bool _isWall;
+    private Mesh _wallMesh;
     private bool _isEjected;
 
     public FishType Type => _type;
@@ -37,6 +39,7 @@ public class Fish : MonoBehaviour
 
     void Update()
     {
+        if (_isWall) return;
         if (!_jumped)
         {
             _delay -= Time.deltaTime;
@@ -68,6 +71,36 @@ public class Fish : MonoBehaviour
 
         _caught = true;
         _spawner.HandleFishCaught(this);
+    }
+
+    void OnDestroy()
+    {
+        if (_wallMesh != null) Destroy(_wallMesh);
+    }
+
+    /// <summary>
+    /// spawner, type와 소유할 mesh로 절단된 벽을 포획 가능한 물고기로 준비한다.
+    /// 점프 이동은 끄고 접촉 시 도감 등록과 마지막 메쉬 저장을 허용한다.
+    /// </summary>
+    public void InitializeWall(FishSpawner spawner, FishType type, Mesh mesh)
+    {
+        _spawner = spawner;
+        _type = type;
+        _body = transform;
+        _isWall = true;
+        _jumped = true;
+        _wallMesh = mesh;
+    }
+
+    /// <summary>
+    /// 입력값 없이 이미지 패널을 SCREEN 선택 템플릿으로 초기화한다.
+    /// 종류와 몸 참조를 설정하고 자연 출현용 이동을 끈다.
+    /// </summary>
+    public void InitializeScreen()
+    {
+        _type = FishType.CreateScreen();
+        _body = transform;
+        enabled = false;
     }
 
     /// <summary>

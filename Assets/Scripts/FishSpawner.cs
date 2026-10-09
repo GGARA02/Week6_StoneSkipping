@@ -29,6 +29,10 @@ public class FishSpawner : MonoBehaviour
     // 던질 거리 선택 목록. 처음에는 _fishPrefabs와 같고, ReplaceSelection으로 자리만 바뀐다.
     private Fish[] _selectablePrefabs;
     private FishType[] _fishTypes;
+    private Fish _wallFish;
+    private ScreenFishCapture _screenCapture;
+    private Mesh _wallCatalogMesh;
+    private CuttableWall[] _walls = Array.Empty<CuttableWall>();
     private readonly HashSet<string> _seaTypes = new HashSet<string>();
     private readonly HashSet<string> _pendingSeaTypes = new HashSet<string>();
 
@@ -72,11 +76,19 @@ public class FishSpawner : MonoBehaviour
     public Rigidbody PlayerBody => _playerBody;
     public IReadOnlyList<Fish> FishPrefabs => _selectablePrefabs;
     public IReadOnlyList<FishType> FishTypes => _fishTypes;
+    public Fish WallFish => _wallFish;
+    public ScreenFishCapture ScreenCapture => _screenCapture;
 
     void Awake()
     {
         _playerBody = _player.GetComponent<Rigidbody>();
         _waterY = _water.GetComponent<Collider>().bounds.max.y;
+        InitializeWalls();
+        _screenCapture = gameObject.AddComponent<ScreenFishCapture>();
+        Fish screenFish = _screenCapture.Initialize(_progress);
+        int count = _fishPrefabs.Length;
+        Array.Resize(ref _fishPrefabs, count + 1);
+        _fishPrefabs[count] = screenFish;
         RegisterEjectedPrefabs();
         _selectablePrefabs = (Fish[])_fishPrefabs.Clone();
         _fishTypes = new FishType[_selectablePrefabs.Length];
@@ -88,6 +100,53 @@ public class FishSpawner : MonoBehaviour
                 _seaTypes.Add(_fishTypes[i].Id);
             }
         }
+    }
+
+    void OnDestroy()
+    {
+        if (_wallFish != null) Destroy(_wallFish.gameObject);
+        if (_wallCatalogMesh != null) Destroy(_wallCatalogMesh);
+    }
+
+    /// <summary>
+    /// 씬의 Wall 자식 큐브와 저장 메시를 사용해 절단 대상과 Wall 선택 항목을 준비한다.
+    /// 자연 출현 목록의 끝에 비활성 Wall 템플릿을 추가하고 각 큐브에 절단 동작을 연결한다.
+    /// </summary>
+    private void InitializeWalls()
+    {
+        GameObject wallRoot = GameObject.Find("Wall");
+        if (wallRoot == null) return;
+        MeshFilter[] walls = wallRoot.GetComponentsInChildren<MeshFilter>();
+        if (walls.Length == 0) return;
+
+        GameObject template = new GameObject("Wall Fish Catalog");
+        template.SetActive(false);
+        template.transform.SetParent(transform, false);
+        MeshFilter filter = template.AddComponent<MeshFilter>();
+        _wallCatalogMesh = _progress.LoadWallMesh();
+        filter.sharedMesh = _wallCatalogMesh != null ? _wallCatalogMesh : walls[0].sharedMesh;
+        template.AddComponent<MeshRenderer>().sharedMaterials = walls[0].GetComponent<MeshRenderer>().sharedMaterials;
+        template.AddComponent<Rigidbody>().isKinematic = true;
+        _wallFish = template.AddComponent<Fish>();
+        _wallFish.InitializeWall(this, FishType.CreateWall(), null);
+        int count = _fishPrefabs.Length;
+        Array.Resize(ref _fishPrefabs, count + 1);
+        _fishPrefabs[count] = _wallFish;
+        _walls = new CuttableWall[walls.Length];
+        for (int i = 0; i < walls.Length; i++)
+        {
+            _walls[i] = walls[i].gameObject.AddComponent<CuttableWall>();
+            _walls[i].Initialize(this);
+        }
+    }
+
+    /// <summary>
+    /// 초기화 때 보관한 벽 목록을 사용해 모든 장애물을 새 throw의 원본 큐브로 복원한다.
+    /// 이전 조각은 제거하지만 도감에 등록된 Wall 메쉬와 해금 상태는 유지한다.
+    /// </summary>
+    public void ResetWalls()
+    {
+        foreach (CuttableWall wall in _walls) wall.ResetWall();
     }
 
     void Update()
@@ -153,6 +212,13 @@ public class FishSpawner : MonoBehaviour
     /// </summary>
     public void HandleFishCaught(Fish fish)
     {
+        if (fish.Type.Id == "wall")
+        {
+            Mesh previous = _wallCatalogMesh;
+            _wallCatalogMesh = _progress.SaveWallMesh(fish.GetComponent<MeshFilter>().sharedMesh, fish.transform.lossyScale);
+            _wallFish.GetComponent<MeshFilter>().sharedMesh = _wallCatalogMesh;
+            if (previous != null) Destroy(previous);
+        }
         _progress.AddFish(fish.Type);
         _effect.PlaySplash(fish.transform.position, 0.6f);
         _effect.PlayImpact(0.8f, _catchFlashColor);
@@ -271,7 +337,7 @@ public class FishSpawner : MonoBehaviour
             pick -= prefab.Type.SpawnWeight;
             if (pick < 0f) return prefab;
         }
-        return null;
+        return _fishPrefabs[0];
     }
 
     /// <summary>

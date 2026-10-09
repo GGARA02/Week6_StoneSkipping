@@ -86,6 +86,7 @@ public class CameraController : MonoBehaviour
 
     void LateUpdate()
     {
+        if (Time.timeScale == 0f) return;
         float dt = Time.unscaledDeltaTime;
         if (!_targetPlayer.IsThrown)
         {
