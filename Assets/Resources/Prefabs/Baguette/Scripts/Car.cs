@@ -10,6 +10,7 @@ public class Car : FishAbility
     [FormerlySerializedAs("doduk")]
     [SerializeField]
     private GameObject _doduk;
+    private bool isSapwnable = true;
 
     [FormerlySerializedAs("spawnPos")]
     [SerializeField]
@@ -35,12 +36,18 @@ public class Car : FishAbility
         SpawnDodukFromSpawner();
     }
 
+    public override void OnSlideStart(ThrowContext context)
+    {
+        isSapwnable = false;
+    }
     /// <summary>
     /// 등록된 스포너 중 무작위 위치를 선택하여 도둑 소환을 요청한다.
     /// _spawnPos를 사용하며, 각 DodukSpawner의 SpawnDoDuk을 호출한다.
     /// </summary>
     private void SpawnDodukFromSpawner()
     {
+        if (!isSapwnable)
+            return;
         if (_spawnPos == null || _spawnPos.Count == 0) return;
 
         // 소환할 도둑 수를 4~5마리 범위에서 랜덤으로 정한다.
