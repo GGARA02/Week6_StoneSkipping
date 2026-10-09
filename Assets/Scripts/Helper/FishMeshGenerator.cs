@@ -2,16 +2,17 @@ using System;
 using System.Collections.Generic;
 
 using UnityEngine;
+using UnityEngine.Serialization;
 
-// 시드 기반으로 납작돌 메시를 만들고, 돌 대신 던질 물고기는 프리팹을 사용한다.
+// 시드 기반으로 기본 물고기 메시를 만들고, 다른 던질 물고기는 프리팹을 사용한다.
 // 렌더용 각진 메시, 충돌용 볼록 메시, 수면 접촉 계산용 아랫면 샘플점을 같이 만든다.
 [RequireComponent(typeof(MeshFilter))]
-public class StoneMeshGenerator : MonoBehaviour
+public class FishMeshGenerator : MonoBehaviour
 {
     private enum ShapeMode
     {
-        Stone,
-        Fish,
+        Generated,
+        Prefab,
     }
 
     private const float TAIL_LOBE_ANGLE = 0.32f;
@@ -78,8 +79,9 @@ public class StoneMeshGenerator : MonoBehaviour
     private float _thicknessOffsetY;
 
     [Header("색")]
+    [FormerlySerializedAs("_stoneColor")]
     [SerializeField]
-    private Color _stoneColor = new Color(0.66f, 0.63f, 0.58f);
+    private Color _generatedFishColor = new Color(0.66f, 0.63f, 0.58f);
     private MeshRenderer _meshRenderer;
     private MaterialPropertyBlock _propertyBlock;
     private ShapeMode _shapeMode;
@@ -89,7 +91,7 @@ public class StoneMeshGenerator : MonoBehaviour
     private MeshFilter _fishMeshFilter;
     private Vector3 _fishBodyScale;
 
-    [Header("파닥임 (물고기를 던지기 전부터 처음 물에 닿을 때까지)")]
+    [Header("파닥임 (물고기를 선택하는 동안)")]
     [Tooltip("초당 파닥이는 횟수")]
     [SerializeField]
     private float _flopFrequency = 6f;
@@ -129,9 +131,9 @@ public class StoneMeshGenerator : MonoBehaviour
     public Vector3[] BottomSamples { get; private set; } = Array.Empty<Vector3>();
     public float[] SampleAreas { get; private set; } = Array.Empty<float>();
     public float TotalBottomArea { get; private set; }
-    // 돌 외형을 감싸는 점들 (최저/최고 높이 계산용, 로컬 좌표)
+    // 물고기 외형을 감싸는 점들 (최저/최고 높이 계산용, 로컬 좌표)
     public Vector3[] HullPoints { get; private set; } = Array.Empty<Vector3>();
-    // 던진 물고기의 특수 동작. 돌이거나 특수 동작이 없는 물고기면 null이다.
+    // 던진 물고기의 특수 동작. 기본 물고기거나 특수 동작이 없는 물고기면 null이다.
     public FishAbility CurrentAbility { get; private set; }
     // 던진 물고기의 몸. 물고기 모양일 때만 쓴다.
     public Transform FishBody => _fishInstance.Body;
@@ -166,24 +168,24 @@ public class StoneMeshGenerator : MonoBehaviour
     }
 
     /// <summary>
-    /// 고정 시드 설정에 따라 시드를 정해 새 돌을 만든다.
+    /// 고정 시드 설정에 따라 시드를 정해 새 기본 물고기를 만든다.
     /// _useFixedSeed와 _seed를 사용하며, 메시와 샘플점을 새로 만든다.
     /// </summary>
-    [ContextMenu("Generate New Stone")]
+    [ContextMenu("Generate New Fish")]
     public void Generate()
     {
         Generate(_useFixedSeed ? _seed : UnityEngine.Random.Range(int.MinValue, int.MaxValue));
     }
 
     /// <summary>
-    /// 시드로 노이즈 오프셋과 크기를 정하고 돌 메시와 샘플점을 만든다.
+    /// 시드로 노이즈 오프셋과 크기를 정하고 기본 물고기 메시와 샘플점을 만든다.
     /// seed를 사용하며, 메시, 샘플점, 색을 변경하고 OnGenerated를 보낸다.
     /// </summary>
     public void Generate(int seed)
     {
         if (!Application.isPlaying)
         {
-            Debug.LogWarning("StoneMeshGenerator: 돌 생성은 플레이 중에만 됩니다.");
+            Debug.LogWarning("FishMeshGenerator: 물고기 생성은 플레이 중에만 됩니다.");
             return;
         }
 
@@ -201,19 +203,19 @@ public class StoneMeshGenerator : MonoBehaviour
 
         ClearFish();
         _meshRenderer.enabled = true;
-        _shapeMode = ShapeMode.Stone;
+        _shapeMode = ShapeMode.Generated;
         _isFlopping = false;
-        Rebuild(_stoneColor);
+        Rebuild(_generatedFishColor);
     }
 
     /// <summary>
-    /// 물고기 프리팹을 돌 아래에 생성하고 출현용 동작을 끈 뒤 옆으로 눕혀 던질 준비를 한다.
+    /// 물고기 프리팹을 생성기 아래에 생성하고 출현용 동작을 끈 뒤 옆으로 눕혀 던질 준비를 한다.
     /// prefab의 메시와 머티리얼을 사용하며, 충돌체, 수면 샘플, CurrentAbility를 변경하고 OnGenerated를 보낸다.
     /// </summary>
     public void GenerateFish(Fish prefab)
     {
         ClearFish();
-        _shapeMode = ShapeMode.Fish;
+        _shapeMode = ShapeMode.Prefab;
         _fishInstance = Instantiate(prefab, transform, false);
         _fishInstance.enabled = false;
         CurrentAbility = _fishInstance.GetComponent<FishAbility>();
@@ -427,7 +429,7 @@ public class StoneMeshGenerator : MonoBehaviour
     /// </summary>
     public void SetFlopping(bool flopping)
     {
-        bool active = flopping && _shapeMode == ShapeMode.Fish
+        bool active = flopping && _shapeMode == ShapeMode.Prefab
             && _fishFlopMeshes.Length > 0
             && _fishInstance.GetComponentInChildren<HopakJumpAnimation>(true) == null;
         if (_isFlopping == active) return;
@@ -486,10 +488,10 @@ public class StoneMeshGenerator : MonoBehaviour
         Mesh oldCollider = _colliderMesh;
 
         BuildGrid(Mathf.Max(8, _segments), Mathf.Max(1, _rings), SurfacePoint, out Vector3[,] top, out Vector3[,] bottom);
-        _renderMesh = BuildMesh(top, bottom, "Stone_Render");
+        _renderMesh = BuildMesh(top, bottom, "Fish_Render");
 
         BuildGrid(Mathf.Clamp(_colliderSegments, 6, 40), 2, SurfacePoint, out Vector3[,] colliderTop, out Vector3[,] colliderBottom);
-        _colliderMesh = BuildMesh(colliderTop, colliderBottom, "Stone_Collider");
+        _colliderMesh = BuildMesh(colliderTop, colliderBottom, "Fish_Collider");
         HullPoints = CollectHullPoints(colliderTop, colliderBottom);
 
         _baseVertices = _renderMesh.vertices;
@@ -520,7 +522,7 @@ public class StoneMeshGenerator : MonoBehaviour
     /// </summary>
     private Vector2 OutlinePoint(float angle)
     {
-        return _shapeMode == ShapeMode.Fish ? FishOutlinePoint(angle, _fishType, _fishInflate) : StoneOutlinePoint(angle);
+        return _shapeMode == ShapeMode.Prefab ? FishOutlinePoint(angle, _fishType, _fishInflate) : GeneratedFishOutlinePoint(angle);
     }
 
     /// <summary>
@@ -529,14 +531,14 @@ public class StoneMeshGenerator : MonoBehaviour
     /// </summary>
     private Vector3 SurfacePoint(float angle, float t, bool top)
     {
-        return _shapeMode == ShapeMode.Fish ? FishSurfacePoint(angle, t, top, _fishType, _fishInflate) : StoneSurfacePoint(angle, t, top);
+        return _shapeMode == ShapeMode.Prefab ? FishSurfacePoint(angle, t, top, _fishType, _fishInflate) : GeneratedFishSurfacePoint(angle, t, top);
     }
 
     /// <summary>
-    /// 각도 방향의 울퉁불퉁한 돌 외곽선 점을 구한다.
+    /// 각도 방향의 울퉁불퉁한 기본 물고기 외곽선 점을 구한다.
     /// angle(라디안)과 외곽선 노이즈 설정을 사용하며, 로컬 xz 좌표를 반환한다.
     /// </summary>
-    private Vector2 StoneOutlinePoint(float angle)
+    private Vector2 GeneratedFishOutlinePoint(float angle)
     {
         float c = Mathf.Cos(angle);
         float s = Mathf.Sin(angle);
@@ -548,12 +550,12 @@ public class StoneMeshGenerator : MonoBehaviour
     }
 
     /// <summary>
-    /// 돌의 윗면 또는 아랫면 위의 한 점을 구한다. 윗면은 볼록한 돔, 아랫면은 평평하고 가장자리만 둥글다.
+    /// 기본 물고기의 윗면 또는 아랫면 위의 한 점을 구한다. 윗면은 볼록한 돔, 아랫면은 평평하고 가장자리만 둥글다.
     /// angle, t(0 중심 ~ 1 가장자리), top을 사용하며, 로컬 좌표를 반환한다.
     /// </summary>
-    private Vector3 StoneSurfacePoint(float angle, float t, bool top)
+    private Vector3 GeneratedFishSurfacePoint(float angle, float t, bool top)
     {
-        Vector2 xz = StoneOutlinePoint(angle) * t;
+        Vector2 xz = GeneratedFishOutlinePoint(angle) * t;
         float thicknessScale = Mathf.Max(0.3f, 1f + Noise(_thicknessOffsetX + xz.x * 0.5f, _thicknessOffsetY + xz.y * 0.5f) * _thicknessNoise);
         float baseHeight = _thickness * _sizeScale * thicknessScale * (top ? _topRatio : 1f - _topRatio);
         float profile = top

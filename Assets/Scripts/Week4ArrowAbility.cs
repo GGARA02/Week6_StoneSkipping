@@ -38,7 +38,7 @@ public class Week4ArrowAbility : FishAbility
     void Start()
     {
         // 던질 거리로 만들어지면 모양 생성기 아래에 붙는다. 물에서 튀어 오르는 화살은 흔들지 않는다.
-        _held = GetComponentInParent<StoneMeshGenerator>() != null;
+        _held = GetComponentInParent<FishMeshGenerator>() != null;
     }
 
     void Update()
@@ -46,7 +46,7 @@ public class Week4ArrowAbility : FishAbility
         if (!_held || _thrown) return;
 
         float offset = Mathf.Sin(Time.time * _bobFrequency * Mathf.PI * 2f) * _bobHeight;
-        // 조준 자세로 돌이 기울어도 화면 기준 위아래로 흔들리게 월드 위쪽을 부모 로컬로 바꾼다.
+        // 조준 자세로 물고기가 기울어도 화면 기준 위아래로 흔들리게 월드 위쪽을 부모 로컬로 바꾼다.
         transform.localPosition = transform.parent.InverseTransformVector(Vector3.up * offset);
     }
 

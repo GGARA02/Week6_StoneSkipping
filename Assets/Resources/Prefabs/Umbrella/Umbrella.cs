@@ -25,7 +25,7 @@ public class Umbrella : FishAbility
         if (GetComponent<Fish>().enabled) return;
 
         transform.localRotation = Quaternion.Euler(_throwRotation) * transform.localRotation;
-        transform.parent.GetComponent<StoneMeshGenerator>().BuildPrefabGeometry();
+        transform.parent.GetComponent<FishMeshGenerator>().BuildPrefabGeometry();
     }
 
     /// <summary>

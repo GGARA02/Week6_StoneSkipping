@@ -10,7 +10,7 @@ public enum FishShape
     Can,
 }
 
-// 물고기 한 종류의 값, 생김새, 돌 대신 던질 때의 물리 특성.
+// 물고기 한 종류의 값, 생김새, 던질 때의 물리 특성.
 // 물고기는 옆모습 실루엣 기준으로 길이는 z, 높이는 x, 두께는 y로 만든다. 게는 위에서 본 모양이라 높이가 좌우 폭이다.
 [Serializable]
 public class FishType
@@ -27,6 +27,11 @@ public class FishType
     [Tooltip("출현 확률 가중치")]
     [SerializeField]
     private float _spawnWeight = 1f;
+
+    [Header("선택 미리보기")]
+    [Tooltip("공개하면 회색 반투명 모델, 공개하지 않으면 물음표로 표시한다. 도감 등록 여부와는 별개다")]
+    [SerializeField]
+    private bool _isRevealed = true;
 
     [Header("몸")]
     [SerializeField]
@@ -45,12 +50,12 @@ public class FishType
     [SerializeField]
     private float _dorsalFin = 0f;
 
-    [Header("돌 대신 던질 때")]
+    [Header("던질 때")]
     [SerializeField]
     private float _speedMultiplier = 1f;
     [SerializeField]
     private float _spinMultiplier = 1f;
-    [Tooltip("물고기는 돌과 면적이 달라서 양력을 보정한다")]
+    [Tooltip("프리팹 물고기는 기본 물고기와 면적이 달라서 양력을 보정한다")]
     [SerializeField]
     private float _liftMultiplier = 3f;
     [SerializeField]
@@ -64,6 +69,7 @@ public class FishType
     public int Value => _value;
     public Color Color => _color;
     public float SpawnWeight => _spawnWeight;
+    public bool IsRevealed => _isRevealed;
     public FishShape Shape => _shape;
     public float Length => _length;
     public float Height => _height;

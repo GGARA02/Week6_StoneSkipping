@@ -2,6 +2,7 @@ using System;
 
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 
 public enum SkipJudge
 {
@@ -19,7 +20,7 @@ public enum GameOverReason
     OutOfBounds,
 }
 
-// 물수제비 돌 물리. 물에 닿으면 아랫면 법선 방향 양력, 표면 마찰, 잠김 저항이 작용한다.
+// 물수제비 물고기 물리. 물에 닿으면 아랫면 법선 방향 양력, 표면 마찰, 잠김 저항이 작용한다.
 // 스핀이 클수록 기울기가 유지되고, 접촉 순간 SPACE 타이밍을 맞추면 보너스를 받는다.
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
@@ -27,13 +28,14 @@ public class PlayerController : MonoBehaviour
     [Header("참조")]
     [SerializeField]
     private GameObject _water;
+    [FormerlySerializedAs("_stone")]
     [SerializeField]
-    private StoneMeshGenerator _stone;
+    private FishMeshGenerator _fish;
     private InputSystem_Actions _inputActions;
     private Rigidbody _playerRB;
-    private Transform _stoneTransform;
-    private Matrix4x4 _stoneLocalMatrix = Matrix4x4.identity;
-    private Quaternion _stoneLocalRotation = Quaternion.identity;
+    private Transform _fishTransform;
+    private Matrix4x4 _fishLocalMatrix = Matrix4x4.identity;
+    private Quaternion _fishLocalRotation = Quaternion.identity;
     private float _waterY;
     private Vector3 _startPosition;
     private Quaternion _startRotation;
@@ -57,13 +59,13 @@ public class PlayerController : MonoBehaviour
     private int _throwFrame = -1;
     private float _spinScale = 1f;
     private Vector3 _velocity;
-    private ThrowModifiers _modifiers = ThrowModifiers.ForStone(1f, 1f);
+    private ThrowModifiers _modifiers = ThrowModifiers.ForFish(1f, 1f);
 
     [Header("조작 (A/D·왼쪽 스틱 커브, 방향키·오른쪽 스틱 자세)")]
     [Tooltip("커브: 진행 방향이 초당 휘는 각도(도)")]
     [SerializeField]
     private float _steerRate = 15f;
-    [Tooltip("커브: 커브 방향으로 돌을 기울이는 각도(도)")]
+    [Tooltip("커브: 커브 방향으로 물고기를 기울이는 각도(도)")]
     [SerializeField]
     private float _bankAngle = 12f;
     [Tooltip("위/아래: 초당 앞뒤 기울기 변화(도). 위를 누르면 앞쪽이 들린다")]
@@ -89,7 +91,7 @@ public class PlayerController : MonoBehaviour
     private float _attitudeStiffness = 90f;
     [SerializeField]
     private float _attitudeDamping = 15f;
-    [Tooltip("튕길 때 물결에 기운 수면 법선 쪽으로 돌을 비트는 세기 (수직 충돌 속도당 rad/s)")]
+    [Tooltip("튕길 때 물결에 기운 수면 법선 쪽으로 물고기를 비트는 세기 (수직 충돌 속도당 rad/s)")]
     [SerializeField]
     private float _impactWobble = 0.6f;
     [Tooltip("물결 때문에 수면 법선이 기울어 있다고 보는 최대 정도")]
@@ -106,16 +108,16 @@ public class PlayerController : MonoBehaviour
     [Tooltip("양력 = 계수 x 속력 x (아랫면이 물을 파고드는 속도) x 잠긴 면적, 아랫면 법선 방향")]
     [SerializeField]
     private float _liftCoefficient = 1f;
-    [Tooltip("돌 면을 따라 미끄러질 때의 마찰")]
+    [Tooltip("물고기 면을 따라 미끄러질 때의 마찰")]
     [SerializeField]
     private float _skinFriction = 0.002f;
-    [Tooltip("돌이 깊이 잠길수록 커지는 저항")]
+    [Tooltip("물고기가 깊이 잠길수록 커지는 저항")]
     [SerializeField]
     private float _formDrag = 0.03f;
     [Tooltip("물에 닿아 있는 동안 속도와 상관없이 더하는 감속(m/s²). 느릴 때 수면을 오래 미끄러지지 않게 한다")]
     [SerializeField]
     private float _slideDeceleration = 5f;
-    [Tooltip("양력이 무게중심에서 벗어난 곳에 걸려 생기는 회전 비율. 0이면 돌 모양이 흔들림에 영향 없음")]
+    [Tooltip("양력이 무게중심에서 벗어난 곳에 걸려 생기는 회전 비율. 0이면 물고기 모양이 흔들림에 영향 없음")]
     [Range(0f, 0.2f)]
     [SerializeField]
     private float _liftTorqueFactor = 0.03f;
@@ -167,7 +169,7 @@ public class PlayerController : MonoBehaviour
     [Tooltip("미끄러지는 동안 SPACE로 밀 수 있는 횟수. 누를 때마다 추진력이 일정하게 줄어 이 횟수에서 0이 된다")]
     [SerializeField]
     private int _slideMaxPushes = 20;
-    [Tooltip("미끄러지는 동안 돌 아랫면을 띄워 두는 수면 아래 깊이(m). 0보다 커야 물 마찰로 감속한다")]
+    [Tooltip("미끄러지는 동안 물고기 아랫면을 띄워 두는 수면 아래 깊이(m). 0보다 커야 물 마찰로 감속한다")]
     [SerializeField]
     private float _slideFloatDepth = 0.02f;
     [Tooltip("미끄러지기 시작할 때 수면까지 떠오르는 최대 속도(m/s)")]
@@ -189,7 +191,7 @@ public class PlayerController : MonoBehaviour
     public event Action OnSlidePush;
 
     [Header("게임오버")]
-    [Tooltip("돌 윗면이 수면 아래로 이만큼 내려가면 가라앉은 것으로 판정")]
+    [Tooltip("물고기 윗면이 수면 아래로 이만큼 내려가면 가라앉은 것으로 판정")]
     [SerializeField]
     private float _sinkDepth = 0.8f;
     [SerializeField]
@@ -213,10 +215,10 @@ public class PlayerController : MonoBehaviour
     public Vector3 WaterContactPoint => new Vector3(_playerRB.position.x, _waterY, _playerRB.position.z);
     public float TargetPitch => _targetPitch;
     public float TargetRoll => _targetRoll;
-    public int StoneSeed => _stone.CurrentSeed;
+    public int FishSeed => _fish.CurrentSeed;
     public float ContactElapsed => _inContact ? Time.time - _contactStartTime : 0f;
-    public float CurrentPitch => Mathf.Asin(Mathf.Clamp(-Vector3.Dot(StoneUp(), _heading), -1f, 1f)) * Mathf.Rad2Deg;
-    public float SpinRate => Vector3.Dot(_playerRB.angularVelocity, StoneUp());
+    public float CurrentPitch => Mathf.Asin(Mathf.Clamp(-Vector3.Dot(FishUp(), _heading), -1f, 1f)) * Mathf.Rad2Deg;
+    public float SpinRate => Vector3.Dot(_playerRB.angularVelocity, FishUp());
     public float Stability => Mathf.Lerp(_minStability, 1f, Mathf.Clamp01(Mathf.Abs(SpinRate) / Mathf.Max(_spinForFullStability, 0.01f)));
     public bool IsSliding => _isSliding;
     // 남은 밀기 힘 (1이면 처음, 0이면 더 밀리지 않음)
@@ -244,7 +246,7 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        // 던지기 전에는 방향키로 자세를 맞추고, 떠 있는 돌에 바로 보여준다.
+        // 던지기 전에는 방향키로 자세를 맞추고, 떠 있는 물고기에 바로 보여준다.
         if (!_isThrown)
         {
             ReadAttitudeInput(Time.deltaTime);
@@ -336,32 +338,32 @@ public class PlayerController : MonoBehaviour
 
     void OnDestroy()
     {
-        _stone.OnGenerated -= HandleStoneGenerated;
+        _fish.OnGenerated -= HandleFishGenerated;
     }
 
     /// <summary>
-    /// 입력과 물, 돌 메시 참조를 준비하고 시작 위치를 기록한 뒤 던지기 전 상태로 되돌린다.
-    /// input을 사용하며, 물 높이와 시작 포즈, 돌 로컬 변환을 저장한다.
+    /// 입력과 물, 물고기 메시 참조를 준비하고 시작 위치를 기록한 뒤 던지기 전 상태로 되돌린다.
+    /// input을 사용하며, 물 높이와 시작 포즈, 물고기 로컬 변환을 저장한다.
     /// </summary>
     public void Initialize(InputSystem_Actions input)
     {
         _inputActions = input;
         _playerRB = GetComponent<Rigidbody>();
-        _stoneTransform = _stone.transform;
-        _stoneLocalMatrix = transform.worldToLocalMatrix * _stoneTransform.localToWorldMatrix;
-        _stoneLocalRotation = Quaternion.Inverse(transform.rotation) * _stoneTransform.rotation;
+        _fishTransform = _fish.transform;
+        _fishLocalMatrix = transform.worldToLocalMatrix * _fishTransform.localToWorldMatrix;
+        _fishLocalRotation = Quaternion.Inverse(transform.rotation) * _fishTransform.rotation;
         _waterY = _water.GetComponent<Collider>().bounds.max.y;
         _playerRB.maxAngularVelocity = Mathf.Max(_playerRB.maxAngularVelocity, _throwSpin * 2f);
         _startPosition = transform.position;
         _startRotation = transform.rotation;
 
-        _stone.OnGenerated += HandleStoneGenerated;
-        HandleStoneGenerated();
+        _fish.OnGenerated += HandleFishGenerated;
+        HandleFishGenerated();
         ResetToStart();
     }
 
     /// <summary>
-    /// 돌을 시작 위치에 멈춘 상태로 되돌리고 판정, 기록, 접촉 상태를 초기화한 뒤 시작 자세와 스핀을 랜덤으로 정한다.
+    /// 물고기를 시작 위치에 멈춘 상태로 되돌리고 판정, 기록, 접촉 상태를 초기화한 뒤 시작 자세와 스핀을 랜덤으로 정한다.
     /// 시작 포즈와 랜덤 범위를 사용하며, Rigidbody 속도와 위치, 목표 자세, 스핀 배율, SkipCount, Distance를 변경한다.
     /// </summary>
     public void ResetToStart()
@@ -402,30 +404,32 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// 맞춘 자세와 랜덤 스핀을 주고 돌(또는 물고기)을 던진다.
+    /// 선택 파닥임을 원형으로 복구한 뒤 맞춘 자세와 랜덤 스핀을 주고 물고기를 던진다.
     /// modifiers와 _throwVelocity, 목표 자세, _throwSpin, _spinScale을 사용하며, Rigidbody 속도와 회전, _isThrown을 변경한다.
     /// </summary>
     public void Throw(ThrowModifiers modifiers)
     {
         if (_isThrown) return;
 
+        _fish.SetFlopping(false);
         _modifiers = modifiers;
         float spin = _throwSpin * modifiers.SpinMultiplier * _spinScale;
         _playerRB.maxAngularVelocity = Mathf.Max(_playerRB.maxAngularVelocity, Mathf.Abs(spin) * 2f);
         Vector3 velocity = _startRotation * _throwVelocity * modifiers.SpeedMultiplier;
         _heading = ThrowHeading();
 
-        Quaternion stoneRotation = AttitudeRotation(0f);
-        Quaternion rotation = stoneRotation * Quaternion.Inverse(_stoneLocalRotation);
+        Quaternion fishRotation = AttitudeRotation(0f);
+        Quaternion rotation = fishRotation * Quaternion.Inverse(_fishLocalRotation);
         _playerRB.rotation = rotation;
         transform.rotation = rotation;
 
         _playerRB.useGravity = true;
         _playerRB.linearVelocity = velocity;
-        _playerRB.angularVelocity = (stoneRotation * Vector3.up) * spin;
+        _playerRB.angularVelocity = (fishRotation * Vector3.up) * spin;
         _velocity = velocity;
         _isThrown = true;
         _throwFrame = Time.frameCount;
+        UpdateAbilityFlight(0f);
     }
 
     /// <summary>
@@ -499,19 +503,19 @@ public class PlayerController : MonoBehaviour
         return stick / magnitude * ((magnitude - _stickDeadZone) / (1f - _stickDeadZone));
     }
     /// <summary>
-    /// 던지기 전 떠 있는 돌을 방향키로 맞춘 자세로 돌려 보여준다.
+    /// 던지기 전 떠 있는 물고기를 방향키로 맞춘 자세로 돌려 보여준다.
     /// 목표 자세와 진행 방향을 사용하며, Rigidbody와 transform 회전을 변경한다.
     /// </summary>
     private void ApplyAimPose()
     {
-        Quaternion rotation = AttitudeRotation(0f) * Quaternion.Inverse(_stoneLocalRotation);
+        Quaternion rotation = AttitudeRotation(0f) * Quaternion.Inverse(_fishLocalRotation);
         _playerRB.rotation = rotation;
         transform.rotation = rotation;
     }
 
     /// <summary>
     /// 진행 방향 기준 목표 자세(앞뒤 기울기, 좌우 기울기)를 회전으로 만든다.
-    /// extraRoll(커브로 더 기울이는 각도)과 _heading, _targetPitch, _targetRoll을 사용하며, 돌의 목표 회전을 반환한다.
+    /// extraRoll(커브로 더 기울이는 각도)과 _heading, _targetPitch, _targetRoll을 사용하며, 물고기의 목표 회전을 반환한다.
     /// </summary>
     private Quaternion AttitudeRotation(float extraRoll)
     {
@@ -520,17 +524,17 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// 물리 포즈 기준으로 돌의 최저/최고 높이와 물에 잠긴 아랫면 면적, 그 중심을 계산한다.
-    /// 돌 외형 점과 아랫면 샘플점을 사용하며, _bottomHeight, _topHeight, _submersion, _submergedArea, _submergedCenter를 변경한다.
+    /// 물리 포즈 기준으로 물고기의 최저/최고 높이와 물에 잠긴 아랫면 면적, 그 중심을 계산한다.
+    /// 물고기 외형 점과 아랫면 샘플점을 사용하며, _bottomHeight, _topHeight, _submersion, _submergedArea, _submergedCenter를 변경한다.
     /// </summary>
     private void SampleWater()
     {
         // 보간된 transform 대신 물리 포즈를 써야 접촉 판정이 한 스텝 늦지 않는다.
-        Matrix4x4 toWorld = Matrix4x4.TRS(_playerRB.position, _playerRB.rotation, Vector3.one) * _stoneLocalMatrix;
+        Matrix4x4 toWorld = Matrix4x4.TRS(_playerRB.position, _playerRB.rotation, Vector3.one) * _fishLocalMatrix;
 
         float minY = float.PositiveInfinity;
         float maxY = float.NegativeInfinity;
-        Vector3[] hull = _stone.HullPoints;
+        Vector3[] hull = _fish.HullPoints;
         for (int i = 0; i < hull.Length; i++)
         {
             float y = toWorld.MultiplyPoint3x4(hull[i]).y;
@@ -543,8 +547,8 @@ public class PlayerController : MonoBehaviour
 
         _submergedArea = 0f;
         Vector3 center = Vector3.zero;
-        Vector3[] samples = _stone.BottomSamples;
-        float[] areas = _stone.SampleAreas;
+        Vector3[] samples = _fish.BottomSamples;
+        float[] areas = _fish.SampleAreas;
         for (int i = 0; i < samples.Length; i++)
         {
             Vector3 point = toWorld.MultiplyPoint3x4(samples[i]);
@@ -580,7 +584,7 @@ public class PlayerController : MonoBehaviour
             _jumpPending = false;
             _slidePushCount = 0;
 
-            FishAbility ability = _stone.CurrentAbility;
+            FishAbility ability = _fish.CurrentAbility;
             if (ability != null)
             {
                 ability.OnSlideStart(AbilityContext());
@@ -605,7 +609,7 @@ public class PlayerController : MonoBehaviour
 
     /// <summary>
     /// 물에 닿기 시작한 순간의 시각과 수평 속도를 기록하고 착수 이벤트를 보낸다.
-    /// _velocity와 돌 위치를 사용하며, _inContact, _contactStartTime, _contactEntrySpeed, _contactJudge를 변경한다.
+    /// _velocity와 물고기 위치를 사용하며, _inContact, _contactStartTime, _contactEntrySpeed, _contactJudge를 변경한다.
     /// </summary>
     private void BeginContact()
     {
@@ -618,7 +622,7 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// 착수 순간 물결에 살짝 기운 수면에 부딪힌 것처럼 돌을 비튼다. 돌 윗면이 그 수면 법선 쪽으로 꺾이고 스핀도 조금 흔들린다.
+    /// 착수 순간 물결에 살짝 기운 수면에 부딪힌 것처럼 물고기를 비튼다. 물고기 윗면이 그 수면 법선 쪽으로 꺾이고 스핀도 조금 흔들린다.
     /// 수직 충돌 속도, _impactWobble, _waveNormalTilt를 사용하며, Rigidbody 각속도를 변경한다.
     /// </summary>
     private void KickOnImpact()
@@ -626,7 +630,7 @@ public class PlayerController : MonoBehaviour
         float impact = Mathf.Max(0f, -_velocity.y);
         Vector2 waveTilt = UnityEngine.Random.insideUnitCircle * _waveNormalTilt;
         Vector3 waterNormal = new Vector3(waveTilt.x, 1f, waveTilt.y).normalized;
-        Vector3 up = StoneUp();
+        Vector3 up = FishUp();
         if (up.y < 0f) up = -up;
 
         // 윗면을 수면 법선 쪽으로 돌리는 축이다. 기울기 차이가 클수록, 세게 부딪힐수록 크게 꺾인다.
@@ -700,7 +704,7 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// 미끄러지는 동안 돌 아랫면을 수면 바로 아래에 띄워 보이게 하고, 느려지거나 게임오버가 되면 더 띄우지 않고 가라앉힌다.
+    /// 미끄러지는 동안 물고기 아랫면을 수면 바로 아래에 띄워 보이게 하고, 느려지거나 게임오버가 되면 더 띄우지 않고 가라앉힌다.
     /// 어느 쪽이든 위로 튀어 오르지는 못한다.
     /// dt, _bottomHeight, 수평 속력, _slideFloatDepth, _slideRiseSpeed, _slideSinkSpeed를 사용하며, _velocity.y와 _isSlideSinking을 변경한다.
     /// </summary>
@@ -745,7 +749,7 @@ public class PlayerController : MonoBehaviour
             }
 
             // 스핀을 다시 살려 자세를 잡아준다.
-            Vector3 up = StoneUp();
+            Vector3 up = FishUp();
             Vector3 angular = _playerRB.angularVelocity;
             float spin = Vector3.Dot(angular, up);
             float sign = spin < 0f ? -1f : 1f;
@@ -768,7 +772,7 @@ public class PlayerController : MonoBehaviour
             _cooldownEndTime = Time.time + _missCooldown;
         }
 
-        FishAbility ability = _stone.CurrentAbility;
+        FishAbility ability = _fish.CurrentAbility;
         if (ability != null)
         {
             if (judge == SkipJudge.Miss)
@@ -789,7 +793,7 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private void UpdateAbilityFlight(float dt)
     {
-        FishAbility ability = _stone.CurrentAbility;
+        FishAbility ability = _fish.CurrentAbility;
         if (ability == null) return;
 
         ability.UpdateFlight(AbilityContext(), dt);
@@ -797,11 +801,11 @@ public class PlayerController : MonoBehaviour
 
     /// <summary>
     /// 특수 동작에 넘길 대상 묶음을 만든다.
-    /// 이 컨트롤러와 _stone을 사용하며, ThrowContext를 반환한다.
+    /// 이 컨트롤러와 _fish를 사용하며, ThrowContext를 반환한다.
     /// </summary>
     private ThrowContext AbilityContext()
     {
-        return new ThrowContext(this, _stone, _stone.FishBody);
+        return new ThrowContext(this, _fish, _fish.FishBody);
     }
 
     /// <summary>
@@ -813,10 +817,10 @@ public class PlayerController : MonoBehaviour
         float speed = _velocity.magnitude;
         if (speed < 0.0001f) return;
 
-        Vector3 up = StoneUp();
+        Vector3 up = FishUp();
         Vector3 normal = up.y >= 0f ? up : -up;
 
-        // 한 스텝에 파고드는 속도 이상은 밀지 않는다. 그래서 돌은 자기 기울기만큼의 각도로 튀어 나간다.
+        // 한 스텝에 파고드는 속도 이상은 밀지 않는다. 그래서 물고기는 자기 기울기만큼의 각도로 튀어 나간다.
         float intoWater = -Vector3.Dot(_velocity, normal);
         if (intoWater > 0f && _submergedArea > 0f)
         {
@@ -847,7 +851,7 @@ public class PlayerController : MonoBehaviour
             _velocity -= _velocity / newSpeed * drag;
         }
 
-        float areaRatio = _submergedArea / _stone.TotalBottomArea;
+        float areaRatio = _submergedArea / _fish.TotalBottomArea;
         Vector3 angular = _playerRB.angularVelocity;
         float spin = Vector3.Dot(angular, up);
         float damped = spin * Mathf.Exp(-_spinWaterDamping * areaRatio * dt);
@@ -875,12 +879,12 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// 진행 방향 기준 목표 자세(받음각, 커브 기울기)로 돌 윗면을 끌어당기는 토크를 준다.
+    /// 진행 방향 기준 목표 자세(받음각, 커브 기울기)로 물고기 윗면을 끌어당기는 토크를 준다.
     /// _targetPitch, _steer, Stability를 사용하며, Rigidbody에 토크를 더한다.
     /// </summary>
     private void ApplyAttitude()
     {
-        Vector3 up = StoneUp();
+        Vector3 up = FishUp();
         Vector3 targetUp = AttitudeRotation(_steer * _bankAngle) * Vector3.up;
 
         Vector3 axis = Vector3.Cross(up, targetUp);
@@ -950,10 +954,10 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// 돌 모양이 바뀌면 무게중심과 관성을 새 모양 기준으로 다시 계산한다.
+    /// 물고기 모양이 바뀌면 무게중심과 관성을 새 모양 기준으로 다시 계산한다.
     /// 입력값은 없으며, Rigidbody 질량 특성을 변경한다.
     /// </summary>
-    private void HandleStoneGenerated()
+    private void HandleFishGenerated()
     {
         _playerRB.ResetCenterOfMass();
         _playerRB.ResetInertiaTensor();
@@ -970,12 +974,12 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// 물리 포즈 기준 돌 윗면 방향을 구한다.
-    /// Rigidbody 회전과 돌 로컬 회전을 사용하며, 월드 방향 벡터를 반환한다.
+    /// 물리 포즈 기준 물고기 윗면 방향을 구한다.
+    /// Rigidbody 회전과 물고기 로컬 회전을 사용하며, 월드 방향 벡터를 반환한다.
     /// </summary>
-    private Vector3 StoneUp()
+    private Vector3 FishUp()
     {
-        return _playerRB.rotation * _stoneLocalRotation * Vector3.up;
+        return _playerRB.rotation * _fishLocalRotation * Vector3.up;
     }
 
     /// <summary>

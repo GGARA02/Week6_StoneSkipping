@@ -1,8 +1,9 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 
 // 던지기, 비행, 게임오버(상점), 재시작 흐름과 HUD를 담당한다.
-// 게임오버 시 씬을 다시 불러오지 않고 제자리에서 리셋하고 새 돌을 만든다.
+// 게임오버 시 씬을 다시 불러오지 않고 제자리에서 리셋하고 새 물고기를 만든다.
 public class GameFlowManager : MonoBehaviour
 {
     private enum State
@@ -15,7 +16,7 @@ public class GameFlowManager : MonoBehaviour
     private const string BEST_SKIPS_KEY = "SkipStoneV2.BestSkips";
     private const string BEST_DISTANCE_KEY = "SkipStoneV2.BestDistance";
     private const float POPUP_DURATION = 1.1f;
-    private const int STONE_INDEX = -1;
+    private const int DEFAULT_FISH_INDEX = -1;
     // 게임오버 직후 SPACE 연타로 바로 재시작되지 않게 기다리는 시간(초)
     private const float RETRY_INPUT_DELAY = 0.6f;
 
@@ -24,8 +25,9 @@ public class GameFlowManager : MonoBehaviour
     private PlayerController _playerController;
     [SerializeField]
     private CameraController _cameraController;
+    [FormerlySerializedAs("_stoneGenerator")]
     [SerializeField]
-    private StoneMeshGenerator _stoneGenerator;
+    private FishMeshGenerator _fishGenerator;
     [SerializeField]
     private PlayerProgress _progress;
     [SerializeField]
@@ -38,8 +40,8 @@ public class GameFlowManager : MonoBehaviour
     private float _gameOverTime;
     private int _bestSkips;
     private float _bestDistance;
-    // -1은 돌, 0 이상은 FishSpawner.FishTypes 인덱스
-    private int _projectileIndex = STONE_INDEX;
+    // -1은 기본 물고기, 0 이상은 FishSpawner.FishTypes 인덱스
+    private int _projectileIndex = DEFAULT_FISH_INDEX;
     private int _perfectCount;
     private int _goodCount;
     private int _missCount;
@@ -52,7 +54,7 @@ public class GameFlowManager : MonoBehaviour
     [Tooltip("수면에 닿기 이 시간(초) 전부터 SPACE 안내를 띄운다")]
     [SerializeField]
     private float _spaceHintLeadTime = 0.6f;
-    [Tooltip("판정 문구 세로 위치 (화면 높이 비율). 돌이 화면 가운데 있으므로 위쪽에 둔다")]
+    [Tooltip("판정 문구 세로 위치 (화면 높이 비율). 물고기가 화면 가운데 있으므로 위쪽에 둔다")]
     [Range(0f, 1f)]
     [SerializeField]
     private float _popupHeight = 0.13f;
@@ -71,7 +73,9 @@ public class GameFlowManager : MonoBehaviour
     private GUIStyle _popupStyle;
     private GUIStyle _debugStyle;
     private GUIStyle _buttonStyle;
+    private GUIStyle _previewStyle;
     private float _styleScale = -1f;
+    private FishSelectionPreview _fishSelectionPreview;
 
     void Start()
     {
@@ -88,11 +92,13 @@ public class GameFlowManager : MonoBehaviour
         _playerController.OnGameOver += HandleGameOver;
         _playerController.OnWaterContact += HandleWaterContact;
         _fishSpawner.OnFishCaught += HandleFishCaught;
-        _cameraController.Initialize(_stoneGenerator);
+        _cameraController.Initialize(_fishGenerator);
 
         _bestSkips = PlayerPrefs.GetInt(BEST_SKIPS_KEY, 0);
         _bestDistance = PlayerPrefs.GetFloat(BEST_DISTANCE_KEY, 0f);
         _state = State.Ready;
+        _fishSelectionPreview = new FishSelectionPreview();
+        _fishSelectionPreview.PrepareDefaultFishTexture(_fishGenerator.GetComponent<MeshFilter>().sharedMesh);
     }
 
     void OnDestroy()
@@ -104,6 +110,7 @@ public class GameFlowManager : MonoBehaviour
         _playerController.OnWaterContact -= HandleWaterContact;
         _fishSpawner.OnFishCaught -= HandleFishCaught;
         _inputActions.Dispose();
+        _fishSelectionPreview.Dispose();
     }
 
     void Update()
@@ -154,6 +161,21 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
         Throw();
+    }
+
+    void LateUpdate()
+    {
+        if (!_showHud || _state != State.Ready) return;
+        int optionCount = _fishSpawner.FishTypes.Count + 1;
+        for (int offset = -2; offset <= 2; offset++)
+        {
+            if (offset == 0 || Mathf.Abs(offset) >= optionCount) continue;
+            int option = ((_projectileIndex + 1 + offset) % optionCount + optionCount) % optionCount;
+            if (option > 0 && _fishSpawner.FishTypes[option - 1].IsRevealed)
+            {
+                _fishSelectionPreview.PrepareTexture(_fishSpawner.FishPrefabs[option - 1]);
+            }
+        }
     }
 
     void OnGUI()
@@ -211,13 +233,13 @@ public class GameFlowManager : MonoBehaviour
                 $"speed {_playerController.Speed:0.0} m/s\n" +
                 $"tilt {_playerController.CurrentPitch:0} / {_playerController.TargetPitch:0} deg  roll {_playerController.TargetRoll:0}\n" +
                 $"spin {_playerController.SpinRate:0.0} rad/s  stab {_playerController.Stability:0.00}\n" +
-                $"seed {_playerController.StoneSeed}";
+                $"seed {_playerController.FishSeed}";
             ShadowLabel(new Rect(width - 420f * s, 16f * s, 400f * s, 140f * s), debug, _debugStyle, new Color(1f, 1f, 1f, 0.8f));
         }
     }
 
     /// <summary>
-    /// 선택한 던질 거리(돌 또는 도감에 등록된 물고기)를 업그레이드 배율과 함께 던진다.
+    /// 선택한 던질 거리(기본 물고기 또는 도감에 등록된 물고기)를 업그레이드 배율과 함께 던진다.
     /// _projectileIndex와 진행 상황을 사용하며, _state를 변경한다.
     /// </summary>
     private void Throw()
@@ -225,14 +247,14 @@ public class GameFlowManager : MonoBehaviour
         FishType fish = SelectedFish();
         ThrowModifiers modifiers = fish != null
             ? fish.ToThrowModifiers(_progress.PowerMultiplier, _progress.SpinMultiplier)
-            : ThrowModifiers.ForStone(_progress.PowerMultiplier, _progress.SpinMultiplier);
+            : ThrowModifiers.ForFish(_progress.PowerMultiplier, _progress.SpinMultiplier);
         _state = State.Flying;
         _playerController.Throw(modifiers);
     }
 
     /// <summary>
-    /// 새 던질 거리를 만들고 돌과 카메라를 던지기 전 상태로 되돌린다.
-    /// 입력값은 없으며, 물고기, 던질 거리 메시, 돌 상태, 카메라, _state를 변경한다.
+    /// 새 던질 거리를 만들고 물고기와 카메라를 던지기 전 상태로 되돌린다.
+    /// 입력값은 없으며, 물고기, 던질 거리 메시, 물고기 상태, 카메라, _state를 변경한다.
     /// </summary>
     private void Restart()
     {
@@ -249,7 +271,7 @@ public class GameFlowManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 돌과 도감에 등록된 물고기 사이에서 던질 거리를 바꾼다. 등록되지 않은 종류는 건너뛴다.
+    /// 기본 물고기와 도감에 등록된 물고기 사이에서 던질 거리를 바꾼다. 등록되지 않은 종류는 건너뛴다.
     /// direction(-1 또는 1)을 사용하며, _projectileIndex와 던질 거리 메시를 변경한다.
     /// </summary>
     private void CycleProjectile(int direction)
@@ -269,7 +291,7 @@ public class GameFlowManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 선택한 던질 거리에 맞게 돌 또는 물고기 메시를 만든다. 물고기는 던지기 전부터 파닥이게 한다.
+    /// 선택한 던질 거리에 맞게 기본 물고기 또는 프리팹 메시를 만든다. 프리팹은 던지기 전부터 파닥이게 한다.
     /// _projectileIndex를 사용하며, 던질 거리 메시와 파닥임 상태를 변경한다.
     /// </summary>
     private void ApplyProjectileShape()
@@ -277,22 +299,23 @@ public class GameFlowManager : MonoBehaviour
         FishType fish = SelectedFish();
         if (fish != null)
         {
-            _stoneGenerator.GenerateFish(_fishSpawner.FishPrefabs[_projectileIndex]);
-            _stoneGenerator.SetFlopping(true);
+            _fishGenerator.GenerateFish(_fishSpawner.FishPrefabs[_projectileIndex]);
+            _fishGenerator.SetFlopping(true);
         }
         else
         {
-            _stoneGenerator.Generate();
+            _fishGenerator.Generate();
+            _fishSelectionPreview.PrepareDefaultFishTexture(_fishGenerator.GetComponent<MeshFilter>().sharedMesh);
         }
     }
 
     /// <summary>
     /// 현재 선택된 물고기 종류를 구한다.
-    /// _projectileIndex를 사용하며, 돌이면 null을 반환한다.
+    /// _projectileIndex를 사용하며, 기본 물고기면 null을 반환한다.
     /// </summary>
     private FishType SelectedFish()
     {
-        return _projectileIndex == STONE_INDEX ? null : _fishSpawner.FishTypes[_projectileIndex];
+        return _projectileIndex == DEFAULT_FISH_INDEX ? null : _fishSpawner.FishTypes[_projectileIndex];
     }
 
     /// <summary>
@@ -342,10 +365,10 @@ public class GameFlowManager : MonoBehaviour
     /// </summary>
     private void HandleSlidePush()
     {
-        FishAbility ability = _stoneGenerator.CurrentAbility;
+        FishAbility ability = _fishGenerator.CurrentAbility;
         if (ability != null)
         {
-            ThrowContext context = new ThrowContext(_playerController, _stoneGenerator, _stoneGenerator.FishBody);
+            ThrowContext context = new ThrowContext(_playerController, _fishGenerator, _fishGenerator.FishBody);
             ability.OnJudgeSuccess(context, SkipJudge.Good);
         }
         PlayFishInteraction();
@@ -357,17 +380,17 @@ public class GameFlowManager : MonoBehaviour
     /// </summary>
     private void PlayFishInteraction()
     {
-        BallController ballController = _stoneGenerator.GetComponentInChildren<BallController>();
+        BallController ballController = _fishGenerator.GetComponentInChildren<BallController>();
         if (ballController != null)
         {
             ballController.PlayAttackSequence();
         }
-        HopakJumpAnimation hopakAnimation = _stoneGenerator.GetComponentInChildren<HopakJumpAnimation>();
+        HopakJumpAnimation hopakAnimation = _fishGenerator.GetComponentInChildren<HopakJumpAnimation>();
         if (hopakAnimation != null)
         {
             hopakAnimation.PlayJumpSegment();
         }
-        AlkagiLaser laser = _stoneGenerator.GetComponentInChildren<AlkagiLaser>();
+        AlkagiLaser laser = _fishGenerator.GetComponentInChildren<AlkagiLaser>();
         if (laser != null)
         {
             laser.Fire();
@@ -380,7 +403,7 @@ public class GameFlowManager : MonoBehaviour
     /// </summary>
     private void HandleWaterContact(Vector3 point, float speed)
     {
-        _stoneGenerator.SetFlopping(false);
+        _fishGenerator.SetFlopping(false);
     }
 
     /// <summary>
@@ -444,14 +467,61 @@ public class GameFlowManager : MonoBehaviour
     {
         ShadowLabel(new Rect(0f, height * 0.18f, width, 80f * scale), "SPACE TO THROW", _centerStyle, Color.white);
         ShadowLabel(new Rect(0f, height * 0.18f + 80f * scale, width, 40f * scale),
-            "ARROWS tilt    A/D curve    SPACE when it hits the water    R new stone", _centerSubStyle, Color.white);
+            "ARROWS tilt    A/D curve    SPACE when it hits the water    R new fish", _centerSubStyle, Color.white);
         ShadowLabel(new Rect(0f, height * 0.18f + 112f * scale, width, 40f * scale),
-            "PAD   A throw/skip    R-stick tilt    L-stick/triggers curve    Y new stone", _centerSubStyle, new Color(1f, 1f, 1f, 0.7f));
+            "PAD   A throw/skip    R-stick tilt    L-stick/triggers curve    Y new fish", _centerSubStyle, new Color(1f, 1f, 1f, 0.7f));
 
-        FishType fish = SelectedFish();
-        string projectile = fish != null ? fish.DisplayName : "STONE";
         ShadowLabel(new Rect(0f, height * _spaceHintHeight, width, 40f * scale),
-            $"<  Q/LB   THROW: {projectile}   E/RB  >", _centerSubStyle, new Color(1f, 0.92f, 0.7f));
+            "<  Q/LB   THROW   E/RB  >", _centerSubStyle, new Color(1f, 0.92f, 0.7f));
+        DrawFishPreviews(width, height, scale);
+    }
+
+    /// <summary>
+    /// 전체 선택 목록에서 현재 항목의 앞뒤 두 개를 표시한다. 미등록 항목은 선택 불가 문구로 구분한다.
+    /// 화면 크기, scale, 공개 여부와 도감 등록 상태를 사용하며, 회색 모델 또는 물음표를 그린다.
+    /// </summary>
+    private void DrawFishPreviews(float width, float height, float scale)
+    {
+        int optionCount = _fishSpawner.FishTypes.Count + 1;
+        float slotWidth = Mathf.Min(234f * scale, width * 0.16f);
+        float slotHeight = slotWidth * 2f / 3f;
+        float slotSpacing = width * 0.21f;
+        float top = height * _spaceHintHeight - slotHeight - 58f * scale;
+        for (int offset = -2; offset <= 2; offset++)
+        {
+            Rect rect = new Rect(width * 0.5f + offset * slotSpacing - slotWidth * 0.5f, top, slotWidth, slotHeight);
+            if (offset == 0)
+            {
+                FishType selectedFish = SelectedFish();
+                ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 54f * scale),
+                    selectedFish != null ? selectedFish.DisplayName : "FISH", _previewStyle, new Color(1f, 0.92f, 0.7f));
+                continue;
+            }
+            if (Mathf.Abs(offset) >= optionCount) continue;
+            int option = ((_projectileIndex + 1 + offset) % optionCount + optionCount) % optionCount;
+            if (option == 0)
+            {
+                GUI.DrawTexture(rect, _fishSelectionPreview.DefaultFishTexture, ScaleMode.ScaleToFit, true);
+                ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 54f * scale),
+                    "FISH", _previewStyle, new Color(0.75f, 0.75f, 0.75f, 0.7f));
+                continue;
+            }
+
+            FishType fish = _fishSpawner.FishTypes[option - 1];
+            if (fish.IsRevealed)
+            {
+                GUI.DrawTexture(rect, _fishSelectionPreview.GetTexture(_fishSpawner.FishPrefabs[option - 1]), ScaleMode.ScaleToFit, true);
+            }
+            else
+            {
+                ShadowLabel(rect, "?", _centerStyle, new Color(0.75f, 0.75f, 0.75f, 0.7f));
+            }
+
+            string label = fish.IsRevealed ? fish.DisplayName : "";
+            if (!_progress.IsFishRegistered(fish)) label += "\nLOCKED";
+            ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 54f * scale), label, _previewStyle,
+                new Color(0.75f, 0.75f, 0.75f, 0.7f));
+        }
     }
 
     /// <summary>
@@ -466,7 +536,7 @@ public class GameFlowManager : MonoBehaviour
         string timing = $"PERFECT {_perfectCount}    GOOD {_goodCount}    MISS {_missCount}";
         ShadowLabel(new Rect(0f, height * 0.12f + 115f * scale, width, 40f * scale), timing, _centerSubStyle, new Color(1f, 0.92f, 0.7f));
 
-        // 화면 가운데는 돌 자리라서 버튼은 아래쪽에 둔다.
+        // 화면 가운데는 물고기 자리라서 버튼은 아래쪽에 둔다.
         float buttonWidth = 620f * scale;
         float buttonHeight = 60f * scale;
         float left = (width - buttonWidth) * 0.5f;
@@ -564,6 +634,8 @@ public class GameFlowManager : MonoBehaviour
         _smallStyle = MakeStyle(22, TextAnchor.UpperLeft, scale);
         _centerStyle = MakeStyle(56, TextAnchor.MiddleCenter, scale);
         _centerSubStyle = MakeStyle(22, TextAnchor.UpperCenter, scale);
+        _previewStyle = MakeStyle(24, TextAnchor.UpperCenter, scale);
+        _previewStyle.wordWrap = true;
         _popupStyle = MakeStyle(52, TextAnchor.MiddleCenter, scale);
         _debugStyle = MakeStyle(18, TextAnchor.UpperRight, scale);
         _debugStyle.fontStyle = FontStyle.Normal;
