@@ -44,7 +44,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e0e900be285303459ff04f3529ed531, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DodukSpawner
-  _dodukPrefab: {fileID: 8541028851135796197, guid: 738183c919d288c4e9447a679e6fd957, type: 3}
   _launchSpeed: 30
   _upwardSpeed: 10
 --- !u!1 &2180698804025802359
@@ -91,7 +90,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e0e900be285303459ff04f3529ed531, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DodukSpawner
-  _dodukPrefab: {fileID: 8541028851135796197, guid: 738183c919d288c4e9447a679e6fd957, type: 3}
   _launchSpeed: 30
   _upwardSpeed: 10
 --- !u!1 &3634653090928587242
@@ -138,7 +136,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e0e900be285303459ff04f3529ed531, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DodukSpawner
-  _dodukPrefab: {fileID: 8541028851135796197, guid: 738183c919d288c4e9447a679e6fd957, type: 3}
   _launchSpeed: 30
   _upwardSpeed: 10
 --- !u!1 &4993027936746486386
@@ -288,7 +285,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e0e900be285303459ff04f3529ed531, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DodukSpawner
-  _dodukPrefab: {fileID: 8541028851135796197, guid: 738183c919d288c4e9447a679e6fd957, type: 3}
   _launchSpeed: 30
   _upwardSpeed: 10
 --- !u!1 &6142295732628162015
@@ -418,7 +414,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7997a1a0d8e90bf4599020f80708d275, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Car
-  _doduk: {fileID: 8541028851135796197, guid: 738183c919d288c4e9447a679e6fd957, type: 3}
+  _fishPrefab: {fileID: 4406606958086518676, guid: d89718ec1c130504cb79b4b50b3dd48b, type: 3}
+  _origin: {fileID: 7379825788851107108}
+  _perfectOnly: 0
+  _maxEjections: 0
+  _localVelocity: {x: 0, y: 12, z: 0}
+  _inheritVelocity: 0.35
   _spawnPos:
   - {fileID: 8133718063343548169}
   - {fileID: 8519773459282295311}
@@ -470,7 +471,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e0e900be285303459ff04f3529ed531, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DodukSpawner
-  _dodukPrefab: {fileID: 8541028851135796197, guid: 738183c919d288c4e9447a679e6fd957, type: 3}
   _launchSpeed: 30
   _upwardSpeed: 10
 --- !u!1 &8824099701311152949
@@ -517,6 +517,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e0e900be285303459ff04f3529ed531, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DodukSpawner
-  _dodukPrefab: {fileID: 8541028851135796197, guid: 738183c919d288c4e9447a679e6fd957, type: 3}
   _launchSpeed: 30
   _upwardSpeed: 10

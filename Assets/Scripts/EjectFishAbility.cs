@@ -26,16 +26,27 @@ public class EjectFishAbility : FishAbility
     /// </summary>
     public override void OnJudgeSuccess(ThrowContext context, SkipJudge judge)
     {
-        if (context.Player.IsSliding) return;
-        if (_perfectOnly && judge != SkipJudge.Perfect) return;
-        if (_maxEjections > 0 && _ejectionCount >= _maxEjections) return;
-
         Vector3 velocity = _origin.TransformDirection(new Vector3(_localVelocity.x, 0f, _localVelocity.z))
             + Vector3.up * _localVelocity.y
             + context.Player.Velocity * _inheritVelocity;
-        if (context.Spawner.TryEject(_fishPrefab, _origin.position, _origin.rotation, _origin.lossyScale, velocity))
+        TryEjectFrom(context, judge, _origin, velocity, _origin.lossyScale);
+    }
+
+    /// <summary>
+    /// 성공 판정과 횟수 제한을 만족하면 지정한 위치에서 공용 시스템으로 물고기를 사출한다.
+    /// context, judge, origin, velocity, scale을 사용하며, 성공 시 횟수를 늘리고 true를 반환한다.
+    /// </summary>
+    public bool TryEjectFrom(ThrowContext context, SkipJudge judge, Transform origin, Vector3 velocity, Vector3 scale)
+    {
+        if (judge != SkipJudge.Good && judge != SkipJudge.Perfect) return false;
+        if (_perfectOnly && judge != SkipJudge.Perfect && !context.Player.IsSliding) return false;
+        if (_maxEjections > 0 && _ejectionCount >= _maxEjections) return false;
+
+        if (context.Spawner.TryEject(_fishPrefab, origin.position, origin.rotation, scale, velocity))
         {
             _ejectionCount++;
+            return true;
         }
+        return false;
     }
 }
