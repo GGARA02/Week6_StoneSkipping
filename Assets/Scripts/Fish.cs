@@ -6,7 +6,7 @@ public class Fish : MonoBehaviour
 {
     private const float WIGGLE_SPEED = 14f;
     private const float WIGGLE_ANGLE = 12f;
-    private const float CRAB_SPIN_SPEED = 420f;
+    private const float STARFISH_SPIN_SPEED = 420f;
     private const float TIRE_ROLL_SPEED = 360f;
     private const float CAN_FLIP_SPEED = 620f;
 
@@ -111,14 +111,14 @@ public class Fish : MonoBehaviour
     }
 
     /// <summary>
-    /// 날아가는 동안의 몸 방향을 구한다. 물고기는 머리가 진행 방향을 보며 몸을 흔들고, 게는 납작하게 빙글빙글 돈다.
+    /// 날아가는 동안의 몸 방향을 구한다. 물고기와 게는 머리가 진행 방향을 보며 몸을 흔들고, 불가사리는 납작하게 빙글빙글 돈다.
     /// _velocity, _airTime, 종류 모양을 사용하며, 회전을 반환한다.
     /// </summary>
     private Quaternion BodyRotation()
     {
-        if (Type.Shape == FishShape.Crab)
+        if (Type.Shape == FishShape.Starfish)
         {
-            return Quaternion.Euler(Mathf.Sin(_airTime * 6f) * 20f, _airTime * CRAB_SPIN_SPEED, 0f);
+            return Quaternion.Euler(Mathf.Sin(_airTime * 6f) * 20f, _airTime * STARFISH_SPIN_SPEED, 0f);
         }
         if (Type.Shape == FishShape.Tire)
         {

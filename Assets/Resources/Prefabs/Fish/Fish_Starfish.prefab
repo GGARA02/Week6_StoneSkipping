@@ -102,7 +102,7 @@ MonoBehaviour:
     _color: {r: 0.9, g: 0.32, b: 0.18, a: 1}
     _spawnWeight: 0.1
     _isRevealed: 1
-    _shape: 1
+    _shape: 4
     _length: 1.8
     _height: 2.6
     _thickness: 0.7
