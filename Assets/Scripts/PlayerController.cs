@@ -404,13 +404,14 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// 맞춘 자세와 랜덤 스핀을 주고 물고기를 던진다.
+    /// 선택 파닥임을 원형으로 복구한 뒤 맞춘 자세와 랜덤 스핀을 주고 물고기를 던진다.
     /// modifiers와 _throwVelocity, 목표 자세, _throwSpin, _spinScale을 사용하며, Rigidbody 속도와 회전, _isThrown을 변경한다.
     /// </summary>
     public void Throw(ThrowModifiers modifiers)
     {
         if (_isThrown) return;
 
+        _fish.SetFlopping(false);
         _modifiers = modifiers;
         float spin = _throwSpin * modifiers.SpinMultiplier * _spinScale;
         _playerRB.maxAngularVelocity = Mathf.Max(_playerRB.maxAngularVelocity, Mathf.Abs(spin) * 2f);
@@ -428,6 +429,7 @@ public class PlayerController : MonoBehaviour
         _velocity = velocity;
         _isThrown = true;
         _throwFrame = Time.frameCount;
+        UpdateAbilityFlight(0f);
     }
 
     /// <summary>
@@ -582,7 +584,7 @@ public class PlayerController : MonoBehaviour
             _jumpPending = false;
             _slidePushCount = 0;
 
-            FishAbility ability = _stone.CurrentAbility;
+            FishAbility ability = _fish.CurrentAbility;
             if (ability != null)
             {
                 ability.OnSlideStart(AbilityContext());

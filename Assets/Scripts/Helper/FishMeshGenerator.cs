@@ -91,7 +91,7 @@ public class FishMeshGenerator : MonoBehaviour
     private MeshFilter _fishMeshFilter;
     private Vector3 _fishBodyScale;
 
-    [Header("파닥임 (물고기를 던지기 전부터 처음 물에 닿을 때까지)")]
+    [Header("파닥임 (물고기를 선택하는 동안)")]
     [Tooltip("초당 파닥이는 횟수")]
     [SerializeField]
     private float _flopFrequency = 6f;

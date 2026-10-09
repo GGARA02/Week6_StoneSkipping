@@ -63,7 +63,7 @@ public class CameraController : MonoBehaviour
     [Min(0f)]
     [SerializeField]
     private float _largeProjectileClearance = 2f;
-    private StoneMeshGenerator _projectileShape;
+    private FishMeshGenerator _projectileShape;
     private float _projectileRadius;
 
     [Header("속도감")]
@@ -126,7 +126,7 @@ public class CameraController : MonoBehaviour
     /// 대상과 물 높이를 준비하고 카메라를 물고기 뒤로 맞춘다.
     /// 입력값은 없으며, 카메라 참조와 _waterY, 카메라 위치를 변경한다.
     /// </summary>
-    public void Initialize(StoneMeshGenerator projectileShape)
+    public void Initialize(FishMeshGenerator projectileShape)
     {
         _camera = GetComponent<Camera>();
         _targetBody = _focalPoint.GetComponent<Rigidbody>();
