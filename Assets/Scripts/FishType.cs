@@ -1,6 +1,7 @@
 using System;
 
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public enum FishShape
 {
@@ -9,6 +10,59 @@ public enum FishShape
     Tire,
     Can,
     Starfish,
+}
+
+// 던질 거리로 골랐을 때 바뀌는 날씨와 후처리 볼륨. 인스펙터에서 접을 수 있게 따로 묶는다.
+[Serializable]
+public class FishSelectEffects
+{
+    [Header("날씨")]
+    [Tooltip("고르면 비가 온다")]
+    [SerializeField]
+    private bool _causesRain;
+    [Tooltip("고르면 밤이 된다")]
+    [SerializeField]
+    private bool _causesNight;
+    [Tooltip("고르면 그 판에 비가 오기로 했어도 비가 그친다")]
+    [SerializeField]
+    private bool _preventsRain;
+    [Tooltip("고르면 그 판이 밤이기로 했어도 낮이 된다")]
+    [SerializeField]
+    private bool _preventsNight;
+
+    [Header("볼륨")]
+    [Tooltip("고르면 서서히 켜지는 후처리 볼륨 프로필. 다른 것을 고르면 서서히 꺼진다")]
+    [SerializeField]
+    private VolumeProfile _volumeProfile;
+
+    public bool CausesRain => _causesRain;
+    public bool CausesNight => _causesNight;
+    public bool PreventsRain => _preventsRain;
+    public bool PreventsNight => _preventsNight;
+    public VolumeProfile VolumeProfile => _volumeProfile;
+}
+
+// 자연 출현에 붙는 조건과 출현 방식. 인스펙터에서 접을 수 있게 따로 묶는다.
+[Serializable]
+public class FishSpawnConditions
+{
+    [Tooltip("켜면 비가 올 때만 자연 출현한다")]
+    [SerializeField]
+    private bool _onlyInRain;
+    [Tooltip("켜면 밤일 때만 자연 출현한다")]
+    [SerializeField]
+    private bool _onlyAtNight;
+    [Tooltip("지정하면 플레이어가 이 물고기를 골라 던졌을 때만 자연 출현한다. 물고기 프리팹을 넣는다")]
+    [SerializeField]
+    private GameObject _requiredPlayerFish;
+    [Tooltip("켜면 수면에서 튀어 오르지 않고 하늘에서 흔들리며 떨어진다. 프리팹 자세에서 X축 쪽 면이 카메라를 본다")]
+    [SerializeField]
+    private bool _fallsFromSky;
+
+    public bool OnlyInRain => _onlyInRain;
+    public bool OnlyAtNight => _onlyAtNight;
+    public GameObject RequiredPlayerFish => _requiredPlayerFish;
+    public bool FallsFromSky => _fallsFromSky;
 }
 
 // 물고기 한 종류의 값, 생김새, 던질 때의 물리 특성.
@@ -76,6 +130,16 @@ public class FishType
     [SerializeField]
     private float _airGravityScale = 1f;
 
+    [Header("선택 시 효과")]
+    [Tooltip("던질 거리로 골랐을 때 바뀌는 날씨와 후처리 볼륨")]
+    [SerializeField]
+    private FishSelectEffects _selectEffects = new FishSelectEffects();
+
+    [Header("출현 조건")]
+    [Tooltip("자연 출현에 붙는 날씨와 플레이어 물고기 조건")]
+    [SerializeField]
+    private FishSpawnConditions _spawnConditions = new FishSpawnConditions();
+
     public string Id => _id;
     public string DisplayName => _displayName;
     public int Value => _value;
@@ -92,6 +156,15 @@ public class FishType
     public float Thickness => _thickness;
     public float TailLength => _tailLength;
     public float DorsalFin => _dorsalFin;
+    public bool SelectCausesRain => _selectEffects.CausesRain;
+    public bool SelectCausesNight => _selectEffects.CausesNight;
+    public bool SelectPreventsRain => _selectEffects.PreventsRain;
+    public bool SelectPreventsNight => _selectEffects.PreventsNight;
+    public VolumeProfile SelectVolumeProfile => _selectEffects.VolumeProfile;
+    public bool SpawnOnlyInRain => _spawnConditions.OnlyInRain;
+    public bool SpawnOnlyAtNight => _spawnConditions.OnlyAtNight;
+    public GameObject RequiredPlayerFish => _spawnConditions.RequiredPlayerFish;
+    public bool SpawnFallsFromSky => _spawnConditions.FallsFromSky;
 
     /// <summary>
     /// 입력값 없이 절단 조각의 Wall 종류를 생성해 반환한다.
