@@ -1,6 +1,5 @@
 {
   "initialFish": [
-    "default",
     "mackerel",
     "flyingfish",
     "flounder",
@@ -8,7 +7,6 @@
     "starfish",
     "babyshark",
     "can",
-    "volcano",
     "arrow"
   ],
   "specialFish": [
