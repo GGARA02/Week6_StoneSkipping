@@ -7,6 +7,7 @@ public class MonsterCameraCutaway : MonoBehaviour
     private const float CAMERA_CUTAWAY_DURATION = 0.5f;
 
     private PlayerController _playerController;
+    private EnvironmentController _environment;
     private Coroutine _cutawayCoroutine;
     private Camera _monsterCamera;
     private Camera _mainCamera;
@@ -19,6 +20,8 @@ public class MonsterCameraCutaway : MonoBehaviour
         _playerController = GetComponentInParent<PlayerController>();
         if (_playerController != null)
         {
+            // 던질 때 만들어지는 프리팹이라 씬의 환경 컨트롤러를 찾아서 쓴다.
+            _environment = FindFirstObjectByType<EnvironmentController>();
             _playerController.OnJudge += HandleJudge;
             _playerController.OnSlidePush += HandleSlidePush;
         }
@@ -57,8 +60,8 @@ public class MonsterCameraCutaway : MonoBehaviour
     }
 
     /// <summary>
-    /// 이전 연출을 복구한 뒤 몬스터 카메라 연출을 새로 시작한다.
-    /// 입력값 없이 비활성 자식 카메라와 Camera.main을 사용하며, 몬스터 카메라 GameObject와 메인 Camera 및 AudioListener의 enabled 상태를 변경한다.
+    /// 이전 연출을 복구한 뒤 몬스터 카메라 연출을 새로 시작하고 하늘을 바로 우주로 바꾼다.
+    /// 입력값 없이 비활성 자식 카메라와 Camera.main을 사용하며, 몬스터 카메라 GameObject와 메인 Camera 및 AudioListener의 enabled 상태, 환경의 우주 하늘 여부를 변경한다.
     /// </summary>
     public void Play()
     {
@@ -71,6 +74,7 @@ public class MonsterCameraCutaway : MonoBehaviour
         _monsterCamera.gameObject.SetActive(true);
         _mainCamera.enabled = false;
         _mainAudioListener.enabled = false;
+        _environment.SetSpace(true);
         _cutawayCoroutine = StartCoroutine(PlayCutaway());
     }
 
@@ -86,8 +90,8 @@ public class MonsterCameraCutaway : MonoBehaviour
     }
 
     /// <summary>
-    /// 진행 중인 연출을 중단하고 몬스터 카메라를 숨긴 뒤 메인 카메라와 오디오 리스너 컴포넌트를 복구한다.
-    /// 입력값 없이 저장된 코루틴과 컴포넌트를 사용하며, 기존 enabled 상태를 복구하고 관련 참조와 상태를 초기화한다.
+    /// 진행 중인 연출을 중단하고 몬스터 카메라를 숨긴 뒤 메인 카메라와 오디오 리스너 컴포넌트, 하늘을 복구한다.
+    /// 입력값 없이 저장된 코루틴과 컴포넌트를 사용하며, 기존 enabled 상태와 환경의 원래 하늘을 복구하고 관련 참조와 상태를 초기화한다.
     /// </summary>
     private void RestoreCameras()
     {
@@ -100,6 +104,8 @@ public class MonsterCameraCutaway : MonoBehaviour
         {
             _monsterCamera.gameObject.SetActive(false);
             _monsterCamera = null;
+            // 연출이 있었을 때만 하늘을 그 판 날씨로 바로 되돌린다.
+            _environment.SetSpace(false);
         }
         if (_mainCamera != null)
         {

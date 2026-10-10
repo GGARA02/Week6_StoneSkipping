@@ -160,12 +160,12 @@ public class Fish : MonoBehaviour
 
     /// <summary>
     /// 하늘의 start에서 fallSpeed로 흔들리며 떨어지게 준비하고 바로 보이게 한다. 떨어지는 동안에도 잡을 수 있다.
-    /// spawner, start, fallSpeed, waterY와 프리팹 자세를 사용하며, 낙하 이동 상태와 몸 표시 여부를 변경한다.
+    /// spawner, start, fallSpeed, waterY, 바라볼 카메라 view와 프리팹 자세를 사용하며, 낙하 이동 상태와 몸 표시 여부를 변경한다.
     /// </summary>
-    public void Drop(FishSpawner spawner, Vector3 start, float fallSpeed, float waterY)
+    public void Drop(FishSpawner spawner, Vector3 start, float fallSpeed, float waterY, Transform view)
     {
         _fallRotation = transform.rotation;
-        _view = Camera.main.transform;
+        _view = view;
         Launch(spawner, start, Vector3.down * fallSpeed, 0f, waterY);
         _gravity = 0f;
         _jumped = true;

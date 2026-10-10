@@ -13807,6 +13807,7 @@ MonoBehaviour:
   _rainOffset: {x: 0, y: 14, z: 0}
   _rainLeadTime: 0.6
   _maxTrackedPlayerSpeed: 200
+  _spaceSkybox: {fileID: 2100000, guid: fd660ef83d181cf41bfbe6999f7f9349, type: 2}
   _volumePriority: 1
 --- !u!4 &189473997
 Transform:
@@ -22903,10 +22904,13 @@ MonoBehaviour:
   _leadTimeRange: {x: 1, y: 2}
   _maxSideOffset: 9
   _jumpHeightRange: {x: 3, y: 8}
+  _fisherJumpHeightMultiplier: 2
   _crossSpeedRange: {x: 2, y: 5}
   _maxFish: 16
   _minFishSpeed: 10
   _catchFlashColor: {r: 1, g: 0.85, b: 0.3, a: 0.3}
+  _skyFallHeight: 30
+  _skyFallSpeed: 8
   _fishRippleScale: 2.5
 --- !u!114 &403970199
 MonoBehaviour:
