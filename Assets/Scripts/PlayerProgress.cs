@@ -13,6 +13,7 @@ public class PlayerProgress : MonoBehaviour
     private const string FISH_KEY_PREFIX = "SkipStoneV2.Fish.";
     private const string UPGRADE_KEY_PREFIX = "SkipStoneV2.Upgrade.";
     private const string WALL_MESH_KEY = "SkipStoneV2.WallMesh";
+    private const string ICE_MESH_KEY = "SkipStoneV2.IceMesh";
 
     [Header("업그레이드")]
     [Tooltip("단계별 가격. 길이가 최대 단계 수다")]
@@ -109,6 +110,28 @@ public class PlayerProgress : MonoBehaviour
     {
         if (!PlayerPrefs.HasKey(WALL_MESH_KEY)) return null;
         return JsonUtility.FromJson<WallFishMeshData>(PlayerPrefs.GetString(WALL_MESH_KEY)).ToMesh();
+    }
+
+    /// <summary>
+    /// mesh와 scale을 사용해 마지막으로 먹은 유빙 조각의 투척용 모양을 저장한다.
+    /// 벽과 독립된 저장 키를 갱신하고 크기를 보정한 새 메시를 반환한다.
+    /// </summary>
+    public Mesh SaveIceMesh(Mesh mesh, Vector3 scale)
+    {
+        WallFishMeshData data = new WallFishMeshData(mesh, scale);
+        PlayerPrefs.SetString(ICE_MESH_KEY, JsonUtility.ToJson(data));
+        PlayerPrefs.Save();
+        return data.ToMesh();
+    }
+
+    /// <summary>
+    /// 입력값 없이 저장된 유빙 조각 데이터를 읽어 독립된 투척용 메시를 반환한다.
+    /// 아직 먹은 유빙 조각이 없으면 null을 반환하며 벽 저장 데이터는 변경하지 않는다.
+    /// </summary>
+    public Mesh LoadIceMesh()
+    {
+        if (!PlayerPrefs.HasKey(ICE_MESH_KEY)) return null;
+        return JsonUtility.FromJson<WallFishMeshData>(PlayerPrefs.GetString(ICE_MESH_KEY)).ToMesh();
     }
 
     /// <summary>

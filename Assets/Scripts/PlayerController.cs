@@ -331,6 +331,12 @@ public class PlayerController : MonoBehaviour
     {
         if (!_isThrown) return;
 
+        FishAbility ability = _fish.CurrentAbility;
+        if (ability != null)
+        {
+            ability.OnObstacleCollision(AbilityContext(), collision);
+        }
+
         OnObstacleHit?.Invoke(collision.relativeVelocity.magnitude);
         if (collision.gameObject.CompareTag("Finish"))
         {

@@ -478,6 +478,7 @@ public class FishMeshGenerator : MonoBehaviour
         bool active = flopping && _shapeMode == ShapeMode.Prefab
             && _fishFlopMeshes.Length > 0
             && _fishType.Id != "wall"
+            && _fishType.Id != "ice"
             && _fishType.Id != "screen"
             && _fishInstance.GetComponentInChildren<HopakJumpAnimation>(true) == null;
         if (_isFlopping == active) return;

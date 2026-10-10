@@ -30,9 +30,11 @@ public class FishSpawner : MonoBehaviour
     private Fish[] _selectablePrefabs;
     private FishType[] _fishTypes;
     private Fish _wallFish;
+    private Fish _iceFish;
     private ScreenFishCapture _screenCapture;
     private Mesh _wallCatalogMesh;
-    private CuttableWall[] _walls = Array.Empty<CuttableWall>();
+    private Mesh _iceCatalogMesh;
+    private ProceduralObstacleSpawner _obstacles;
     private readonly HashSet<string> _seaTypes = new HashSet<string>();
     private readonly HashSet<string> _pendingSeaTypes = new HashSet<string>();
 
@@ -77,6 +79,7 @@ public class FishSpawner : MonoBehaviour
     public IReadOnlyList<Fish> FishPrefabs => _selectablePrefabs;
     public IReadOnlyList<FishType> FishTypes => _fishTypes;
     public Fish WallFish => _wallFish;
+    public Fish IceFish => _iceFish;
     public ScreenFishCapture ScreenCapture => _screenCapture;
 
     void Awake()
@@ -107,11 +110,12 @@ public class FishSpawner : MonoBehaviour
     {
         if (_wallFish != null) Destroy(_wallFish.gameObject);
         if (_wallCatalogMesh != null) Destroy(_wallCatalogMesh);
+        if (_iceCatalogMesh != null) Destroy(_iceCatalogMesh);
     }
 
     /// <summary>
-    /// 씬의 Wall 자식 큐브와 저장 메시를 사용해 절단 대상과 Wall 선택 항목을 준비한다.
-    /// 자연 출현 목록의 끝에 비활성 Wall 템플릿을 추가하고 각 큐브에 절단 동작을 연결한다.
+    /// 씬의 Wall 큐브와 저장 메시로 벽과 유빙의 선택 항목 및 주변 생성기를 준비한다.
+    /// 비활성 템플릿을 선택 목록에 추가하고 고정 배치 대신 풀 기반 생성과 절단을 연결한다.
     /// </summary>
     private void InitializeWalls()
     {
@@ -133,21 +137,30 @@ public class FishSpawner : MonoBehaviour
         int count = _fishPrefabs.Length;
         Array.Resize(ref _fishPrefabs, count + 1);
         _fishPrefabs[count] = _wallFish;
-        _walls = new CuttableWall[walls.Length];
-        for (int i = 0; i < walls.Length; i++)
-        {
-            _walls[i] = walls[i].gameObject.AddComponent<CuttableWall>();
-            _walls[i].Initialize(this);
-        }
+        _obstacles = GetComponent<ProceduralObstacleSpawner>();
+        if (_obstacles == null) _obstacles = gameObject.AddComponent<ProceduralObstacleSpawner>();
+        FishType iceType = FishType.CreateIce();
+        _obstacles.Initialize(this, _player, _waterY, _water.transform, walls[0], iceType);
+        GameObject iceTemplate = new GameObject("Ice Floe Fish Catalog");
+        iceTemplate.SetActive(false);
+        iceTemplate.transform.SetParent(transform, false);
+        _iceCatalogMesh = _progress.LoadIceMesh();
+        iceTemplate.AddComponent<MeshFilter>().sharedMesh = _iceCatalogMesh != null ? _iceCatalogMesh : _obstacles.IceMesh;
+        iceTemplate.AddComponent<MeshRenderer>().sharedMaterial = _obstacles.IceMaterial;
+        iceTemplate.AddComponent<Rigidbody>().isKinematic = true;
+        _iceFish = iceTemplate.AddComponent<Fish>();
+        _iceFish.InitializeWall(this, iceType, null);
+        Array.Resize(ref _fishPrefabs, _fishPrefabs.Length + 1);
+        _fishPrefabs[_fishPrefabs.Length - 1] = _iceFish;
     }
 
     /// <summary>
-    /// 초기화 때 보관한 벽 목록을 사용해 모든 장애물을 새 throw의 원본 큐브로 복원한다.
-    /// 이전 조각은 제거하지만 도감에 등록된 Wall 메쉬와 해금 상태는 유지한다.
+    /// 주변 생성기를 사용해 모든 벽과 유빙을 풀로 반환한다.
+    /// 입력값 없이 이전 조각을 제거하며 도감의 메시와 해금 상태는 유지한다.
     /// </summary>
     public void ResetWalls()
     {
-        foreach (CuttableWall wall in _walls) wall.ResetWall();
+        if (_obstacles != null) _obstacles.ResetObstacles();
     }
 
     void Update()
@@ -171,6 +184,7 @@ public class FishSpawner : MonoBehaviour
     public void Clear()
     {
         OnClearing?.Invoke();
+        ResetWalls();
         foreach (Fish fish in _activeFish)
         {
             Destroy(fish.gameObject);
@@ -218,6 +232,13 @@ public class FishSpawner : MonoBehaviour
             Mesh previous = _wallCatalogMesh;
             _wallCatalogMesh = _progress.SaveWallMesh(fish.GetComponent<MeshFilter>().sharedMesh, fish.transform.lossyScale);
             _wallFish.GetComponent<MeshFilter>().sharedMesh = _wallCatalogMesh;
+            if (previous != null) Destroy(previous);
+        }
+        else if (fish.Type.Id == "ice")
+        {
+            Mesh previous = _iceCatalogMesh;
+            _iceCatalogMesh = _progress.SaveIceMesh(fish.GetComponent<MeshFilter>().sharedMesh, fish.transform.lossyScale);
+            _iceFish.GetComponent<MeshFilter>().sharedMesh = _iceCatalogMesh;
             if (previous != null) Destroy(previous);
         }
         _progress.AddFish(fish.Type);
@@ -367,6 +388,7 @@ public class FishSpawner : MonoBehaviour
     /// </summary>
     private bool CanSpawn(FishType type)
     {
+        if (_obstacles != null && type.Id == "blackhole") return false;
         if (type.RequiresEjection && !_seaTypes.Contains(type.Id)) return false;
         return CanCreate(type);
     }

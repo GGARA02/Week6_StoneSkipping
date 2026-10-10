@@ -27,6 +27,20 @@ public class ShipNormalAbility : FishAbility
     }
 
     /// <summary>
+    /// ShipNormal 투척 중 부딪힌 벽이나 유빙을 접촉 높이에서 수평으로 절단한다.
+    /// context의 게임오버 상태와 collision의 충돌체, 접촉점을 사용해 장애물과 절단 조각을 변경한다.
+    /// </summary>
+    public override void OnObstacleCollision(ThrowContext context, Collision collision)
+    {
+        if (context.Player.IsGameOver) return;
+
+        if (collision.collider.TryGetComponent(out CuttableWall wall))
+        {
+            wall.Cut(collision.GetContact(0).point, Vector3.up);
+        }
+    }
+
+    /// <summary>
     /// SPACE 성공 및 Mash Space 입력을 초상화 상호작용에 전달한다.
     /// context와 judge의 성공 통지를 사용해 연결된 컨트롤러의 표정과 대사를 변경한다.
     /// </summary>

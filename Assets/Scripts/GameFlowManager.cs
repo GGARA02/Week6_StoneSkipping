@@ -251,7 +251,6 @@ public class GameFlowManager : MonoBehaviour
     /// </summary>
     private void Throw()
     {
-        _fishSpawner.ResetWalls();
         FishType fish = SelectedFish();
         ThrowModifiers modifiers = fish != null
             ? fish.ToThrowModifiers(_progress.PowerMultiplier, _progress.SpinMultiplier)
@@ -456,6 +455,7 @@ public class GameFlowManager : MonoBehaviour
     private void HandleFishCaught(FishType fish)
     {
         if (fish.Id == "wall") _fishSelectionPreview.InvalidateTexture(_fishSpawner.WallFish);
+        if (fish.Id == "ice") _fishSelectionPreview.InvalidateTexture(_fishSpawner.IceFish);
         ShowPopup($"+{fish.Value} G   {fish.DisplayName}", new Color(1f, 0.85f, 0.3f));
     }
 
