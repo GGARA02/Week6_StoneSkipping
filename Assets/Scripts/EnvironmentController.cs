@@ -7,6 +7,7 @@ using UnityEngine.Rendering;
 // 던지기 전마다 비와 밤을 확률로 정하고 조명, 하늘, 구름, 주변광, 안개, 비, 후처리에 반영한다.
 // 낮 값은 시작할 때 씬 설정을 저장해 쓴다. 재시작 때는 바로 바꾸고, 고른 물고기 때문에 바뀌는 날씨는 서서히 바꾼다.
 // 스카이박스는 기본 하늘 위에 밤, 비처럼 요청받은 스카이박스를 비중만큼 먼저 요청한 순서대로 섞는다.
+// 우주 하늘은 섞지 않고 켜고 끌 때 바로 바꾼다.
 // 후처리 볼륨은 프로필마다 비중을 요청하며, 처음 요청한 프로필은 자식 전역 볼륨을 만들어 쓴다.
 public class EnvironmentController : MonoBehaviour
 {
@@ -126,6 +127,12 @@ public class EnvironmentController : MonoBehaviour
     [SerializeField]
     private float _maxTrackedPlayerSpeed = 200f;
 
+    [Header("우주")]
+    [Tooltip("외계인 상호작용 때 카메라 전환과 함께 페이드 없이 바로 바꾸는 하늘")]
+    [SerializeField]
+    private Material _spaceSkybox;
+    private bool _isSpace;
+
     [Header("후처리")]
     [Tooltip("새로 만드는 볼륨의 우선순위. 기본 Global Volume보다 높아야 덮어쓴다")]
     [SerializeField]
@@ -234,11 +241,12 @@ public class EnvironmentController : MonoBehaviour
     }
 
     /// <summary>
-    /// 이번 판의 기본 날씨를 확률로 새로 정하고, 고른 물고기의 날씨와 선택 시 볼륨까지 더해 바로 적용한다.
-    /// fish(기본 물고기면 null)와 비, 밤 확률을 사용하며, 기본 날씨, 목표 날씨, 현재 날씨 비중, 물고기 볼륨을 변경한다.
+    /// 우주 하늘을 끄고, 이번 판의 기본 날씨를 확률로 새로 정하고, 고른 물고기의 날씨와 선택 시 볼륨까지 더해 바로 적용한다.
+    /// fish(기본 물고기면 null)와 비, 밤 확률을 사용하며, 우주 하늘 여부, 기본 날씨, 목표 날씨, 현재 날씨 비중, 물고기 볼륨을 변경한다.
     /// </summary>
     public void Roll(FishType fish)
     {
+        SetSpace(false);
         _baseRain = RollChance(_rainChance);
         _baseNight = RollChance(_nightChance);
         SetTarget(fish);
@@ -256,6 +264,18 @@ public class EnvironmentController : MonoBehaviour
     {
         SetTarget(fish);
         SetFishVolume(fish, false);
+    }
+
+    /// <summary>
+    /// 우주 하늘을 페이드 없이 바로 켜거나 끈다. 켜져 있는 동안에는 날씨가 바뀌어도 하늘을 우주로 두고 구름층을 숨긴다.
+    /// active와 _spaceSkybox를 사용하며, 화면 스카이박스, 구름층 표시, 반사 프로브와 _isSpace를 변경한다.
+    /// </summary>
+    public void SetSpace(bool active)
+    {
+        _isSpace = active;
+        RenderSettings.skybox = active ? _spaceSkybox : _skybox;
+        _cloudRenderer.enabled = !active && _rainWeight > 0f;
+        _skyReflectionProbe.RenderProbe();
     }
 
     /// <summary>
@@ -414,7 +434,7 @@ public class EnvironmentController : MonoBehaviour
         // 비 하늘을 먼저 섞고 밤 하늘을 나중에 섞어, 비 오는 밤에는 밤 하늘이 이긴다.
         SetSkyboxWeight(_rainSkybox, rain);
         SetSkyboxWeight(_nightSkybox, night);
-        _cloudRenderer.enabled = rain > 0f;
+        _cloudRenderer.enabled = !_isSpace && rain > 0f;
         _cloudMaterial.SetFloat(CLOUD_COVERAGE_ID, _rainCloudCoverage * rain);
 
         Color ambient = Color.Lerp(Color.white, _nightAmbient, night) * Color.Lerp(Color.white, _rainAmbient, rain);

@@ -24,6 +24,8 @@ public class FishSpawner : MonoBehaviour
     private EnvironmentController _environment;
     private Rigidbody _playerBody;
     private float _waterY;
+    // 하늘에서 떨어지는 종류가 바라볼 메인 카메라. 컷어웨이로 메인 카메라가 꺼져도 쓰도록 시작할 때 저장한다.
+    private Transform _cameraTransform;
     // 플레이어가 지금 고른 던질 거리 프리팹. 기본 물고기면 null이다.
     private Fish _playerFish;
 
@@ -103,6 +105,7 @@ public class FishSpawner : MonoBehaviour
     {
         _playerBody = _player.GetComponent<Rigidbody>();
         _waterY = _water.GetComponent<Collider>().bounds.max.y;
+        _cameraTransform = Camera.main.transform;
         InitializeWalls();
         _screenCapture = GetComponent<ScreenFishCapture>();
         if (_screenCapture == null) _screenCapture = gameObject.AddComponent<ScreenFishCapture>();
@@ -386,7 +389,7 @@ public class FishSpawner : MonoBehaviour
 
     /// <summary>
     /// 던진 물고기 높이까지 내려왔을 때 그 자리를 지나가도록 앞쪽 하늘에서 프리팹을 떨어뜨린다.
-    /// prefab, 던진 물고기 수평 속도 horizontal, 옆 거리 sideOffset과 하늘 출현 설정을 사용하며, 새 개체를 _activeFish에 추가한다.
+    /// prefab, 던진 물고기 수평 속도 horizontal, 옆 거리 sideOffset, 하늘 출현 설정과 _cameraTransform을 사용하며, 새 개체를 _activeFish에 추가한다.
     /// </summary>
     private void DropFromSky(Fish prefab, Vector3 horizontal, Vector3 sideOffset)
     {
@@ -399,7 +402,7 @@ public class FishSpawner : MonoBehaviour
         Fish fish = Instantiate(prefab);
         FishAbility ability = fish.GetComponent<FishAbility>();
         if (ability != null) ability.OnSkyFall();
-        fish.Drop(this, start, _skyFallSpeed, _waterY);
+        fish.Drop(this, start, _skyFallSpeed, _waterY, _cameraTransform);
         _activeFish.Add(fish);
     }
 
