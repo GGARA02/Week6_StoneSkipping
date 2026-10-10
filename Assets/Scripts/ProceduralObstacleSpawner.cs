@@ -4,17 +4,17 @@ using UnityEngine;
 
 public sealed class ProceduralObstacleSpawner : MonoBehaviour
 {
-    private const float BOOST_FREQUENCY_RATIO = 1f / 5f;
+    private const float BOOST_FREQUENCY_RATIO = 1f / 20f;
 
     [Header("거리 구역")]
-    [Min(0f)] [SerializeField] private float _iceStartDistance = 500f;
-    [Min(0f)] [SerializeField] private float _blackHoleStartDistance = 1000f;
+    [Min(0f)][SerializeField] private float _iceStartDistance = 1500f;
+    [Min(0f)][SerializeField] private float _blackHoleStartDistance = 3000f;
 
     [Header("플레이어 주변 생성")]
-    [Min(20f)] [SerializeField] private float _cellSize = 45f;
-    [Range(1, 6)] [SerializeField] private int _cellRadius = 3;
-    [Range(0f, 1f)] [SerializeField] private float _density = 0.65f;
-    [Min(0f)] [SerializeField] private float _safeRadius = 25f;
+    [Min(20f)][SerializeField] private float _cellSize = 60f;
+    [Range(1, 6)][SerializeField] private int _cellRadius = 6;
+    [Range(0f, 1f)][SerializeField] private float _density = 0.65f;
+    [Min(0f)][SerializeField] private float _safeRadius = 25f;
     [SerializeField] private Vector2 _wallWidthRange = new Vector2(6f, 12f);
     [SerializeField] private Vector2 _wallHeightRange = new Vector2(16f, 32f);
     [SerializeField] private Vector2 _iceWidthRange = new Vector2(12f, 24f);
@@ -195,7 +195,8 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
                 Stack<CuttableWall> pool = ice ? _icePool : _wallPool;
                 CuttableWall obstacle = pool.Count > 0 ? pool.Pop() : CreateObstacle(ice);
                 obstacle.transform.localScale = scale;
-                obstacle.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, (float)random.NextDouble() * 360f, 0f));
+                Quaternion rotation = ice ? Quaternion.Euler(0f, (float)random.NextDouble() * 360f, 0f) : Quaternion.identity;
+                obstacle.transform.SetPositionAndRotation(position, rotation);
                 obstacle.gameObject.SetActive(true);
                 _active.Add(cell, obstacle);
             }
@@ -204,7 +205,7 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
 
     /// <summary>
     /// cell과 playerPosition으로 안전 거리와 생성 구역을 확인해 점프대를 배치한다.
-    /// 벽과 유빙 밀도의 1/5 확률로 프리팹을 생성하거나 재사용하고 활성 셀에 기록한다.
+    /// 벽과 유빙 밀도의 1/20 확률로 프리팹을 생성하거나 재사용하고 활성 셀에 기록한다.
     /// </summary>
     private void TrySpawnBoost(Vector2Int cell, Vector3 playerPosition)
     {
@@ -213,7 +214,7 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
         if (random.NextDouble() > _density * BOOST_FREQUENCY_RATIO) return;
         Vector3 position = new Vector3(
             (cell.x + 0.5f + ((float)random.NextDouble() - 0.5f) * 0.5f) * _cellSize,
-            _waterY,
+            6.5f,
             (cell.y + 0.5f + ((float)random.NextDouble() - 0.5f) * 0.5f) * _cellSize);
         Vector3 startOffset = position - _startPosition;
         startOffset.y = 0f;

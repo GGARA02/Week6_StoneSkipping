@@ -21526,6 +21526,12 @@ MonoBehaviour:
   _shakeDuration: 0.25
   _shakeAmplitude: 0.35
   _punchFov: 6
+  _qteShoulderSide: 1.5
+  _qteShoulderHeight: 2
+  _qteShoulderDistance: 3
+  _qteConfrontationGap: 3
+  _qteFov: 55
+  _qteReturnDuration: 0.6
 --- !u!1 &332944209
 GameObject:
   m_ObjectHideFlags: 0
@@ -22802,6 +22808,7 @@ MonoBehaviour:
   _spaceHintLeadTime: 0.6
   _popupHeight: 0.13
   _spaceHintHeight: 0.8
+  _endingCredit: {fileID: 0}
 --- !u!4 &403970196
 Transform:
   m_ObjectHideFlags: 0
@@ -22924,9 +22931,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1ce0fb90ede28bd4595899a60965c430, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerProgress
-  _upgradeCosts: 3200000078000000fa000000c201000020030000
-  _powerPerLevel: 0.08
-  _spinPerLevel: 0.2
 --- !u!114 &403970200
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -50253,30 +50257,27 @@ PrefabInstance:
       propertyPath: m_LocalRotation.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 8845494397762002710, guid: c6f54f4f503cf944c9d7a11baa536466, type: 3}
+    - target: {fileID: 381710594823064666, guid: c6f54f4f503cf944c9d7a11baa536466, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 381710594823064666, guid: c6f54f4f503cf944c9d7a11baa536466, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 381710594823064666, guid: c6f54f4f503cf944c9d7a11baa536466, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8835988694958239043, guid: c6f54f4f503cf944c9d7a11baa536466, type: 3}
+      propertyPath: _spawner
+      value: 
+      objectReference: {fileID: 403970198}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 10585323855324455, guid: c6f54f4f503cf944c9d7a11baa536466, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1590417332}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c6f54f4f503cf944c9d7a11baa536466, type: 3}
---- !u!114 &1590417332
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 10585323162661524}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aaa6393dbe3e46778d763a90a8c14403, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlacedFish
-  _spawner: {fileID: 403970198}
-  _fishPrefab: {fileID: 114000001, guid: fa6a000ddcb247bbafcd8b664357a8ed, type: 3}
-  _respawnOnRestart: 1
 --- !u!1 &1605773028
 GameObject:
   m_ObjectHideFlags: 0
@@ -61065,11 +61066,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2122854113}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &10585323162661524 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 10585323855324455, guid: c6f54f4f503cf944c9d7a11baa536466, type: 3}
-  m_PrefabInstance: {fileID: 1590417331}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
