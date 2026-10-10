@@ -286,6 +286,23 @@ public class FishSpawner : MonoBehaviour
     }
 
     /// <summary>
+    /// type의 ID로 현재 선택 목록과 원래 출현 목록에서 프리팹을 찾는다.
+    /// 교체된 이전 종류도 조회하며 일치하는 Fish를 반환하고 없는 종류는 null을 반환한다.
+    /// </summary>
+    public Fish GetFishPrefab(FishType type)
+    {
+        foreach (Fish prefab in _selectablePrefabs)
+        {
+            if (prefab.Type.Id == type.Id) return prefab;
+        }
+        foreach (Fish prefab in _fishPrefabs)
+        {
+            if (prefab.Type.Id == type.Id) return prefab;
+        }
+        return null;
+    }
+
+    /// <summary>
     /// prefab을 종류 ID 기준으로 출현 및 투척 선택 목록에 한 번만 등록한다.
     /// 기존 선택 교체 결과를 유지하며 새 종류의 저장된 바다 해금 상태를 복원한다.
     /// </summary>
