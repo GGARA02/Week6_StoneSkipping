@@ -96,7 +96,8 @@ public class FisherQteController : MonoBehaviour
         _fish = fish;
         _spawner = spawner;
         _player = spawner.PlayerBody.GetComponent<PlayerController>();
-        _cameraController = Camera.main.GetComponent<CameraController>();
+        // 메인 카메라는 CinemachineBrain이 움직이므로 추적용 시네머신 카메라의 컨트롤러를 찾는다.
+        _cameraController = FindFirstObjectByType<CameraController>();
         _spawner.OnClearing += Cancel;
         _isInitialized = true;
     }

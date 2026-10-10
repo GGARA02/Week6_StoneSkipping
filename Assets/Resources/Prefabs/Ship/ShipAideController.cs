@@ -1,6 +1,7 @@
 using UnityEngine;
 
 using TMPro;
+using Unity.Cinemachine;
 
 public class ShipAideController : MonoBehaviour
 {
@@ -75,6 +76,8 @@ public class ShipAideController : MonoBehaviour
         _player.OnObstacleHit += HandleObstacleHit;
         _player.OnGameOver += HandleGameOver;
         _spawner.OnClearing += HandleClearing;
+        // 메인 카메라는 CinemachineBrain이 LateUpdate에서 옮기므로 갱신이 끝난 뒤 말풍선 위치를 계산한다.
+        CinemachineCore.CameraUpdatedEvent.AddListener(HandleCameraUpdated);
         HandleGenerated();
     }
 
@@ -90,7 +93,11 @@ public class ShipAideController : MonoBehaviour
         _panel.gameObject.SetActive(false);
     }
 
-    void LateUpdate()
+    /// <summary>
+    /// CinemachineBrain이 메인 카메라를 갱신한 직후 투척물 옆에 말풍선을 맞춘다.
+    /// brain은 사용하지 않으며, 투척물 위치와 갱신된 _camera로 말풍선의 표시 여부와 위치를 변경한다.
+    /// </summary>
+    private void HandleCameraUpdated(CinemachineBrain brain)
     {
         if (_projectileTarget == null || _player == null || _player.IsGameOver) return;
         Vector3 anchor = _projectileTarget.position + _camera.transform.right * _projectileRadius;
@@ -106,6 +113,7 @@ public class ShipAideController : MonoBehaviour
 
     void OnDestroy()
     {
+        CinemachineCore.CameraUpdatedEvent.RemoveListener(HandleCameraUpdated);
         if (_generator != null) _generator.OnGenerated -= HandleGenerated;
         if (_player != null)
         {
