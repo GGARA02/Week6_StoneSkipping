@@ -19,6 +19,8 @@ public class GameFlowManager : MonoBehaviour
     private const int DEFAULT_FISH_INDEX = -1;
     // 게임오버 직후 SPACE 연타로 바로 재시작되지 않게 기다리는 시간(초)
     private const float RETRY_INPUT_DELAY = 0.6f;
+    private const string CREDIT_FISH_ID = "endingcredit";
+    private const string FISH_KEY_PREFIX = "SkipStoneV2.Fish.";
 
     [Header("참조")]
     [SerializeField]
@@ -79,6 +81,9 @@ public class GameFlowManager : MonoBehaviour
     private float _styleScale = -1f;
     private FishSelectionPreview _fishSelectionPreview;
 
+    [Header("엔딩 크레딧 UI")]
+    [SerializeField] private EndingCreditUI _endingCredit;
+
     void Start()
     {
         LockCursor(true);
@@ -95,6 +100,9 @@ public class GameFlowManager : MonoBehaviour
         _playerController.OnWaterContact += HandleWaterContact;
         _fishSpawner.OnFishCaught += HandleFishCaught;
         _fishSpawner.ScreenCapture.OnUnlocked += HandleScreenUnlocked;
+
+        _endingCredit.OnEndingCompleted += HandleEndingCompleted;
+        _endingCredit.gameObject.SetActive(false);
         _cameraController.Initialize(_fishGenerator);
 
         _bestSkips = PlayerPrefs.GetInt(BEST_SKIPS_KEY, 0);
@@ -113,6 +121,10 @@ public class GameFlowManager : MonoBehaviour
         _playerController.OnWaterContact -= HandleWaterContact;
         _fishSpawner.OnFishCaught -= HandleFishCaught;
         _fishSpawner.ScreenCapture.OnUnlocked -= HandleScreenUnlocked;
+        if (_endingCredit != null)
+        {
+            _endingCredit.OnEndingCompleted -= HandleEndingCompleted;
+        }
         _inputActions.Dispose();
         _fishSelectionPreview.Dispose();
     }
@@ -708,5 +720,49 @@ public class GameFlowManager : MonoBehaviour
         style.normal.textColor = color;
         GUI.Label(rect, text, style);
         style.normal.textColor = original;
+    }
+
+    /// <summary>
+    /// 엔딩 연출을 시작하고 기존 HUD를 숨긴 뒤 엔딩 크레딧 UI를 활성화한다.
+    /// 입력값은 없으며, _showHud와 _endingCreditUI의 활성화 상태를 변경한다.
+    /// </summary>
+    public void StartEndingCinema()
+    {
+        // 기존에 켜져 있는 모든 HUD를 화면에서 숨긴다.
+        _showHud = false;
+        _endingCredit.gameObject.SetActive(true);
+    }
+
+    /// <summary>
+    /// 엔딩 크레딧 완료 이벤트를 받아 크레딧 물고기를 해금하고 HUD를 복원한 뒤 게임을 준비 상태로 되돌린다.
+    /// 입력값은 없으며, 크레딧 물고기 해금 상태와 _showHud를 변경하고 게임을 재시작한다.
+    /// </summary>
+    private void HandleEndingCompleted()
+    {
+        UnlockCreditFish();
+        _showHud = true;
+        Restart();
+    }
+
+    /// <summary>
+    /// 엔딩 크레딧 물고기(endingcredit)를 도감에 등록하고 투척물로 선택할 수 있도록 활성화한다.
+    /// _fishSpawner와 _progress를 사용하며, 도감 등록 상태를 변경하고 PlayerPrefs에 저장한다.
+    /// </summary>
+    private void UnlockCreditFish()
+    {
+        if (_fishSpawner != null && _fishSpawner.FishTypes != null)
+        {
+            for (int i = 0; i < _fishSpawner.FishTypes.Count; i++)
+            {
+                FishType fish = _fishSpawner.FishTypes[i];
+                if (fish.Id == CREDIT_FISH_ID)
+                {
+                    _progress.AddFish(fish);
+                    PlayerPrefs.SetInt(FISH_KEY_PREFIX + fish.Id, 1);
+                    PlayerPrefs.Save();
+                    return;
+                }
+            }
+        }
     }
 }
