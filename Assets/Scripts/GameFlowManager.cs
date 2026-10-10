@@ -204,7 +204,14 @@ public class GameFlowManager : MonoBehaviour
             || (gamepad != null && (gamepad.buttonNorth.wasPressedThisFrame || gamepad.startButton.wasPressedThisFrame));
         if (restartPressed)
         {
-            Restart();
+            if (_state == State.Flying && keyboard != null && keyboard.rKey.wasPressedThisFrame)
+            {
+                _playerController.GameOver(GameOverReason.Stopped);
+            }
+            else
+            {
+                Restart();
+            }
             return;
         }
 

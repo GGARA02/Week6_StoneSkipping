@@ -980,7 +980,7 @@ public class PlayerController : MonoBehaviour
     /// 한 번만 게임오버 상태로 바꾸고 이유와 함께 이벤트를 보낸다.
     /// reason을 사용하며, _isGameOver와 _jumpPending을 변경한다.
     /// </summary>
-    private void GameOver(GameOverReason reason)
+    public void GameOver(GameOverReason reason)
     {
         if (_isGameOver) return;
         _isGameOver = true;
