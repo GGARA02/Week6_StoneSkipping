@@ -84,13 +84,41 @@ public class CameraController : MonoBehaviour
     private float _punchTime = -10f;
     private float _punchStrength;
 
+    [Header("33Fisher QTE 카메라")]
+    [SerializeField, Min(0f)] private float _qteShoulderSide = 1.5f;
+    [SerializeField, Min(0f)] private float _qteShoulderHeight = 2f;
+    [SerializeField, Min(0.1f)] private float _qteShoulderDistance = 3f;
+    [SerializeField, Min(0f)] private float _qteConfrontationGap = 3f;
+    [SerializeField, Range(30f, 90f)] private float _qteFov = 55f;
+    [SerializeField, Min(0.1f)] private float _qteReturnDuration = 0.6f;
+    private Transform _qteFisher;
+    private Vector3 _qteFisherOriginalPosition;
+    private Vector3 _qteStartPosition;
+    private Quaternion _qteStartRotation;
+    private float _qteStartFov;
+    private Vector3 _qteTargetPosition;
+    private Quaternion _qteTargetRotation;
+    private Vector3 _qteReturnPosition;
+    private Quaternion _qteReturnRotation;
+    private float _qteReturnFov;
+    private float _qteMoveDuration;
+    private float _qteElapsed;
+    private bool _qteViewActive;
+    private bool _qteReturning;
+
     void LateUpdate()
     {
+        if (_qteViewActive)
+        {
+            UpdateFisherQteCamera(Time.unscaledDeltaTime);
+            return;
+        }
         if (Time.timeScale == 0f) return;
         float dt = Time.unscaledDeltaTime;
         if (!_targetPlayer.IsThrown)
         {
             UpdateSelectionCamera(dt);
+            ApplyFisherQteReturn(dt);
             return;
         }
 
@@ -121,6 +149,93 @@ public class CameraController : MonoBehaviour
 
         _smoothedFov = Mathf.Lerp(_smoothedFov, _baseFov + _maxExtraFov * speed01, 1f - Mathf.Exp(-4f * dt));
         _camera.fieldOfView = _smoothedFov + _punchFov * punch;
+        ApplyFisherQteReturn(dt);
+    }
+
+    /// <summary>
+    /// fisher의 외형과 플레이어 크기, duration을 사용해 대치 위치와 어깨 시점을 준비한다.
+    /// 원래 카메라와 Fisher 위치를 저장하고 정지 중에도 진행할 카메라 전환을 시작한다.
+    /// </summary>
+    public void BeginFisherQte(Transform fisher, float duration)
+    {
+        _qteFisher = fisher;
+        _qteFisherOriginalPosition = fisher.position;
+        _qteStartPosition = transform.position;
+        _qteStartRotation = transform.rotation;
+        _qteStartFov = _camera.fieldOfView;
+        Vector3 direction = _targetBody.linearVelocity;
+        direction.y = 0f;
+        if (direction.sqrMagnitude < 0.01f)
+            direction = Quaternion.Euler(0f, _yaw, 0f) * Vector3.forward;
+        direction.Normalize();
+        Vector3 side = Vector3.Cross(Vector3.up, direction);
+        Renderer[] renderers = fisher.GetComponentsInChildren<Renderer>();
+        Bounds bounds = renderers[0].bounds;
+        foreach (Renderer renderer in renderers) bounds.Encapsulate(renderer.bounds);
+        Vector3 playerCenter = _focalPoint.position;
+        Vector3 fisherCenter = playerCenter + direction * (_projectileRadius + bounds.extents.magnitude + _qteConfrontationGap);
+        fisher.position += fisherCenter - bounds.center;
+        _qteTargetPosition = playerCenter - direction * (_projectileRadius + _qteShoulderDistance)
+            + side * (_projectileRadius * 0.65f + _qteShoulderSide)
+            + Vector3.up * (_projectileRadius * 0.6f + _qteShoulderHeight);
+        _qteTargetPosition.y = Mathf.Max(_qteTargetPosition.y, _waterY + _minHeightAboveWater);
+        _qteTargetRotation = Quaternion.LookRotation(fisherCenter - _qteTargetPosition, Vector3.up);
+        _qteMoveDuration = Mathf.Max(0.1f, duration);
+        _qteElapsed = 0f;
+        _qteViewActive = true;
+        _qteReturning = false;
+    }
+
+    /// <summary>
+    /// smoothReturn으로 일반 추적 뷰의 보간 복귀 또는 원래 카메라의 즉시 복원을 선택한다.
+    /// 대치 연출 위치를 원래 Fisher 위치로 되돌리고 카메라 전환 상태를 변경한다.
+    /// </summary>
+    public void EndFisherQte(bool smoothReturn)
+    {
+        if (!_qteViewActive && !_qteReturning) return;
+        if (_qteViewActive) _qteFisher.position = _qteFisherOriginalPosition;
+        _qteViewActive = false;
+        _qteReturning = smoothReturn;
+        _qteElapsed = 0f;
+        if (smoothReturn)
+        {
+            _qteReturnPosition = transform.position;
+            _qteReturnRotation = transform.rotation;
+            _qteReturnFov = _camera.fieldOfView;
+        }
+        else
+        {
+            transform.SetPositionAndRotation(_qteStartPosition, _qteStartRotation);
+            _camera.fieldOfView = _qteStartFov;
+        }
+    }
+
+    /// <summary>
+    /// 실제 프레임 시간 dt와 저장한 시작 및 목표 구도로 어깨 뷰를 보간한다.
+    /// 게임 시간 정지 중에도 위치, 회전과 FOV를 갱신하고 이동 완료 후 시점을 유지한다.
+    /// </summary>
+    private void UpdateFisherQteCamera(float dt)
+    {
+        _qteElapsed += dt;
+        float blend = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_qteElapsed / _qteMoveDuration));
+        transform.SetPositionAndRotation(Vector3.Lerp(_qteStartPosition, _qteTargetPosition, blend),
+            Quaternion.Slerp(_qteStartRotation, _qteTargetRotation, blend));
+        _camera.fieldOfView = Mathf.Lerp(_qteStartFov, _qteFov, blend);
+    }
+
+    /// <summary>
+    /// dt와 현재 일반 추적 결과를 사용해 QTE 종료 위치에서 카메라를 부드럽게 복귀시킨다.
+    /// 저장한 시작 구도와 새 추적 구도를 보간하고 완료 시 복귀 상태를 해제한다.
+    /// </summary>
+    private void ApplyFisherQteReturn(float dt)
+    {
+        if (!_qteReturning) return;
+        _qteElapsed += dt;
+        float blend = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_qteElapsed / _qteReturnDuration));
+        transform.SetPositionAndRotation(Vector3.Lerp(_qteReturnPosition, transform.position, blend),
+            Quaternion.Slerp(_qteReturnRotation, transform.rotation, blend));
+        _camera.fieldOfView = Mathf.Lerp(_qteReturnFov, _camera.fieldOfView, blend);
+        if (blend >= 1f) _qteReturning = false;
     }
 
     /// <summary>
@@ -197,6 +312,7 @@ public class CameraController : MonoBehaviour
     /// </summary>
     public void SnapBehindTarget()
     {
+        EndFisherQte(false);
         _yaw = 0f;
         _pitch = _basePitch;
         _distance = TargetDistance(0f);
