@@ -101,20 +101,31 @@ MonoBehaviour:
     _value: 50
     _color: {r: 1, g: 1, b: 1, a: 1}
     _spawnWeight: 0.3
+    _requiresEjection: 0
+    _allowRepeatEjection: 1
+    _maxConcurrent: 0
+    _stopAfterCatch: 0
+    _isRevealed: 1
     _shape: 0
     _length: 3.2
     _height: 3.0048034
     _thickness: 0.9904634
     _tailLength: 0.45
     _dorsalFin: 0
-    _inflateScale: 0
     _speedMultiplier: 1
     _spinMultiplier: 1
     _liftMultiplier: 1
     _frictionMultiplier: 0.25
     _airGravityScale: 1
+    _selectCausesRain: 0
+    _selectCausesNight: 0
+    _selectPreventsRain: 0
+    _selectPreventsNight: 0
+    _selectVolumeProfile: {fileID: 11400000, guid: 95467dd0e0c02fc41bafcfdd43b28834, type: 2}
+    _spawnOnlyInRain: 0
+    _spawnOnlyAtNight: 0
+    _requiredPlayerFish: {fileID: 0}
   _body: {fileID: 646957236892795789}
-  _bodyRenderer: {fileID: 5156294588829048897}
 --- !u!1001 &5786917963366808773
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -188,11 +199,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 508b03901d8c29c4d821c4d9f24ab8b2, type: 3}
---- !u!23 &5156294588829048897 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: 508b03901d8c29c4d821c4d9f24ab8b2, type: 3}
-  m_PrefabInstance: {fileID: 5786917963366808773}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &6324736435911088942 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 508b03901d8c29c4d821c4d9f24ab8b2, type: 3}

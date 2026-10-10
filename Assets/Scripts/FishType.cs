@@ -1,6 +1,7 @@
 using System;
 
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public enum FishShape
 {
@@ -90,6 +91,11 @@ public class FishType
     [SerializeField]
     private bool _selectPreventsNight;
 
+    [Header("선택 시 볼륨")]
+    [Tooltip("던질 거리로 고르면 서서히 켜지는 후처리 볼륨 프로필. 다른 것을 고르면 서서히 꺼진다")]
+    [SerializeField]
+    private VolumeProfile _selectVolumeProfile;
+
     [Header("출현 조건")]
     [Tooltip("켜면 비가 올 때만 자연 출현한다")]
     [SerializeField]
@@ -121,6 +127,7 @@ public class FishType
     public bool SelectCausesNight => _selectCausesNight;
     public bool SelectPreventsRain => _selectPreventsRain;
     public bool SelectPreventsNight => _selectPreventsNight;
+    public VolumeProfile SelectVolumeProfile => _selectVolumeProfile;
     public bool SpawnOnlyInRain => _spawnOnlyInRain;
     public bool SpawnOnlyAtNight => _spawnOnlyAtNight;
     public GameObject RequiredPlayerFish => _requiredPlayerFish;

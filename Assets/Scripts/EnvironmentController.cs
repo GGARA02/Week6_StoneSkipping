@@ -131,6 +131,8 @@ public class EnvironmentController : MonoBehaviour
     [SerializeField]
     private float _volumePriority = 1f;
     private readonly Dictionary<VolumeProfile, VolumeEntry> _volumes = new Dictionary<VolumeProfile, VolumeEntry>();
+    // 지금 고른 물고기의 선택 시 볼륨. 없으면 null이다.
+    private VolumeProfile _fishVolumeProfile;
 
     [Header("낮 값")]
     private Material _originalSkybox;
@@ -232,8 +234,8 @@ public class EnvironmentController : MonoBehaviour
     }
 
     /// <summary>
-    /// 이번 판의 기본 날씨를 확률로 새로 정하고, 고른 물고기의 날씨까지 더해 바로 적용한다.
-    /// fish(기본 물고기면 null)와 비, 밤 확률을 사용하며, 기본 날씨, 목표 날씨, 현재 날씨 비중을 변경한다.
+    /// 이번 판의 기본 날씨를 확률로 새로 정하고, 고른 물고기의 날씨와 선택 시 볼륨까지 더해 바로 적용한다.
+    /// fish(기본 물고기면 null)와 비, 밤 확률을 사용하며, 기본 날씨, 목표 날씨, 현재 날씨 비중, 물고기 볼륨을 변경한다.
     /// </summary>
     public void Roll(FishType fish)
     {
@@ -243,15 +245,17 @@ public class EnvironmentController : MonoBehaviour
         _rainWeight = _targetRain ? 1f : 0f;
         _nightWeight = _targetNight ? 1f : 0f;
         ApplyWeights();
+        SetFishVolume(fish, true);
     }
 
     /// <summary>
-    /// 던질 거리를 바꿨을 때 그 물고기의 선택 시 날씨 설정으로 목표 날씨를 다시 정한다. 실제 변화는 Update에서 서서히 진행한다.
-    /// fish(기본 물고기면 null)를 사용하며, 목표 날씨를 변경한다.
+    /// 던질 거리를 바꿨을 때 그 물고기의 선택 시 날씨와 볼륨 설정으로 목표를 다시 정한다. 실제 변화는 Update에서 서서히 진행한다.
+    /// fish(기본 물고기면 null)를 사용하며, 목표 날씨와 물고기 볼륨의 목표 비중을 변경한다.
     /// </summary>
     public void ChangeFish(FishType fish)
     {
         SetTarget(fish);
+        SetFishVolume(fish, false);
     }
 
     /// <summary>
@@ -359,6 +363,28 @@ public class EnvironmentController : MonoBehaviour
         entry = new VolumeEntry { Volume = volume };
         _volumes.Add(profile, entry);
         return entry;
+    }
+
+    /// <summary>
+    /// 고른 물고기의 선택 시 볼륨으로 바꾼다. 이전 물고기의 볼륨은 끄고 새 물고기의 볼륨은 켠다.
+    /// fish(기본 물고기면 null)와 instant를 사용하며, 바로 또는 _fadeDuration 동안 볼륨 비중을 바꾸고 _fishVolumeProfile을 변경한다.
+    /// </summary>
+    private void SetFishVolume(FishType fish, bool instant)
+    {
+        VolumeProfile profile = fish != null ? fish.SelectVolumeProfile : null;
+        if (profile == _fishVolumeProfile) return;
+
+        if (instant)
+        {
+            if (_fishVolumeProfile != null) SetVolumeWeight(_fishVolumeProfile, 0f);
+            if (profile != null) SetVolumeWeight(profile, 1f);
+        }
+        else
+        {
+            if (_fishVolumeProfile != null) FadeVolumeWeight(_fishVolumeProfile, 0f, _fadeDuration);
+            if (profile != null) FadeVolumeWeight(profile, 1f, _fadeDuration);
+        }
+        _fishVolumeProfile = profile;
     }
 
     /// <summary>
