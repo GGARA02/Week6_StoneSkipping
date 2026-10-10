@@ -3,25 +3,38 @@ using System.Collections;
 using System.IO;
 
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
-/// 블랙홀의 첫 착수 성공 화면을 흡입하고 저장된 16:9 이미지를 SCREEN 투척물로 제공한다.
+/// 블랙홀의 최초 착수 화면을 천처럼 흡입하고 저장된 16:9 이미지를 SCREEN 투척물로 제공한다.
 /// </summary>
 public class ScreenFishCapture : MonoBehaviour
 {
-    private const float ABSORB_DURATION = 0.5f;
     private const int IMAGE_WIDTH = 1280;
     private const int IMAGE_HEIGHT = 720;
+
+    [Header("Screen Suction")]
+    [SerializeField, Range(1f, 2f)] private float _duration = 1.7f;
+    [SerializeField, Range(0.5f, 4f)] private float _suctionStrength = 2.4f;
+    [SerializeField, Range(0.1f, 2f)] private float _suctionRadius = 0.65f;
+    [SerializeField, Range(0.5f, 4f)] private float _falloff = 1.8f;
+    [SerializeField, Range(0f, 3f)] private float _stretchStrength = 1.6f;
+    [SerializeField, Range(0f, 0.15f)] private float _wrinkleStrength = 0.065f;
+    [SerializeField, Range(0f, 0.3f)] private float _twistStrength = 0.045f;
+    [SerializeField, Range(1f, 6f)] private float _finalCollapseSpeed = 3.5f;
 
     [Header("캡처 상태")]
     private PlayerProgress _progress;
     private Fish _template;
     private Mesh _mesh;
     private Material _material;
-    private Texture2D _frame;
+    private RenderTexture _frame;
+    private Material _suctionMaterial;
+    private GameObject _overlay;
     private Transform _hole;
     private Vector2 _holePosition;
     private float _absorbProgress;
+    private float _previousTimeScale;
     private string _imagePath;
     public Texture2D Image { get; private set; }
     public bool IsCapturing { get; private set; }
@@ -82,6 +95,8 @@ public class ScreenFishCapture : MonoBehaviour
     /// </summary>
     public void Capture(Transform hole)
     {
+        if (IsCapturing) return;
+        _previousTimeScale = Time.timeScale;
         IsCapturing = true;
         Time.timeScale = 0f;
         _hole = hole;
@@ -90,33 +105,55 @@ public class ScreenFishCapture : MonoBehaviour
     }
 
     /// <summary>
-    /// 완성된 게임 프레임을 캡처해 실제 시간 0.5초 동안 블랙홀로 흡입한다.
-    /// 캡처 이미지를 저장하고 SCREEN을 해금한 뒤 게임 시간을 1로 복원한다.
+    /// 접촉 프레임의 렌더 완료를 기다려 HUD 포함 화면을 한 번 캡처하고 _duration 동안 흡입한다.
+    /// _hole과 Inspector 값을 사용하며 SCREEN 해금, 임시 리소스 해제 및 이전 게임 시간 복원을 수행한다.
     /// </summary>
     private IEnumerator AbsorbScreen()
     {
         try
         {
             yield return new WaitForEndOfFrame();
-            _frame = UnityEngine.ScreenCapture.CaptureScreenshotAsTexture();
-            Vector3 viewport = Camera.main.WorldToViewportPoint(_hole.position);
-            _holePosition = new Vector2(viewport.x, 1f - viewport.y);
-            float start = Time.realtimeSinceStartup;
-            PrepareImage();
-            while (Time.realtimeSinceStartup - start < ABSORB_DURATION)
+            _frame = new RenderTexture(Screen.width, Screen.height, 0, RenderTextureFormat.ARGB32)
             {
-                _absorbProgress = (Time.realtimeSinceStartup - start) / ABSORB_DURATION;
+                name = "Screen Suction Capture",
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear
+            };
+            _frame.Create();
+            RenderTexture rawFrame = RenderTexture.GetTemporary(_frame.width, _frame.height, 0, RenderTextureFormat.ARGB32);
+            try
+            {
+                UnityEngine.ScreenCapture.CaptureScreenshotIntoRenderTexture(rawFrame);
+                Vector2 scale = SystemInfo.graphicsUVStartsAtTop ? new Vector2(1f, -1f) : Vector2.one;
+                Vector2 offset = SystemInfo.graphicsUVStartsAtTop ? Vector2.up : Vector2.zero;
+                Graphics.Blit(rawFrame, _frame, scale, offset);
+            }
+            finally
+            {
+                RenderTexture.ReleaseTemporary(rawFrame);
+            }
+            Vector3 viewport = Camera.main.WorldToViewportPoint(_hole.position);
+            _holePosition = viewport.z > 0f
+                ? new Vector2(Mathf.Clamp01(viewport.x), Mathf.Clamp01(viewport.y))
+                : new Vector2(0.5f, 0.5f);
+            PrepareImage();
+            CreateOverlay();
+            float start = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - start < _duration)
+            {
+                _absorbProgress = Mathf.Clamp01((Time.realtimeSinceStartup - start) / _duration);
+                _suctionMaterial.SetFloat("_Progress", _absorbProgress);
                 yield return null;
             }
+            _absorbProgress = 1f;
+            _suctionMaterial.SetFloat("_Progress", 1f);
+            yield return new WaitForEndOfFrame();
             _progress.AddFish(_template.Type);
             OnUnlocked?.Invoke();
         }
         finally
         {
-            Time.timeScale = 1f;
-            IsCapturing = false;
-            if (_frame != null) Destroy(_frame);
-            _frame = null;
+            ReleaseCapture();
         }
         yield return null;
         File.WriteAllBytes(_imagePath, Image.EncodeToPNG());
@@ -155,31 +192,81 @@ public class ScreenFishCapture : MonoBehaviour
         }
     }
 
-    void OnGUI()
+    /// <summary>
+    /// 캡처 텍스처와 고정된 Viewport 중심으로 원본 화면 배경과 단일 GPU 천 메시를 만든다.
+    /// Inspector 튜닝값을 머티리얼에 전달하며 캡처 중에만 존재하는 Overlay Canvas를 생성한다.
+    /// </summary>
+    private void CreateOverlay()
     {
-        if (!IsCapturing || _frame == null) return;
-        int depth = GUI.depth;
-        Matrix4x4 matrix = GUI.matrix;
-        GUI.depth = -1000;
-        Vector2 center = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
-        Vector2 hole = new Vector2(_holePosition.x * Screen.width, _holePosition.y * Screen.height);
-        float t = _absorbProgress * _absorbProgress;
-        Vector2 position = Vector2.Lerp(center, hole, t);
-        GUIUtility.RotateAroundPivot(180f * t, position);
-        GUIUtility.ScaleAroundPivot(Vector2.one * Mathf.Max(0.001f, 1f - t), position);
-        GUI.DrawTexture(new Rect(position.x - center.x, position.y - center.y, Screen.width, Screen.height), _frame);
-        GUI.matrix = matrix;
-        GUI.depth = depth;
+        _suctionMaterial = new Material(Resources.Load<Shader>("Shader/ScreenSuction"));
+        _suctionMaterial.SetTexture("_MainTex", _frame);
+        _suctionMaterial.SetVector("_SuctionCenter", new Vector4(_holePosition.x, _holePosition.y, 0f, 0f));
+        _suctionMaterial.SetFloat("_Aspect", (float)_frame.width / _frame.height);
+        _suctionMaterial.SetFloat("_SuctionStrength", _suctionStrength);
+        _suctionMaterial.SetFloat("_SuctionRadius", _suctionRadius);
+        _suctionMaterial.SetFloat("_Falloff", _falloff);
+        _suctionMaterial.SetFloat("_StretchStrength", _stretchStrength);
+        _suctionMaterial.SetFloat("_WrinkleStrength", _wrinkleStrength);
+        _suctionMaterial.SetFloat("_TwistStrength", _twistStrength);
+        _suctionMaterial.SetFloat("_FinalCollapseSpeed", _finalCollapseSpeed);
+        _overlay = new GameObject("Screen Suction Overlay", typeof(Canvas));
+        Canvas canvas = _overlay.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = short.MaxValue;
+        GameObject background = new GameObject("Original Frame", typeof(RectTransform), typeof(RawImage));
+        background.transform.SetParent(_overlay.transform, false);
+        StretchOverlay(background.GetComponent<RectTransform>());
+        background.GetComponent<RawImage>().texture = _frame;
+        background.GetComponent<RawImage>().raycastTarget = false;
+        GameObject cloth = new GameObject("Captured Cloth", typeof(RectTransform), typeof(CanvasRenderer), typeof(ScreenSuctionGraphic));
+        cloth.transform.SetParent(_overlay.transform, false);
+        StretchOverlay(cloth.GetComponent<RectTransform>());
+        ScreenSuctionGraphic graphic = cloth.GetComponent<ScreenSuctionGraphic>();
+        graphic.material = _suctionMaterial;
+        graphic.raycastTarget = false;
+        graphic.SetTexture(_frame);
+    }
+
+    /// <summary>
+    /// rect를 부모 전체에 맞춰 캡처와 배경이 화면을 덮도록 앵커와 여백을 변경한다.
+    /// </summary>
+    private void StretchOverlay(RectTransform rect)
+    {
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+    }
+
+    /// <summary>
+    /// 입력값 없이 캡처의 Canvas, 머티리얼, RenderTexture를 해제한다.
+    /// 캡처 상태를 종료하고 시작 전에 기록한 timeScale을 복원한다.
+    /// </summary>
+    private void ReleaseCapture()
+    {
+        if (_overlay != null)
+        {
+            _overlay.SetActive(false);
+            Destroy(_overlay);
+        }
+        if (_suctionMaterial != null) Destroy(_suctionMaterial);
+        if (_frame != null)
+        {
+            _frame.Release();
+            Destroy(_frame);
+        }
+        _overlay = null;
+        _suctionMaterial = null;
+        _frame = null;
+        Time.timeScale = _previousTimeScale;
+        IsCapturing = false;
     }
 
     void OnDisable()
     {
         if (!IsCapturing) return;
         StopAllCoroutines();
-        Time.timeScale = 1f;
-        IsCapturing = false;
-        if (_frame != null) Destroy(_frame);
-        _frame = null;
+        if (IsCapturing) ReleaseCapture();
     }
 
     void OnDestroy()

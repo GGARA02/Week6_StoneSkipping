@@ -8231,6 +8231,8 @@ GameObject:
   - component: {fileID: 403970199}
   - component: {fileID: 403970198}
   - component: {fileID: 403970200}
+  - component: {fileID: 403970201}
+  - component: {fileID: 403970202}
   m_Layer: 0
   m_Name: GameFlowManager
   m_TagString: Untagged
@@ -8389,6 +8391,48 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Rumble
   _maxLowFrequency: 0.8
   _maxHighFrequency: 1
+--- !u!114 &403970201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 403970194}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 760ba2da837ea6d44a8f9d0e29685964, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScreenFishCapture
+  _duration: 1.7
+  _suctionStrength: 2.4
+  _suctionRadius: 0.65
+  _falloff: 1.8
+  _stretchStrength: 1.6
+  _wrinkleStrength: 0.065
+  _twistStrength: 0.045
+  _finalCollapseSpeed: 3.5
+--- !u!114 &403970202
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 403970194}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 44f7da2375d8b7245a520129296993c0, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::ProceduralObstacleSpawner
+  _iceStartDistance: 500
+  _blackHoleStartDistance: 1000
+  _cellSize: 45
+  _cellRadius: 3
+  _density: 0.65
+  _safeRadius: 25
+  _wallWidthRange: {x: 6, y: 12}
+  _wallHeightRange: {x: 16, y: 32}
+  _iceWidthRange: {x: 12, y: 24}
+  _iceHeightRange: {x: 12, y: 20}
 --- !u!1 &404979050
 GameObject:
   m_ObjectHideFlags: 0
@@ -15750,6 +15794,7 @@ MonoBehaviour:
   _flopFrequency: 6
   _flopBend: 0.35
   _flopHop: 0.08
+  _flatBottomHeightRatio: 0.5
   _segments: 40
   _rings: 5
   _colliderSegments: 20
@@ -41843,6 +41888,80 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2122854113}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1001 &918273640001
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 8175516881334673423, guid: 431ca29e7ea489748a1c05b49c27ff63, type: 3}
+      propertyPath: m_Name
+      value: Placed_BlackHole
+      objectReference: {fileID: 0}
+    - target: {fileID: 69755025683854722, guid: 431ca29e7ea489748a1c05b49c27ff63, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 69755025683854722, guid: 431ca29e7ea489748a1c05b49c27ff63, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 69755025683854722, guid: 431ca29e7ea489748a1c05b49c27ff63, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1180
+      objectReference: {fileID: 0}
+    - target: {fileID: 69755025683854722, guid: 431ca29e7ea489748a1c05b49c27ff63, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 69755025683854722, guid: 431ca29e7ea489748a1c05b49c27ff63, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 69755025683854722, guid: 431ca29e7ea489748a1c05b49c27ff63, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 652048137601599211, guid: 431ca29e7ea489748a1c05b49c27ff63, type: 3}
+      propertyPath: m_UseGravity
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 652048137601599211, guid: 431ca29e7ea489748a1c05b49c27ff63, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
+    m_RemovedComponents:
+    - {fileID: 652048137601599212, guid: 431ca29e7ea489748a1c05b49c27ff63, type: 3}
+    - {fileID: 652048137601599213, guid: 431ca29e7ea489748a1c05b49c27ff63, type: 3}
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8175516881334673423, guid: 431ca29e7ea489748a1c05b49c27ff63, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 918273640003}
+  m_SourcePrefab: {fileID: 100100000, guid: 431ca29e7ea489748a1c05b49c27ff63, type: 3}
+--- !u!1 &918273640002 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8175516881334673423, guid: 431ca29e7ea489748a1c05b49c27ff63, type: 3}
+  m_PrefabInstance: {fileID: 918273640001}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &918273640003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 918273640002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aaa6393dbe3e46778d763a90a8c14403, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::PlacedFish
+  _spawner: {fileID: 403970198}
+  _fishPrefab: {fileID: 652048137601599212, guid: 431ca29e7ea489748a1c05b49c27ff63, type: 3}
+  _respawnOnRestart: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -41862,3 +41981,4 @@ SceneRoots:
   - {fileID: 633863513}
   - {fileID: 2091714245}
   - {fileID: 64149769}
+  - {fileID: 918273640001}

@@ -214,6 +214,7 @@ GameObject:
   - component: {fileID: 322929023677804101}
   - component: {fileID: 652048137601599211}
   - component: {fileID: 652048137601599212}
+  - component: {fileID: 652048137601599213}
   m_Layer: 0
   m_Name: BlackHole
   m_TagString: Untagged
@@ -312,6 +313,20 @@ MonoBehaviour:
     _frictionMultiplier: 1
     _airGravityScale: 1
   _body: {fileID: 69755025683854722}
+--- !u!114 &652048137601599213
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8175516881334673423}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81f3c48f8226470492229194980e287b, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::BlackHoleAbility
+  _throwGeometry: {fileID: 1060030997030872287}
+  _throwPitch: 0.2
 --- !u!1 &8573554814364048347
 GameObject:
   m_ObjectHideFlags: 0

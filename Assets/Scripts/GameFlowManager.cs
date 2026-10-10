@@ -45,7 +45,6 @@ public class GameFlowManager : MonoBehaviour
     private int _perfectCount;
     private int _goodCount;
     private int _missCount;
-    private int _waterContactCount;
     private bool _screenCaptureTriggered;
 
     [Header("HUD")]
@@ -252,13 +251,11 @@ public class GameFlowManager : MonoBehaviour
     /// </summary>
     private void Throw()
     {
-        _fishSpawner.ResetWalls();
         FishType fish = SelectedFish();
         ThrowModifiers modifiers = fish != null
             ? fish.ToThrowModifiers(_progress.PowerMultiplier, _progress.SpinMultiplier)
             : ThrowModifiers.ForFish(_progress.PowerMultiplier, _progress.SpinMultiplier);
         _state = State.Flying;
-        _waterContactCount = 0;
         _screenCaptureTriggered = false;
         _playerController.Throw(modifiers);
     }
@@ -368,12 +365,6 @@ public class GameFlowManager : MonoBehaviour
                 ShowPopup($"MISS  TOO {direction}", JudgeColor(judge));
                 break;
         }
-        if ((judge == SkipJudge.Perfect || judge == SkipJudge.Good)
-            && _waterContactCount == 1 && !_screenCaptureTriggered && SelectedFish()?.Id == "blackhole")
-        {
-            _screenCaptureTriggered = true;
-            _fishSpawner.ScreenCapture.Capture(_fishGenerator.FishBody);
-        }
     }
 
     /// <summary>
@@ -424,13 +415,17 @@ public class GameFlowManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 처음 물에 닿는 순간 던진 물고기의 파닥임을 멈춘다.
-    /// point와 speed는 쓰지 않으며, 던질 거리의 파닥임을 변경한다.
+    /// 물에 닿으면 파닥임을 멈추고 블랙홀의 투척별 최초 접촉 화면을 흡입한다.
+    /// point와 speed는 쓰지 않으며, 캡처 시작 여부와 던질 거리의 파닥임을 변경한다.
     /// </summary>
     private void HandleWaterContact(Vector3 point, float speed)
     {
-        _waterContactCount++;
         _fishGenerator.SetFlopping(false);
+        if (!_screenCaptureTriggered && SelectedFish()?.Id == "blackhole")
+        {
+            _screenCaptureTriggered = true;
+            _fishSpawner.ScreenCapture.Capture(_fishGenerator.FishBody);
+        }
     }
 
     /// <summary>
@@ -460,6 +455,7 @@ public class GameFlowManager : MonoBehaviour
     private void HandleFishCaught(FishType fish)
     {
         if (fish.Id == "wall") _fishSelectionPreview.InvalidateTexture(_fishSpawner.WallFish);
+        if (fish.Id == "ice") _fishSelectionPreview.InvalidateTexture(_fishSpawner.IceFish);
         ShowPopup($"+{fish.Value} G   {fish.DisplayName}", new Color(1f, 0.85f, 0.3f));
     }
 
