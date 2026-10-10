@@ -407,8 +407,8 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// 선택 파닥임을 원형으로 복구한 뒤 맞춘 자세와 랜덤 스핀을 주고 물고기를 던진다.
-    /// modifiers와 _throwVelocity, 목표 자세, _throwSpin, _spinScale을 사용하며, Rigidbody 속도와 회전, _isThrown을 변경한다.
+    /// 선택 파닥임을 복구하고 맞춘 자세와 랜덤 스핀으로 물고기를 던진다.
+    /// modifiers와 목표 자세, 던지기 설정을 사용하며, Rigidbody 속도와 회전, _isThrown을 변경한다.
     /// </summary>
     public void Throw(ThrowModifiers modifiers)
     {

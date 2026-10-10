@@ -273,6 +273,10 @@ public class FishMeshGenerator : MonoBehaviour
             }
         }
         _fishMeshFilter = filters.Length == 1 && skinnedRenderers.Length == 0 ? filters[0] : null;
+        if (CurrentAbility != null && CurrentAbility.ThrowGeometry != null)
+        {
+            _fishMeshFilter = CurrentAbility.ThrowGeometry;
+        }
         Mesh oldRender = _renderMesh;
         _renderMesh = _fishMeshFilter != null
             ? _fishMeshFilter.sharedMesh

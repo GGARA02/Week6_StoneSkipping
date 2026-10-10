@@ -45,7 +45,6 @@ public class GameFlowManager : MonoBehaviour
     private int _perfectCount;
     private int _goodCount;
     private int _missCount;
-    private int _waterContactCount;
     private bool _screenCaptureTriggered;
 
     [Header("HUD")]
@@ -258,7 +257,6 @@ public class GameFlowManager : MonoBehaviour
             ? fish.ToThrowModifiers(_progress.PowerMultiplier, _progress.SpinMultiplier)
             : ThrowModifiers.ForFish(_progress.PowerMultiplier, _progress.SpinMultiplier);
         _state = State.Flying;
-        _waterContactCount = 0;
         _screenCaptureTriggered = false;
         _playerController.Throw(modifiers);
     }
@@ -369,7 +367,7 @@ public class GameFlowManager : MonoBehaviour
                 break;
         }
         if ((judge == SkipJudge.Perfect || judge == SkipJudge.Good)
-            && _waterContactCount == 1 && !_screenCaptureTriggered && SelectedFish()?.Id == "blackhole")
+            && !_screenCaptureTriggered && SelectedFish()?.Id == "blackhole")
         {
             _screenCaptureTriggered = true;
             _fishSpawner.ScreenCapture.Capture(_fishGenerator.FishBody);
@@ -429,7 +427,6 @@ public class GameFlowManager : MonoBehaviour
     /// </summary>
     private void HandleWaterContact(Vector3 point, float speed)
     {
-        _waterContactCount++;
         _fishGenerator.SetFlopping(false);
     }
 
