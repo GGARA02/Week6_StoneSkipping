@@ -458,6 +458,16 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
+    /// 지금 진행 방향 앞으로 forwardSpeed를 더하고 위로 upSpeed 속도로 세게 튀어 나가게 한다.
+    /// forwardSpeed, upSpeed와 _heading을 사용하며, Rigidbody 속도와 내부 속도를 변경한다.
+    /// </summary>
+    public void Burst(float forwardSpeed, float upSpeed)
+    {
+        _velocity = Horizontal(_playerRB.linearVelocity) + _heading * forwardSpeed + Vector3.up * upSpeed;
+        _playerRB.linearVelocity = _velocity;
+    }
+
+    /// <summary>
     /// 비행 중 공중 중력 배율을 바꾼다. 다음에 던질 때는 던지는 물체의 원래 배율로 돌아간다.
     /// scale을 사용하며, _modifiers의 공중 중력 배율을 변경한다.
     /// </summary>

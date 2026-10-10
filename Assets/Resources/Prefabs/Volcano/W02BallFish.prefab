@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 114000003}
   - component: {fileID: 114000004}
   m_Layer: 0
-  m_Name: W02Ball
+  m_Name: W02BallFish
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -152,7 +152,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1ca418f0df82ebc4f9f9dc51b589be3b, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Fish
   _type:
     _id: w02ball
@@ -176,6 +176,17 @@ MonoBehaviour:
     _liftMultiplier: 3
     _frictionMultiplier: 1
     _airGravityScale: 1
+    _selectEffects:
+      _causesRain: 0
+      _causesNight: 0
+      _preventsRain: 0
+      _preventsNight: 0
+      _volumeProfile: {fileID: 0}
+    _spawnConditions:
+      _onlyInRain: 0
+      _onlyAtNight: 0
+      _requiredPlayerFish: {fileID: 0}
+      _fallsFromSky: 0
   _body: {fileID: 3640661126572887836}
 --- !u!114 &114000004
 MonoBehaviour:
@@ -187,9 +198,27 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5974869215a434cb129b8e8fb6fd528, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::W02BallAbility
   _ejectedScaleMultiplier: 10
   _waterSpawnScaleMultiplier: 20
   _throwScaleMultiplier: 20
   _cameraDirectionCorrection: 0.5
+  _perfectCountToEvolve: 3
+  _evolvedPrefab: {fileID: 114000001, guid: 46f3f3a6ab774a109b958ecfe990b9b2, type: 3}
+  _grayscaleProfile: {fileID: 11400000, guid: e1c87921c0acb7d42bf22ab3cb12e1e9, type: 2}
+  _approachDuration: 0.5
+  _spinUpDuration: 1.2
+  _spinDownDuration: 1
+  _returnDuration: 0.4
+  _spinTurns: 4
+  _closeUpDistance: 2
+  _blackoutProfile: {fileID: 11400000, guid: e1e3e8bee2f426c48bdbd24eebdfe54e, type: 2}
+  _skyLightColor: {r: 1, g: 0.95, b: 0.8, a: 1}
+  _skyLightIntensity: 500
+  _skyLightHeight: 15
+  _beamMaterial: {fileID: 2100000, guid: efcc275a039ce5340b7c2022dfe2a610, type: 2}
+  _beamHeight: 40
+  _burstForwardSpeed: 20
+  _burstUpSpeed: 15
+  _attackInterval: 1

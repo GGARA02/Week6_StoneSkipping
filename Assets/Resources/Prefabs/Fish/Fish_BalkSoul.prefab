@@ -102,7 +102,12 @@ MonoBehaviour:
     _displayName: BALK SOUL
     _value: 50
     _color: {r: 1, g: 1, b: 1, a: 1}
-    _spawnWeight: 0.2
+    _spawnWeight: 0
+    _requiresEjection: 0
+    _allowRepeatEjection: 1
+    _maxConcurrent: 0
+    _stopAfterCatch: 0
+    _isRevealed: 1
     _shape: 0
     _length: 2
     _height: 2
@@ -114,16 +119,20 @@ MonoBehaviour:
     _liftMultiplier: 1
     _frictionMultiplier: 1
     _airGravityScale: 1
+    _selectEffects:
+      _causesRain: 0
+      _causesNight: 0
+      _preventsRain: 0
+      _preventsNight: 0
+      _volumeProfile: {fileID: 0}
+    _spawnConditions:
+      _onlyInRain: 0
+      _onlyAtNight: 0
+      _requiredPlayerFish: {fileID: 0}
+      _fallsFromSky: 0
   _body: {fileID: 5746957800710436250}
-  _renderers:
-  - {fileID: 8092660443960681365}
 --- !u!4 &5746957800710436250 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5746957800793575995, guid: def03d2a8a64e62488630d799df10d95, type: 3}
-  m_PrefabInstance: {fileID: 100100001}
-  m_PrefabAsset: {fileID: 0}
---- !u!23 &8092660443960681365 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: 8092660444056437812, guid: def03d2a8a64e62488630d799df10d95, type: 3}
   m_PrefabInstance: {fileID: 100100001}
   m_PrefabAsset: {fileID: 0}

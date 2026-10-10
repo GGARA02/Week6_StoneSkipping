@@ -100,6 +100,7 @@ public class FishSpawner : MonoBehaviour
     public Fish WallFish => _wallFish;
     public Fish IceFish => _iceFish;
     public ScreenFishCapture ScreenCapture => _screenCapture;
+    public PlayerProgress Progress => _progress;
 
     void Awake()
     {
