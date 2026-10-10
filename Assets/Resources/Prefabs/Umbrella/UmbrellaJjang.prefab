@@ -118,11 +118,16 @@ MonoBehaviour:
     _liftMultiplier: 1
     _frictionMultiplier: 1
     _airGravityScale: 1
-    _selectCausesRain: 1
-    _selectCausesNight: 0
-    _spawnOnlyInRain: 0
-    _spawnOnlyAtNight: 0
-    _requiredPlayerFish: {fileID: 0}
+    _selectEffects:
+      _causesRain: 1
+      _causesNight: 0
+      _preventsRain: 0
+      _preventsNight: 0
+      _volumeProfile: {fileID: 0}
+    _spawnConditions:
+      _onlyInRain: 0
+      _onlyAtNight: 0
+      _requiredPlayerFish: {fileID: 0}
   _body: {fileID: 3901284997661281352}
 --- !u!114 &114000002
 MonoBehaviour:
