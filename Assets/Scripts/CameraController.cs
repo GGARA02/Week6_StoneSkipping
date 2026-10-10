@@ -1,7 +1,11 @@
 using UnityEngine;
 
+using Unity.Cinemachine;
+
 // 조작 없이 알아서 따라가는 카메라. 진행 방향 뒤에서 보고, 빠를수록 멀리서 앞을 더 보여주고,
 // 물고기가 높이 뜨면 각도를 높여 앞쪽 수면이 보이게 한다. 튕김 흔들림과 속도에 따른 FOV도 처리한다.
+// 시네머신 카메라의 Transform과 Lens를 직접 움직이고, 메인 카메라의 CinemachineBrain이 이를 화면에 반영한다.
+[RequireComponent(typeof(CinemachineCamera))]
 public class CameraController : MonoBehaviour
 {
     [Header("참조")]
@@ -9,7 +13,7 @@ public class CameraController : MonoBehaviour
     private Transform _focalPoint;
     [SerializeField]
     private GameObject _water;
-    private Camera _camera;
+    private CinemachineCamera _cinemachineCamera;
     private Rigidbody _targetBody;
     private PlayerController _targetPlayer;
     private float _waterY;
@@ -148,7 +152,7 @@ public class CameraController : MonoBehaviour
         transform.position += Random.insideUnitSphere * (_shakeAmplitude * punch);
 
         _smoothedFov = Mathf.Lerp(_smoothedFov, _baseFov + _maxExtraFov * speed01, 1f - Mathf.Exp(-4f * dt));
-        _camera.fieldOfView = _smoothedFov + _punchFov * punch;
+        _cinemachineCamera.Lens.FieldOfView = _smoothedFov + _punchFov * punch;
         ApplyFisherQteReturn(dt);
     }
 
@@ -162,7 +166,7 @@ public class CameraController : MonoBehaviour
         _qteFisherOriginalPosition = fisher.position;
         _qteStartPosition = transform.position;
         _qteStartRotation = transform.rotation;
-        _qteStartFov = _camera.fieldOfView;
+        _qteStartFov = _cinemachineCamera.Lens.FieldOfView;
         Vector3 direction = _targetBody.linearVelocity;
         direction.y = 0f;
         if (direction.sqrMagnitude < 0.01f)
@@ -201,12 +205,12 @@ public class CameraController : MonoBehaviour
         {
             _qteReturnPosition = transform.position;
             _qteReturnRotation = transform.rotation;
-            _qteReturnFov = _camera.fieldOfView;
+            _qteReturnFov = _cinemachineCamera.Lens.FieldOfView;
         }
         else
         {
             transform.SetPositionAndRotation(_qteStartPosition, _qteStartRotation);
-            _camera.fieldOfView = _qteStartFov;
+            _cinemachineCamera.Lens.FieldOfView = _qteStartFov;
         }
     }
 
@@ -220,7 +224,7 @@ public class CameraController : MonoBehaviour
         float blend = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_qteElapsed / _qteMoveDuration));
         transform.SetPositionAndRotation(Vector3.Lerp(_qteStartPosition, _qteTargetPosition, blend),
             Quaternion.Slerp(_qteStartRotation, _qteTargetRotation, blend));
-        _camera.fieldOfView = Mathf.Lerp(_qteStartFov, _qteFov, blend);
+        _cinemachineCamera.Lens.FieldOfView = Mathf.Lerp(_qteStartFov, _qteFov, blend);
     }
 
     /// <summary>
@@ -234,17 +238,17 @@ public class CameraController : MonoBehaviour
         float blend = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_qteElapsed / _qteReturnDuration));
         transform.SetPositionAndRotation(Vector3.Lerp(_qteReturnPosition, transform.position, blend),
             Quaternion.Slerp(_qteReturnRotation, transform.rotation, blend));
-        _camera.fieldOfView = Mathf.Lerp(_qteReturnFov, _camera.fieldOfView, blend);
+        _cinemachineCamera.Lens.FieldOfView = Mathf.Lerp(_qteReturnFov, _cinemachineCamera.Lens.FieldOfView, blend);
         if (blend >= 1f) _qteReturning = false;
     }
 
     /// <summary>
     /// 대상과 물 높이를 준비하고 카메라를 물고기 뒤로 맞춘다.
-    /// 입력값은 없으며, 카메라 참조와 _waterY, 카메라 위치를 변경한다.
+    /// projectileShape를 사용하며, 시네머신 카메라 참조와 _waterY, 카메라 위치를 변경한다.
     /// </summary>
     public void Initialize(FishMeshGenerator projectileShape)
     {
-        _camera = GetComponent<Camera>();
+        _cinemachineCamera = GetComponent<CinemachineCamera>();
         _targetBody = _focalPoint.GetComponent<Rigidbody>();
         _targetPlayer = _focalPoint.GetComponent<PlayerController>();
         _waterY = _water.GetComponent<Collider>().bounds.max.y;
@@ -286,7 +290,7 @@ public class CameraController : MonoBehaviour
 
         float sizeRatio = diameter / _largeProjectileThreshold;
         float distanceScale = 1f + (Mathf.Sqrt(sizeRatio) - 1f) * _largeProjectileDistanceStrength;
-        float clearanceDistance = _projectileRadius + _lookAhead * speed01 + _camera.nearClipPlane + _largeProjectileClearance;
+        float clearanceDistance = _projectileRadius + _lookAhead * speed01 + _cinemachineCamera.Lens.NearClipPlane + _largeProjectileClearance;
         return Mathf.Max(baseDistance * distanceScale, clearanceDistance);
     }
 
@@ -302,7 +306,7 @@ public class CameraController : MonoBehaviour
         _focus = _focalPoint.position;
         _focusVelocity = Vector3.zero;
         _smoothedFov = _baseFov;
-        _camera.fieldOfView = _baseFov;
+        _cinemachineCamera.Lens.FieldOfView = _baseFov;
         UpdateTransform();
     }
 
@@ -320,7 +324,7 @@ public class CameraController : MonoBehaviour
         _focusVelocity = Vector3.zero;
         _punchTime = -10f;
         _smoothedFov = _baseFov;
-        _camera.fieldOfView = _baseFov;
+        _cinemachineCamera.Lens.FieldOfView = _baseFov;
         UpdateTransform();
     }
 
