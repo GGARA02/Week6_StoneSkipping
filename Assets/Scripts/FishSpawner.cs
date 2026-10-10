@@ -45,6 +45,7 @@ public class FishSpawner : MonoBehaviour
     private ProceduralObstacleSpawner _obstacles;
     private readonly HashSet<string> _seaTypes = new HashSet<string>();
     private readonly HashSet<string> _pendingSeaTypes = new HashSet<string>();
+    private FishUnlockGraph _unlockGraph;
 
     [Header("출현")]
     [Tooltip("물고기가 튀어 오르는 간격 범위(초)")]
@@ -104,6 +105,18 @@ public class FishSpawner : MonoBehaviour
     public ScreenFishCapture CatalogCapture => _catalogCapture;
     public PlayerProgress Progress => _progress;
 
+    /// <summary>
+    /// type의 도감 상태를 그래프 해금, 습득 기록과 이번 판의 바다 출현 등록으로 반환한다.
+    /// 사출 후 다음 판에 바다 출현이 허용된 특수 종류도 발견 상태로 표시하며 습득 기록은 변경하지 않는다.
+    /// </summary>
+    public FishCatalogState GetCatalogState(FishType type)
+    {
+        FishCatalogState state = _unlockGraph.GetCatalogState(type);
+        if (state == FishCatalogState.Undiscovered && type.RequiresEjection && _seaTypes.Contains(type.Id))
+            return FishCatalogState.Discovered;
+        return state;
+    }
+
     void Awake()
     {
         _playerBody = _player.GetComponent<Rigidbody>();
@@ -130,6 +143,9 @@ public class FishSpawner : MonoBehaviour
                 _seaTypes.Add(_fishTypes[i].Id);
             }
         }
+        _unlockGraph = new FishUnlockGraph(_progress);
+        RegisterCatalogPrefabs();
+        _unlockGraph.RestoreUnlocks(_fishPrefabs);
     }
 
     void OnDestroy()
@@ -215,6 +231,7 @@ public class FishSpawner : MonoBehaviour
         _activeFish.Clear();
         _seaTypes.UnionWith(_pendingSeaTypes);
         _pendingSeaTypes.Clear();
+        _unlockGraph.RestoreUnlocks(_fishPrefabs);
         _nextSpawnTime = Time.time;
         OnCleared?.Invoke();
     }
@@ -303,11 +320,12 @@ public class FishSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// 던질 거리 선택 목록에서 from 자리를 to로 바꾼다. 물에서 튀어 오르는 목록(_fishPrefabs)은 그대로 둔다.
-    /// from과 to를 사용하며, _selectablePrefabs와 _fishTypes의 해당 자리를 변경한다.
+    /// to가 별도로 등록되지 않은 경우 던질 거리 선택 목록에서 from 자리를 to로 바꾼다.
+    /// 두 프리팹을 사용하며 별도 항목이 있으면 유지하고 없으면 선택 목록과 종류를 변경한다.
     /// </summary>
     public void ReplaceSelection(Fish from, Fish to)
     {
+        if (Array.IndexOf(_selectablePrefabs, to) >= 0) return;
         int index = Array.IndexOf(_selectablePrefabs, from);
         _selectablePrefabs[index] = to;
         _fishTypes[index] = to.Type;
@@ -470,11 +488,25 @@ public class FishSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// 종류의 바다 등록, 날씨와 플레이어가 고른 물고기 조건, 획득 정책과 동시 출현 제한을 확인한다.
-    /// type, 현재 날씨, _playerFish와 현재 상태를 사용하며, 자연 출현 가능 여부를 반환한다.
+    /// JSON 노드에 해당하는 Fish 폴더의 투척용 프리팹을 종류별로 등록한다.
+    /// Resources의 투척용 자산을 사용하며 씬에 등록한 기존 프리팹은 우선 유지한다.
+    /// </summary>
+    private void RegisterCatalogPrefabs()
+    {
+        foreach (GameObject asset in Resources.LoadAll<GameObject>("Prefabs/Fish"))
+        {
+            if (asset.TryGetComponent(out Fish fish) && _unlockGraph.ContainsFish(fish.Type.Id)) RegisterPrefab(fish);
+        }
+    }
+
+    /// <summary>
+    /// JSON 해금 그래프와 바다 등록, 날씨, 사용 물고기 및 개체 제한을 확인한다.
+    /// type과 현재 게임 상태를 사용하며 모든 출현 조건을 만족하는지 반환한다.
     /// </summary>
     private bool CanSpawn(FishType type)
     {
+        if (type.Id == "arrow") return false;
+        if (!_unlockGraph.AllowsNaturalSpawn(type)) return false;
         if (_obstacles != null && type.Id == "blackhole") return false;
         if (type.RequiresEjection && !_seaTypes.Contains(type.Id)) return false;
         if (type.SpawnOnlyInRain && (_environment == null || !_environment.IsRaining)) return false;

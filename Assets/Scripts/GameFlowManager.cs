@@ -260,7 +260,8 @@ public class GameFlowManager : MonoBehaviour
         {
             FishType fish = _fishSpawner.FishTypes[i];
             if (fish.Id != "screen" && fish.Id != "catalog"
-                && (_progress.IsFishRegistered(fish) || (_catalogOpen && fish.IsRevealed)))
+                && (_progress.IsFishRegistered(fish)
+                    || (_catalogOpen && _fishSpawner.GetCatalogState(fish) != FishCatalogState.Undiscovered)))
             {
                 FishSelectionPreview previews = _progress.IsFishRegistered(fish) ? _ownedFishSelectionPreview : _fishSelectionPreview;
                 previews.PrepareTexture(_fishSpawner.FishPrefabs[i]);
@@ -439,7 +440,7 @@ public class GameFlowManager : MonoBehaviour
     private void HandleFishRegistered(FishType fish)
     {
         _newFish.Add(fish);
-        ShowPopup($"{fish.DisplayName} 획득했다!", new Color(1f, 0.85f, 0.3f));
+        ShowPopup($"{GetCatalogDisplayName(fish)} 획득했다!", new Color(1f, 0.85f, 0.3f));
     }
 
     /// <summary>
@@ -585,7 +586,7 @@ public class GameFlowManager : MonoBehaviour
         if (fish.Id == "ice") _fishSelectionPreview.InvalidateTexture(_fishSpawner.IceFish);
         if (fish.Id == "wall") _ownedFishSelectionPreview.InvalidateTexture(_fishSpawner.WallFish);
         if (fish.Id == "ice") _ownedFishSelectionPreview.InvalidateTexture(_fishSpawner.IceFish);
-        ShowPopup($"{fish.DisplayName} 획득했다!", new Color(1f, 0.85f, 0.3f));
+        ShowPopup($"{GetCatalogDisplayName(fish)} 획득했다!", new Color(1f, 0.85f, 0.3f));
     }
 
     /// <summary>
@@ -648,8 +649,8 @@ public class GameFlowManager : MonoBehaviour
             {
                 FishType selectedFish = SelectedFish();
                 ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 54f * scale),
-                    selectedFish == null ? "FISH" : selectedFish.IsRevealed || _progress.IsFishRegistered(selectedFish)
-                        ? selectedFish.DisplayName : "?", _previewStyle, new Color(1f, 0.92f, 0.7f));
+                    _fishSpawner.GetCatalogState(selectedFish) != FishCatalogState.Undiscovered
+                        ? GetCatalogDisplayName(selectedFish) : "?", _previewStyle, new Color(1f, 0.92f, 0.7f));
                 continue;
             }
             int index = _ownedOptions[(selectedOption + offset + optionCount) % optionCount];
@@ -657,7 +658,7 @@ public class GameFlowManager : MonoBehaviour
             {
                 GUI.DrawTexture(rect, _ownedFishSelectionPreview.DefaultFishTexture, ScaleMode.ScaleToFit, true);
                 ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 54f * scale),
-                    "FISH", _previewStyle, new Color(0.75f, 0.75f, 0.75f, 0.7f));
+                    GetCatalogDisplayName(null), _previewStyle, new Color(0.75f, 0.75f, 0.75f, 0.7f));
                 continue;
             }
 
@@ -666,7 +667,7 @@ public class GameFlowManager : MonoBehaviour
                 : fish.Id == "catalog" ? _fishSpawner.CatalogCapture.Image
                 : _ownedFishSelectionPreview.GetTexture(_fishSpawner.FishPrefabs[index]);
             if (preview != null) GUI.DrawTexture(rect, preview, ScaleMode.ScaleToFit, true);
-            ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 54f * scale), fish.DisplayName, _previewStyle,
+            ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 54f * scale), GetCatalogDisplayName(fish), _previewStyle,
                 new Color(0.75f, 0.75f, 0.75f, 0.7f));
         }
     }
@@ -771,8 +772,9 @@ public class GameFlowManager : MonoBehaviour
         for (int option = 0; option < count; option++)
         {
             FishType fish = option == 0 ? null : _fishSpawner.FishTypes[option - 1];
-            bool owned = fish == null || _progress.IsFishRegistered(fish);
-            bool revealed = owned || fish.IsRevealed;
+            FishCatalogState catalogState = _fishSpawner.GetCatalogState(fish);
+            bool owned = catalogState == FishCatalogState.Acquired;
+            bool revealed = catalogState != FishCatalogState.Undiscovered;
             Rect cell = new Rect(option % columns * cellWidth, option / columns * cellHeight, cellWidth - 12f * scale, cellHeight - 12f * scale);
             bool hovered = pointerInViewport && cell.Contains(Event.current.mousePosition);
             if (hovered && !_catalogCapturePending && Event.current.type == EventType.MouseDown && Event.current.button == 0)
@@ -793,7 +795,8 @@ public class GameFlowManager : MonoBehaviour
             else ShadowLabel(image, "?", _centerStyle, new Color(1f, 1f, 1f, 0.5f));
             string name = revealed ? GetCatalogDisplayName(fish) : "?";
             ShadowLabel(new Rect(cell.x, cell.y + 142f * scale, cell.width, 34f * scale), name, _previewStyle, Color.white);
-            ShadowLabel(new Rect(cell.x, cell.y + 180f * scale, cell.width, 28f * scale), owned ? "보유" : "미획득", _centerSubStyle,
+            ShadowLabel(new Rect(cell.x, cell.y + 180f * scale, cell.width, 28f * scale),
+                owned ? "획득" : revealed ? "발견 및 출현" : "미발견", _centerSubStyle,
                 owned ? new Color(1f, 0.92f, 0.7f) : new Color(1f, 1f, 1f, 0.45f));
         }
         GUI.EndScrollView();
@@ -802,14 +805,16 @@ public class GameFlowManager : MonoBehaviour
         GUI.DrawTexture(details, Texture2D.whiteTexture);
         GUI.color = original;
         FishType selectedFish = _catalogSelectedFish;
-        bool selectedOwned = selectedFish == null || _progress.IsFishRegistered(selectedFish);
+        FishCatalogState selectedState = _fishSpawner.GetCatalogState(selectedFish);
+        bool selectedOwned = selectedState == FishCatalogState.Acquired;
         string selectedId = selectedFish == null ? "default" : selectedFish.Id;
-        string selectedName = selectedOwned || selectedFish.IsRevealed ? GetCatalogDisplayName(selectedFish) : "?";
+        string selectedName = selectedState != FishCatalogState.Undiscovered ? GetCatalogDisplayName(selectedFish) : "?";
         JToken entry = _catalogEntries[selectedId];
         string heading = selectedOwned
             ? $"{selectedName}    누적 획득 {(selectedFish == null ? 0 : _progress.GetFishCount(selectedFish))}개"
-            : $"{selectedName}    해금 힌트";
-        string text = entry.Value<string>(selectedOwned ? "description" : "unlockHint");
+            : selectedState == FishCatalogState.Undiscovered ? "?    미발견" : $"{selectedName}    해금 힌트";
+        string text = selectedState == FishCatalogState.Undiscovered
+            ? string.Empty : entry.Value<string>(selectedOwned ? "description" : "unlockHint");
         ShadowLabel(new Rect(details.x + 24f * scale, details.y + 14f * scale, details.width - 48f * scale, 36f * scale),
             heading, _smallStyle, new Color(1f, 0.92f, 0.7f));
         ShadowLabel(new Rect(details.x + 24f * scale, details.y + 54f * scale, details.width - 48f * scale, 76f * scale),
@@ -1035,13 +1040,20 @@ public class GameFlowManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 블랙홀 접촉 시 미지의 행성 엔딩 시네마 연출을 시작한다.
-    /// 플레이어 비행과 HUD를 정지하고 시네머신 기반의 엔딩 컷신 코루틴을 실행한다.
+    /// 블랙홀 접촉 시 해당 물고기를 획득 처리하고 미지의 행성 엔딩 시네마 연출을 시작한다.
+    /// 등록된 물고기 목록과 플레이어 위치로 도감을 갱신하고 비행과 HUD를 정지한 뒤 컷신을 실행한다.
     /// </summary>
     public void StartEndingCinema()
     {
         if (_endingCinemaRunning) return;
         _endingCinemaRunning = true;
+
+        foreach (FishType fish in _fishSpawner.FishTypes)
+        {
+            if (fish.Id != "blackhole") continue;
+            _fishSpawner.HandlePlacedFishCaught(fish, _playerController.transform.position);
+            break;
+        }
 
         _state = State.GameOver;
         _showHud = false;
