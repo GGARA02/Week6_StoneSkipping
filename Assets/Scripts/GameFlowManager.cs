@@ -126,6 +126,7 @@ public class GameFlowManager : MonoBehaviour
         if (_endingCredit != null)
         {
             _endingCredit.OnEndingCompleted += HandleEndingCompleted;
+            _endingCredit.OnEndingSkipped += HandleEndingSkipped;
             _endingCredit.gameObject.SetActive(false);
         }
         _cameraController.Initialize(_fishGenerator);
@@ -154,6 +155,7 @@ public class GameFlowManager : MonoBehaviour
         if (_endingCredit != null)
         {
             _endingCredit.OnEndingCompleted -= HandleEndingCompleted;
+            _endingCredit.OnEndingSkipped -= HandleEndingSkipped;
         }
         _inputActions.Dispose();
         _fishSelectionPreview.Dispose();
@@ -925,19 +927,38 @@ public class GameFlowManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 엔딩 크레딧 완료 이벤트를 받아 크레딧 물고기를 해금하고 강제 선택한 뒤 재시작 후 즉시 투척한다.
+    /// 엔딩 크레딧 스킵 이벤트를 받아 크레딧 물고기(endingcredit)를 해금 및 선택하여 즉시 투척한다.
     /// 입력값은 없으며, ThrowCreditFish를 호출한다.
     /// </summary>
-    private void HandleEndingCompleted()
+    private void HandleEndingSkipped()
     {
         ThrowCreditFish();
     }
 
     /// <summary>
+    /// 엔딩 크레딧 정상 완료 이벤트를 받아 크레딧 물고기를 획득하고 투척 없이 재시작 대기 상태로 전환한다.
+    /// 입력값은 없으며, CompleteEndingCredit을 호출한다.
+    /// </summary>
+    private void HandleEndingCompleted()
+    {
+        CompleteEndingCredit();
+    }
+
+    /// <summary>
     /// 엔딩 크레딧을 종료하고 크레딧 물고기(endingcredit)를 선택하여 재시작 후 즉시 투척한다.
-    /// 입력값은 없으며, 크레딧 물고기 해금, 선택 상태, HUD 및 카메라 복구, 게임 재시작 및 투척을 수행한다.
+    /// 입력값은 없으며, CompleteEndingCredit 후 Throw를 호출한다.
     /// </summary>
     private void ThrowCreditFish()
+    {
+        CompleteEndingCredit();
+        Throw();
+    }
+
+    /// <summary>
+    /// 엔딩 크레딧을 정리하고 크레딧 물고기를 해금 및 선택한 뒤 재시작 상태로 전환한다.
+    /// 입력값은 없으며, 크레딧 물고기 해금, 선택 상태, HUD 및 카메라 복구, 게임 재시작을 수행한다.
+    /// </summary>
+    private void CompleteEndingCredit()
     {
         UnlockCreditFish();
         SelectCreditFish();
@@ -960,7 +981,6 @@ public class GameFlowManager : MonoBehaviour
         }
         _showHud = true;
         Restart();
-        Throw();
     }
 
     /// <summary>
@@ -1043,13 +1063,12 @@ public class GameFlowManager : MonoBehaviour
 
         Vector3 landingSpot = new Vector3(0f, 2f, 3200f);
         Vector3 stoneStartPos = landingSpot + new Vector3(0f, 18f, 0f);
-        Vector3 alienStartPos = landingSpot + new Vector3(6.5f, 0f, 5.5f);
+        Vector3 alienStartPos = landingSpot + new Vector3(15.5f, 0f, 14.5f);
 
         if (_cameraController != null)
         {
             _cameraController.enabled = false;
-            // 5배 크기의 외계인과 돌 낙하가 한 화면에 담기도록 카메라를 더 뒤쪽 높은 곳에 배치한다.
-            Vector3 camPos = landingSpot + new Vector3(-8.5f, 6.0f, -8.5f);
+            Vector3 camPos = landingSpot + new Vector3(-17f, 6.0f, -17f);
             Vector3 camTarget = Vector3.Lerp(landingSpot, alienStartPos, 0.45f) + Vector3.up * 2.5f;
             _cameraController.transform.position = camPos;
             _cameraController.transform.rotation = Quaternion.LookRotation(camTarget - camPos, Vector3.up);
@@ -1148,7 +1167,7 @@ public class GameFlowManager : MonoBehaviour
         {
             Vector3 startMovePos = _endingAlienInstance.transform.position;
             Vector3 pickUpPos = landingSpot + (alienStartPos - landingSpot).normalized * 2.2f;
-            float moveDuration = 1.6f;
+            float moveDuration = 2.5f;
             float elapsed = 0f;
 
             while (elapsed < moveDuration)
@@ -1168,8 +1187,8 @@ public class GameFlowManager : MonoBehaviour
         if (_endingAlienInstance != null)
         {
             Destroy(_endingAlienInstance);
-            _endingAlienInstance = null;
         }
+
 
         UnlockMonsterFish();
 
