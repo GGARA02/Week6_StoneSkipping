@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 
 public class EndingCreditUI : MonoBehaviour
 {
-    private const float DISPLAYDURATION = 10f;
+    private const float DISPLAYDURATION = 5f;
 
     [Header("Settings")]
     private float _timer;

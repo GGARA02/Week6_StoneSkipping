@@ -923,11 +923,6 @@ public class GameFlowManager : MonoBehaviour
     /// </summary>
     public void StartEndingCredit()
     {
-        if (_endingCredit == null)
-        {
-            Debug.LogWarning("엔딩 크레딧 UI가 연결되지 않아 엔딩 연출을 시작할 수 없습니다.", this);
-            return;
-        }
         // 기존에 켜져 있는 모든 HUD를 화면에서 숨긴다.
         _showHud = false;
         _endingCredit.gameObject.SetActive(true);
