@@ -84,7 +84,8 @@ public class FishSpawner : MonoBehaviour
         _playerBody = _player.GetComponent<Rigidbody>();
         _waterY = _water.GetComponent<Collider>().bounds.max.y;
         InitializeWalls();
-        _screenCapture = gameObject.AddComponent<ScreenFishCapture>();
+        _screenCapture = GetComponent<ScreenFishCapture>();
+        if (_screenCapture == null) _screenCapture = gameObject.AddComponent<ScreenFishCapture>();
         Fish screenFish = _screenCapture.Initialize(_progress);
         int count = _fishPrefabs.Length;
         Array.Resize(ref _fishPrefabs, count + 1);

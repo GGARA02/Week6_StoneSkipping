@@ -366,12 +366,6 @@ public class GameFlowManager : MonoBehaviour
                 ShowPopup($"MISS  TOO {direction}", JudgeColor(judge));
                 break;
         }
-        if ((judge == SkipJudge.Perfect || judge == SkipJudge.Good)
-            && !_screenCaptureTriggered && SelectedFish()?.Id == "blackhole")
-        {
-            _screenCaptureTriggered = true;
-            _fishSpawner.ScreenCapture.Capture(_fishGenerator.FishBody);
-        }
     }
 
     /// <summary>
@@ -422,12 +416,17 @@ public class GameFlowManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 처음 물에 닿는 순간 던진 물고기의 파닥임을 멈춘다.
-    /// point와 speed는 쓰지 않으며, 던질 거리의 파닥임을 변경한다.
+    /// 물에 닿으면 파닥임을 멈추고 블랙홀의 투척별 최초 접촉 화면을 흡입한다.
+    /// point와 speed는 쓰지 않으며, 캡처 시작 여부와 던질 거리의 파닥임을 변경한다.
     /// </summary>
     private void HandleWaterContact(Vector3 point, float speed)
     {
         _fishGenerator.SetFlopping(false);
+        if (!_screenCaptureTriggered && SelectedFish()?.Id == "blackhole")
+        {
+            _screenCaptureTriggered = true;
+            _fishSpawner.ScreenCapture.Capture(_fishGenerator.FishBody);
+        }
     }
 
     /// <summary>
