@@ -100,12 +100,12 @@ public class Fish : MonoBehaviour
     }
 
     /// <summary>
-    /// 입력값 없이 이미지 패널을 SCREEN 선택 템플릿으로 초기화한다.
+    /// type을 사용해 이미지 패널을 선택 템플릿으로 초기화한다.
     /// 종류와 몸 참조를 설정하고 자연 출현용 이동을 끈다.
     /// </summary>
-    public void InitializeScreen()
+    public void InitializeScreen(FishType type)
     {
-        _type = FishType.CreateScreen();
+        _type = type;
         _body = transform;
         enabled = false;
     }

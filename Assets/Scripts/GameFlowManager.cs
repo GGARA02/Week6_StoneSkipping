@@ -1,7 +1,10 @@
+using System.Collections;
 using System.Collections.Generic;
 
 using UnityEngine;
 using UnityEngine.InputSystem;
+
+using Newtonsoft.Json.Linq;
 using UnityEngine.Serialization;
 
 // 던지기, 비행, 도감, 정산, 재시작 흐름과 HUD를 담당한다.
@@ -49,6 +52,9 @@ public class GameFlowManager : MonoBehaviour
     private int _missCount;
     private bool _screenCaptureTriggered;
     private bool _catalogOpen;
+    private bool _catalogCapturePending;
+    private FishType _catalogSelectedFish;
+    private JObject _catalogEntries;
     private Vector2 _catalogScroll;
     private Vector2 _resultScroll;
     private readonly List<int> _ownedOptions = new List<int>();
@@ -82,6 +88,7 @@ public class GameFlowManager : MonoBehaviour
     private GUIStyle _debugStyle;
     private GUIStyle _buttonStyle;
     private GUIStyle _previewStyle;
+    private GUIStyle _catalogDetailStyle;
     private float _styleScale = -1f;
     private FishSelectionPreview _fishSelectionPreview;
     private FishSelectionPreview _ownedFishSelectionPreview;
@@ -112,6 +119,7 @@ public class GameFlowManager : MonoBehaviour
         _ownedFishSelectionPreview = new FishSelectionPreview(true);
         _ownedFishSelectionPreview.PrepareDefaultFishTexture(_fishGenerator.GetComponent<MeshFilter>().sharedMesh,
             _fishGenerator.GetComponent<MeshRenderer>().sharedMaterials);
+        _catalogEntries = JObject.Parse(Resources.Load<TextAsset>("FishCatalog").text);
     }
 
     void OnDestroy()
@@ -131,7 +139,7 @@ public class GameFlowManager : MonoBehaviour
 
     void Update()
     {
-        if (_fishSpawner.ScreenCapture.IsCapturing || Time.timeScale == 0f) return;
+        if (_catalogCapturePending || _fishSpawner.ScreenCapture.IsCapturing || Time.timeScale == 0f) return;
         Keyboard keyboard = Keyboard.current;
         Gamepad gamepad = Gamepad.current;
         if (_state == State.Ready && keyboard != null && keyboard.tabKey.wasPressedThisFrame)
@@ -142,6 +150,11 @@ public class GameFlowManager : MonoBehaviour
         }
         if (_catalogOpen)
         {
+            if (_inputActions.Player.Jump.WasPressedThisFrame())
+            {
+                StartCoroutine(CaptureCatalogAndThrow());
+                return;
+            }
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
             {
                 _catalogOpen = false;
@@ -201,7 +214,7 @@ public class GameFlowManager : MonoBehaviour
         {
             foreach (FishType fish in _newFish)
             {
-                if (fish.Id == "screen") continue;
+                if (fish.Id == "screen" || fish.Id == "catalog") continue;
                 Fish prefab = _fishSpawner.GetFishPrefab(fish);
                 if (prefab != null) _ownedFishSelectionPreview.PrepareTexture(prefab);
             }
@@ -212,7 +225,8 @@ public class GameFlowManager : MonoBehaviour
         for (int i = 0; i < _fishSpawner.FishTypes.Count; i++)
         {
             FishType fish = _fishSpawner.FishTypes[i];
-            if (fish.Id != "screen" && (_progress.IsFishRegistered(fish) || (_catalogOpen && fish.IsRevealed)))
+            if (fish.Id != "screen" && fish.Id != "catalog"
+                && (_progress.IsFishRegistered(fish) || (_catalogOpen && fish.IsRevealed)))
             {
                 FishSelectionPreview previews = _progress.IsFishRegistered(fish) ? _ownedFishSelectionPreview : _fishSelectionPreview;
                 previews.PrepareTexture(_fishSpawner.FishPrefabs[i]);
@@ -298,6 +312,33 @@ public class GameFlowManager : MonoBehaviour
         _state = State.Flying;
         _screenCaptureTriggered = false;
         _playerController.Throw(modifiers);
+    }
+
+    /// <summary>
+    /// 열린 도감 프레임의 캡처와 등록을 기다린 뒤 도감 패널을 선택해 즉시 던진다.
+    /// 입력값 없이 캡처 중 입력을 막고 도감, 커서, 투척 외형과 게임 상태를 변경한다.
+    /// </summary>
+    private IEnumerator CaptureCatalogAndThrow()
+    {
+        _catalogCapturePending = true;
+        try
+        {
+            yield return _fishSpawner.CatalogCapture.CapturePanel();
+            for (int i = 0; i < _fishSpawner.FishTypes.Count; i++)
+            {
+                if (_fishSpawner.FishTypes[i].Id != "catalog") continue;
+                _projectileIndex = i;
+                break;
+            }
+            _catalogOpen = false;
+            LockCursor(true);
+            ApplyProjectileShape();
+            Throw();
+        }
+        finally
+        {
+            _catalogCapturePending = false;
+        }
     }
 
     /// <summary>
@@ -578,6 +619,7 @@ public class GameFlowManager : MonoBehaviour
 
             FishType fish = _fishSpawner.FishTypes[index];
             Texture preview = fish.Id == "screen" ? _fishSpawner.ScreenCapture.Image
+                : fish.Id == "catalog" ? _fishSpawner.CatalogCapture.Image
                 : _ownedFishSelectionPreview.GetTexture(_fishSpawner.FishPrefabs[index]);
             if (preview != null) GUI.DrawTexture(rect, preview, ScaleMode.ScaleToFit, true);
             ShadowLabel(new Rect(rect.x, rect.yMax, slotWidth, 54f * scale), fish.DisplayName, _previewStyle,
@@ -613,6 +655,7 @@ public class GameFlowManager : MonoBehaviour
             FishType fish = _newFish[i];
             Fish prefab = _fishSpawner.GetFishPrefab(fish);
             Texture texture = fish.Id == "screen" ? _fishSpawner.ScreenCapture.Image
+                : fish.Id == "catalog" ? _fishSpawner.CatalogCapture.Image
                 : prefab != null ? _ownedFishSelectionPreview.GetTexture(prefab) : null;
             Rect cell = new Rect(i % columns * cellWidth, i / columns * cellHeight,
                 cellWidth - 12f * scale, cellHeight - 12f * scale);
@@ -649,8 +692,8 @@ public class GameFlowManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 전체 종류를 보유 상태와 함께 스크롤 가능한 도감 그리드로 그린다.
-    /// 화면 크기와 scale을 사용하며 닫기 버튼은 도감과 커서 상태를 변경한다.
+    /// 전체 종류를 보유 상태와 함께 그리드로 그리고 선택한 항목의 JSON 상세 정보를 표시한다.
+    /// 화면 크기, scale과 마우스 입력을 사용하며 선택 항목과 도감·커서 상태를 변경한다.
     /// </summary>
     private void DrawCatalog(float width, float height, float scale)
     {
@@ -661,7 +704,8 @@ public class GameFlowManager : MonoBehaviour
         ShadowLabel(new Rect(0f, 24f * scale, width, 80f * scale), "도감", _centerStyle, Color.white);
         ShadowLabel(new Rect(0f, 108f * scale, width, 40f * scale),
             $"보유  {_ownedOptions.Count} / {_fishSpawner.FishTypes.Count + 1}    TAB / ESC 닫기", _centerSubStyle, new Color(1f, 0.92f, 0.7f));
-        Rect viewport = new Rect(width * 0.08f, 170f * scale, width * 0.84f, height - 260f * scale);
+        Rect viewport = new Rect(width * 0.08f, 170f * scale, width * 0.84f, height - 430f * scale);
+        bool pointerInViewport = viewport.Contains(Event.current.mousePosition);
         int columns = Mathf.Max(1, Mathf.FloorToInt(viewport.width / (240f * scale)));
         float cellWidth = (viewport.width - 24f * scale) / columns;
         float cellHeight = 220f * scale;
@@ -675,12 +719,20 @@ public class GameFlowManager : MonoBehaviour
             bool owned = fish == null || _progress.IsFishRegistered(fish);
             bool revealed = owned || fish.IsRevealed;
             Rect cell = new Rect(option % columns * cellWidth, option / columns * cellHeight, cellWidth - 12f * scale, cellHeight - 12f * scale);
-            GUI.color = new Color(1f, 1f, 1f, owned ? 0.12f : 0.04f);
+            bool hovered = pointerInViewport && cell.Contains(Event.current.mousePosition);
+            if (hovered && !_catalogCapturePending && Event.current.type == EventType.MouseDown && Event.current.button == 0)
+            {
+                _catalogSelectedFish = fish;
+                Event.current.Use();
+            }
+            bool selected = fish == _catalogSelectedFish;
+            GUI.color = new Color(1f, 1f, 1f, selected ? 0.32f : hovered ? 0.2f : owned ? 0.12f : 0.04f);
             GUI.DrawTexture(cell, Texture2D.whiteTexture);
             GUI.color = original;
             Rect image = new Rect(cell.x + 12f * scale, cell.y + 8f * scale, cell.width - 24f * scale, 132f * scale);
             Texture texture = fish == null ? _ownedFishSelectionPreview.DefaultFishTexture
                 : fish.Id == "screen" ? _fishSpawner.ScreenCapture.Image
+                : fish.Id == "catalog" ? _fishSpawner.CatalogCapture.Image
                 : (owned ? _ownedFishSelectionPreview : _fishSelectionPreview).GetTexture(_fishSpawner.FishPrefabs[option - 1]);
             if (revealed && texture != null) GUI.DrawTexture(image, texture, ScaleMode.ScaleToFit, true);
             else ShadowLabel(image, "?", _centerStyle, new Color(1f, 1f, 1f, 0.5f));
@@ -690,11 +742,30 @@ public class GameFlowManager : MonoBehaviour
                 owned ? new Color(1f, 0.92f, 0.7f) : new Color(1f, 1f, 1f, 0.45f));
         }
         GUI.EndScrollView();
+        Rect details = new Rect(viewport.x, height - 235f * scale, viewport.width, 145f * scale);
+        GUI.color = new Color(1f, 1f, 1f, 0.08f);
+        GUI.DrawTexture(details, Texture2D.whiteTexture);
+        GUI.color = original;
+        FishType selectedFish = _catalogSelectedFish;
+        bool selectedOwned = selectedFish == null || _progress.IsFishRegistered(selectedFish);
+        string selectedId = selectedFish == null ? "default" : selectedFish.Id;
+        string selectedName = selectedFish == null ? "FISH" : selectedOwned || selectedFish.IsRevealed ? selectedFish.DisplayName : "?";
+        JToken entry = _catalogEntries[selectedId];
+        string heading = selectedOwned
+            ? $"{selectedName}    누적 획득 {(selectedFish == null ? 0 : _progress.GetFishCount(selectedFish))}개"
+            : $"{selectedName}    해금 힌트";
+        string text = entry.Value<string>(selectedOwned ? "description" : "unlockHint");
+        ShadowLabel(new Rect(details.x + 24f * scale, details.y + 14f * scale, details.width - 48f * scale, 36f * scale),
+            heading, _smallStyle, new Color(1f, 0.92f, 0.7f));
+        ShadowLabel(new Rect(details.x + 24f * scale, details.y + 54f * scale, details.width - 48f * scale, 76f * scale),
+            text, _catalogDetailStyle, Color.white);
+        GUI.enabled = !_catalogCapturePending;
         if (GUI.Button(new Rect(width * 0.5f - 130f * scale, height - 70f * scale, 260f * scale, 48f * scale), "닫기 (TAB)", _buttonStyle))
         {
             _catalogOpen = false;
             LockCursor(true);
         }
+        GUI.enabled = true;
     }
 
     /// <summary>
@@ -751,6 +822,9 @@ public class GameFlowManager : MonoBehaviour
         _centerSubStyle = MakeStyle(22, TextAnchor.UpperCenter, scale);
         _previewStyle = MakeStyle(24, TextAnchor.UpperCenter, scale);
         _previewStyle.wordWrap = true;
+        _catalogDetailStyle = MakeStyle(22, TextAnchor.UpperLeft, scale);
+        _catalogDetailStyle.fontStyle = FontStyle.Normal;
+        _catalogDetailStyle.wordWrap = true;
         _popupStyle = MakeStyle(52, TextAnchor.MiddleCenter, scale);
         _debugStyle = MakeStyle(18, TextAnchor.UpperRight, scale);
         _debugStyle.fontStyle = FontStyle.Normal;

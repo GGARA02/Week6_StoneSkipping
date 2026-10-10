@@ -42,15 +42,15 @@ public class ScreenFishCapture : MonoBehaviour
     public event Action OnUnlocked;
 
     /// <summary>
-    /// progress와 저장 PNG를 사용해 비활성 SCREEN 템플릿을 만든다.
+    /// progress, type과 종류별 저장 PNG를 사용해 비활성 이미지 패널 템플릿을 만든다.
     /// 16:9 패널 메시와 이미지 머티리얼을 준비하고 선택 목록에 넣을 Fish를 반환한다.
     /// </summary>
-    public Fish Initialize(PlayerProgress progress)
+    public Fish Initialize(PlayerProgress progress, FishType type)
     {
         _progress = progress;
-        _imagePath = Path.Combine(Application.persistentDataPath, "screen-fish.png");
+        _imagePath = Path.Combine(Application.persistentDataPath, $"{type.Id}-fish.png");
         GameObject panel = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        panel.name = "SCREEN Fish Catalog";
+        panel.name = $"{type.DisplayName} Fish Catalog";
         panel.SetActive(false);
         panel.transform.SetParent(transform, false);
         Destroy(panel.GetComponent<Collider>());
@@ -73,7 +73,7 @@ public class ScreenFishCapture : MonoBehaviour
         panel.GetComponent<MeshRenderer>().sharedMaterial = _material;
         panel.AddComponent<Rigidbody>().isKinematic = true;
         _template = panel.AddComponent<Fish>();
-        _template.InitializeScreen();
+        _template.InitializeScreen(type);
         if (File.Exists(_imagePath))
         {
             Image = new Texture2D(2, 2, TextureFormat.RGB24, false);
@@ -82,10 +82,10 @@ public class ScreenFishCapture : MonoBehaviour
             {
                 Destroy(Image);
                 Image = null;
-                PlayerPrefs.DeleteKey("SkipStoneV2.Fish.screen");
+                PlayerPrefs.DeleteKey("SkipStoneV2.Fish." + type.Id);
             }
         }
-        else PlayerPrefs.DeleteKey("SkipStoneV2.Fish.screen");
+        else PlayerPrefs.DeleteKey("SkipStoneV2.Fish." + type.Id);
         return _template;
     }
 
@@ -105,6 +105,55 @@ public class ScreenFishCapture : MonoBehaviour
     }
 
     /// <summary>
+    /// 현재 UI가 그려진 프레임을 기다려 흡입 연출 없이 16:9 패널로 캡처한다.
+    /// 입력값 없이 종류별 이미지와 도감 등록을 저장하고 캡처 상태를 해제한다.
+    /// </summary>
+    public IEnumerator CapturePanel()
+    {
+        _previousTimeScale = Time.timeScale;
+        IsCapturing = true;
+        try
+        {
+            yield return new WaitForEndOfFrame();
+            CaptureFrame();
+            PrepareImage();
+            File.WriteAllBytes(_imagePath, Image.EncodeToPNG());
+            _progress.AddFish(_template.Type);
+        }
+        finally
+        {
+            ReleaseCapture();
+        }
+    }
+
+    /// <summary>
+    /// 렌더 완료된 현재 게임 화면을 HUD까지 포함해 캡처하고 그래픽 API의 상하 방향을 보정한다.
+    /// 화면 크기를 사용하며 _frame에 정방향 캡처 텍스처를 저장한다.
+    /// </summary>
+    private void CaptureFrame()
+    {
+        _frame = new RenderTexture(Screen.width, Screen.height, 0, RenderTextureFormat.ARGB32)
+        {
+            name = "Screen Panel Capture",
+            wrapMode = TextureWrapMode.Clamp,
+            filterMode = FilterMode.Bilinear
+        };
+        _frame.Create();
+        RenderTexture rawFrame = RenderTexture.GetTemporary(_frame.width, _frame.height, 0, RenderTextureFormat.ARGB32);
+        try
+        {
+            UnityEngine.ScreenCapture.CaptureScreenshotIntoRenderTexture(rawFrame);
+            Vector2 scale = SystemInfo.graphicsUVStartsAtTop ? new Vector2(1f, -1f) : Vector2.one;
+            Vector2 offset = SystemInfo.graphicsUVStartsAtTop ? Vector2.up : Vector2.zero;
+            Graphics.Blit(rawFrame, _frame, scale, offset);
+        }
+        finally
+        {
+            RenderTexture.ReleaseTemporary(rawFrame);
+        }
+    }
+
+    /// <summary>
     /// 접촉 프레임의 렌더 완료를 기다려 HUD 포함 화면을 한 번 캡처하고 _duration 동안 흡입한다.
     /// _hole과 Inspector 값을 사용하며 SCREEN 해금, 임시 리소스 해제 및 이전 게임 시간 복원을 수행한다.
     /// </summary>
@@ -113,25 +162,7 @@ public class ScreenFishCapture : MonoBehaviour
         try
         {
             yield return new WaitForEndOfFrame();
-            _frame = new RenderTexture(Screen.width, Screen.height, 0, RenderTextureFormat.ARGB32)
-            {
-                name = "Screen Suction Capture",
-                wrapMode = TextureWrapMode.Clamp,
-                filterMode = FilterMode.Bilinear
-            };
-            _frame.Create();
-            RenderTexture rawFrame = RenderTexture.GetTemporary(_frame.width, _frame.height, 0, RenderTextureFormat.ARGB32);
-            try
-            {
-                UnityEngine.ScreenCapture.CaptureScreenshotIntoRenderTexture(rawFrame);
-                Vector2 scale = SystemInfo.graphicsUVStartsAtTop ? new Vector2(1f, -1f) : Vector2.one;
-                Vector2 offset = SystemInfo.graphicsUVStartsAtTop ? Vector2.up : Vector2.zero;
-                Graphics.Blit(rawFrame, _frame, scale, offset);
-            }
-            finally
-            {
-                RenderTexture.ReleaseTemporary(rawFrame);
-            }
+            CaptureFrame();
             Vector3 viewport = Camera.main.WorldToViewportPoint(_hole.position);
             _holePosition = viewport.z > 0f
                 ? new Vector2(Mathf.Clamp01(viewport.x), Mathf.Clamp01(viewport.y))

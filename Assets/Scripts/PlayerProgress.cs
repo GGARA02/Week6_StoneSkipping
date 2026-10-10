@@ -19,19 +19,28 @@ public class PlayerProgress : MonoBehaviour
     /// </summary>
     public bool IsFishRegistered(FishType fish)
     {
-        return PlayerPrefs.GetInt(FISH_KEY_PREFIX + fish.Id, 0) > 0;
+        return GetFishCount(fish) > 0;
     }
 
     /// <summary>
-    /// fish를 도감에 영구 등록하고 최초 획득일 때만 등록 이벤트를 보낸다.
-    /// 이미 보유한 종류는 변경하지 않으며 신규 종류의 PlayerPrefs를 저장한다.
+    /// fish의 ID에 저장된 누적 획득 수를 읽어 반환한다.
+    /// 기존 등록 값 1도 획득 1개로 유지하며 미획득 종류는 0을 반환한다.
+    /// </summary>
+    public int GetFishCount(FishType fish)
+    {
+        return PlayerPrefs.GetInt(FISH_KEY_PREFIX + fish.Id, 0);
+    }
+
+    /// <summary>
+    /// fish의 누적 획득 수를 올려 영구 저장하고 최초 획득일 때만 등록 이벤트를 보낸다.
+    /// 기존 획득 수를 사용하며 PlayerPrefs와 도감 등록 상태를 변경한다.
     /// </summary>
     public void AddFish(FishType fish)
     {
-        if (IsFishRegistered(fish)) return;
-        PlayerPrefs.SetInt(FISH_KEY_PREFIX + fish.Id, 1);
+        int count = GetFishCount(fish);
+        PlayerPrefs.SetInt(FISH_KEY_PREFIX + fish.Id, count + 1);
         PlayerPrefs.Save();
-        OnFishRegistered?.Invoke(fish);
+        if (count == 0) OnFishRegistered?.Invoke(fish);
     }
 
     /// <summary>

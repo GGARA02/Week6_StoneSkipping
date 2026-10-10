@@ -32,6 +32,7 @@ public class FishSpawner : MonoBehaviour
     private Fish _wallFish;
     private Fish _iceFish;
     private ScreenFishCapture _screenCapture;
+    private ScreenFishCapture _catalogCapture;
     private Mesh _wallCatalogMesh;
     private Mesh _iceCatalogMesh;
     private ProceduralObstacleSpawner _obstacles;
@@ -85,6 +86,7 @@ public class FishSpawner : MonoBehaviour
     public Fish WallFish => _wallFish;
     public Fish IceFish => _iceFish;
     public ScreenFishCapture ScreenCapture => _screenCapture;
+    public ScreenFishCapture CatalogCapture => _catalogCapture;
 
     void Awake()
     {
@@ -93,10 +95,13 @@ public class FishSpawner : MonoBehaviour
         InitializeWalls();
         _screenCapture = GetComponent<ScreenFishCapture>();
         if (_screenCapture == null) _screenCapture = gameObject.AddComponent<ScreenFishCapture>();
-        Fish screenFish = _screenCapture.Initialize(_progress);
+        Fish screenFish = _screenCapture.Initialize(_progress, FishType.CreateScreen());
+        _catalogCapture = gameObject.AddComponent<ScreenFishCapture>();
+        Fish catalogFish = _catalogCapture.Initialize(_progress, FishType.CreateCatalog());
         int count = _fishPrefabs.Length;
-        Array.Resize(ref _fishPrefabs, count + 1);
+        Array.Resize(ref _fishPrefabs, count + 2);
         _fishPrefabs[count] = screenFish;
+        _fishPrefabs[count + 1] = catalogFish;
         RegisterEjectedPrefabs();
         _selectablePrefabs = (Fish[])_fishPrefabs.Clone();
         _fishTypes = new FishType[_selectablePrefabs.Length];
