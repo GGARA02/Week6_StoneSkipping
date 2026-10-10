@@ -5,13 +5,13 @@ using UnityEngine.InputSystem;
 
 public class EndingCreditUI : MonoBehaviour
 {
-    [Header("Settings")]
-    [Tooltip("엔딩 크레딧 표시 지속 시간(초)")]
-    private const float DISPLAYDURATION = 30f;
+    private const float DISPLAYDURATION = 10f;
 
+    [Header("Settings")]
     private float _timer;
 
     public event Action OnEndingCompleted;
+    public event Action OnEndingSkipped;
 
     void OnEnable()
     {
@@ -25,8 +25,8 @@ public class EndingCreditUI : MonoBehaviour
     }
 
     /// <summary>
-    /// 엔딩 크레딧을 종료하고 UI를 비활성화한 뒤 완료 이벤트를 발생시킨다.
-    /// 입력값은 없으며, gameObject의 활성화 상태를 변경하고 OnEndingCompleted 이벤트를 호출한다.
+    /// 엔딩 크레딧 지속 시간을 모두 채워 정상 종료하고 완료 이벤트를 호출한다.
+    /// 입력값은 없으며, gameObject를 비활성화하고 OnEndingCompleted 이벤트를 호출한다.
     /// </summary>
     public void FinishCredits()
     {
@@ -35,17 +35,27 @@ public class EndingCreditUI : MonoBehaviour
     }
 
     /// <summary>
-    /// 외부 버튼 클릭 등에서 크레딧을 즉시 스킵할 때 호출한다.
-    /// 입력값은 없으며, FinishCredits를 호출한다.
+    /// 스킵 입력 또는 외부 스킵 버튼 클릭 시 크레딧을 즉시 종료하고 스킵 이벤트를 호출한다.
+    /// 입력값은 없으며, gameObject를 비활성화하고 OnEndingSkipped 이벤트를 호출한다.
     /// </summary>
-    public void SkipButton()
+    public void SkipCredits()
     {
-        FinishCredits();
+        gameObject.SetActive(false);
+        OnEndingSkipped?.Invoke();
     }
 
     /// <summary>
-    /// 스페이스바 또는 패드 버튼 입력을 받아 크레딧을 즉시 종료한다.
-    /// Keyboard와 Gamepad 입력을 사용하며, 스킵 조건 만족 시 FinishCredits를 호출한다.
+    /// 외부 버튼 클릭 등에서 크레딧을 즉시 스킵할 때 호출한다.
+    /// 입력값은 없으며, SkipCredits를 호출한다.
+    /// </summary>
+    public void SkipButton()
+    {
+        SkipCredits();
+    }
+
+    /// <summary>
+    /// 스페이스바 또는 패드 버튼 입력을 받아 크레딧을 즉시 스킵한다.
+    /// Keyboard와 Gamepad 입력을 사용하며, 스킵 조건 만족 시 SkipCredits를 호출한다.
     /// </summary>
     private void HandleSkipInput()
     {
@@ -56,13 +66,13 @@ public class EndingCreditUI : MonoBehaviour
 
         if (skipPressed)
         {
-            FinishCredits();
+            SkipCredits();
         }
     }
 
     /// <summary>
-    /// 지속 시간을 측정하여 설정된 시간이 지나면 크레딧을 종료한다.
-    /// _displayDuration과 Time.unscaledDeltaTime을 사용하며, 시간 도달 시 FinishCredits를 호출한다.
+    /// 지속 시간을 측정하여 설정된 DISPLAYDURATION이 지나면 크레딧을 정상 완료한다.
+    /// DISPLAYDURATION과 Time.unscaledDeltaTime을 사용하며, 시간 도달 시 FinishCredits를 호출한다.
     /// </summary>
     private void UpdateTimer()
     {
