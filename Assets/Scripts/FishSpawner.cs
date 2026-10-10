@@ -39,6 +39,7 @@ public class FishSpawner : MonoBehaviour
     private Fish _wallFish;
     private Fish _iceFish;
     private ScreenFishCapture _screenCapture;
+    private ScreenFishCapture _catalogCapture;
     private Mesh _wallCatalogMesh;
     private Mesh _iceCatalogMesh;
     private ProceduralObstacleSpawner _obstacles;
@@ -100,6 +101,7 @@ public class FishSpawner : MonoBehaviour
     public Fish WallFish => _wallFish;
     public Fish IceFish => _iceFish;
     public ScreenFishCapture ScreenCapture => _screenCapture;
+    public ScreenFishCapture CatalogCapture => _catalogCapture;
     public PlayerProgress Progress => _progress;
 
     void Awake()
@@ -110,10 +112,13 @@ public class FishSpawner : MonoBehaviour
         InitializeWalls();
         _screenCapture = GetComponent<ScreenFishCapture>();
         if (_screenCapture == null) _screenCapture = gameObject.AddComponent<ScreenFishCapture>();
-        Fish screenFish = _screenCapture.Initialize(_progress);
+        Fish screenFish = _screenCapture.Initialize(_progress, FishType.CreateScreen());
+        _catalogCapture = gameObject.AddComponent<ScreenFishCapture>();
+        Fish catalogFish = _catalogCapture.Initialize(_progress, FishType.CreateCatalog());
         int count = _fishPrefabs.Length;
-        Array.Resize(ref _fishPrefabs, count + 1);
+        Array.Resize(ref _fishPrefabs, count + 2);
         _fishPrefabs[count] = screenFish;
+        _fishPrefabs[count + 1] = catalogFish;
         RegisterEjectedPrefabs();
         _selectablePrefabs = (Fish[])_fishPrefabs.Clone();
         _fishTypes = new FishType[_selectablePrefabs.Length];
@@ -312,6 +317,23 @@ public class FishSpawner : MonoBehaviour
     }
 
     /// <summary>
+    /// type의 ID로 현재 선택 목록과 원래 출현 목록에서 프리팹을 찾는다.
+    /// 교체된 이전 종류도 조회하며 일치하는 Fish를 반환하고 없는 종류는 null을 반환한다.
+    /// </summary>
+    public Fish GetFishPrefab(FishType type)
+    {
+        foreach (Fish prefab in _selectablePrefabs)
+        {
+            if (prefab.Type.Id == type.Id) return prefab;
+        }
+        foreach (Fish prefab in _fishPrefabs)
+        {
+            if (prefab.Type.Id == type.Id) return prefab;
+        }
+        return null;
+    }
+
+    /// <summary>
     /// prefab을 종류 ID 기준으로 출현 및 투척 선택 목록에 한 번만 등록한다.
     /// 기존 선택 교체 결과를 유지하며 새 종류의 저장된 바다 해금 상태를 복원한다.
     /// </summary>
@@ -458,8 +480,8 @@ public class FishSpawner : MonoBehaviour
     {
         if (_obstacles != null && type.Id == "blackhole") return false;
         if (type.RequiresEjection && !_seaTypes.Contains(type.Id)) return false;
-        if (type.SpawnOnlyInRain && !_environment.IsRaining) return false;
-        if (type.SpawnOnlyAtNight && !_environment.IsNight) return false;
+        if (type.SpawnOnlyInRain && (_environment == null || !_environment.IsRaining)) return false;
+        if (type.SpawnOnlyAtNight && (_environment == null || !_environment.IsNight)) return false;
         if (type.RequiredPlayerFish != null
             && (_playerFish == null || _playerFish.gameObject != type.RequiredPlayerFish)) return false;
         return CanCreate(type);

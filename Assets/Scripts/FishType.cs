@@ -222,6 +222,18 @@ public class FishType
     }
 
     /// <summary>
+    /// 입력값 없이 도감 화면 이미지를 사용하는 비공개 패널 종류를 반환한다.
+    /// SCREEN과 동일한 16:9 크기에 독립된 도감 ID와 이름을 설정한다.
+    /// </summary>
+    public static FishType CreateCatalog()
+    {
+        FishType type = CreateScreen();
+        type._id = "catalog";
+        type._displayName = "도감";
+        return type;
+    }
+
+    /// <summary>
     /// 이 물고기를 던질 때 적용할 배율을 만든다. 던지는 힘과 스핀 업그레이드 배율을 곱한다.
     /// powerMultiplier, spinMultiplier를 사용하며, ThrowModifiers를 반환한다.
     /// </summary>

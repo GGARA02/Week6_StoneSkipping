@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 /// <summary>
-/// 생성 메시와 물고기 프리팹의 메시만 복사하여 회색 반투명 선택 미리보기 텍스처를 보관한다.
+/// 생성 메시와 물고기 프리팹의 메시와 머티리얼로 선택 미리보기 텍스처를 보관한다.
 /// 게임 동작, 충돌체와 애니메이션은 생성하지 않는다.
 /// </summary>
 public sealed class FishSelectionPreview : IDisposable
@@ -18,15 +18,17 @@ public sealed class FishSelectionPreview : IDisposable
     private readonly GameObject _root;
     private readonly Camera _camera;
     private readonly Material _material;
+    private readonly bool _useOriginalMaterials;
 
     public RenderTexture DefaultFishTexture { get; private set; }
 
     /// <summary>
-    /// 입력값 없이 게임 공간에서 떨어진 미리보기 카메라와 반투명 회색 머티리얼을 만든다.
-    /// 생성한 카메라와 머티리얼을 미리보기 렌더링 상태에 저장한다.
+    /// useOriginalMaterials로 원본 색 사용 여부를 정하고 게임 공간에서 떨어진 미리보기 카메라를 만든다.
+    /// 생성한 카메라와 미획득 항목용 회색 머티리얼을 렌더링 상태에 저장한다.
     /// </summary>
-    public FishSelectionPreview()
+    public FishSelectionPreview(bool useOriginalMaterials = false)
     {
+        _useOriginalMaterials = useOriginalMaterials;
         _root = new GameObject("Fish Selection Preview") { hideFlags = HideFlags.HideAndDontSave };
         _root.transform.position = new Vector3(10000f, 10000f, 10000f);
         GameObject cameraObject = new GameObject("Preview Camera");
@@ -53,7 +55,7 @@ public sealed class FishSelectionPreview : IDisposable
     }
 
     /// <summary>
-    /// prefab을 키로 준비된 회색 미리보기 텍스처를 조회한다.
+    /// prefab을 키로 준비된 미리보기 텍스처를 조회한다.
     /// 보관된 RenderTexture를 반환하며 아직 준비하지 않았다면 null을 반환한다.
     /// </summary>
     public RenderTexture GetTexture(Fish prefab)
@@ -73,7 +75,7 @@ public sealed class FishSelectionPreview : IDisposable
     }
 
     /// <summary>
-    /// prefab의 메시와 변환 계층을 사용해 투척 자세의 회색 미리보기를 한 번 렌더링한다.
+    /// prefab의 메시, 원본 머티리얼과 변환 계층을 사용해 투척 자세의 미리보기를 렌더링한다.
     /// OnGUI 밖에서 호출하며, prefab별 투명 배경 RenderTexture를 캐시에 저장한다.
     /// </summary>
     public void PrepareTexture(Fish prefab)
@@ -93,21 +95,23 @@ public sealed class FishSelectionPreview : IDisposable
         };
         foreach (MeshFilter filter in prefab.GetComponentsInChildren<MeshFilter>())
         {
-            AddMesh(CopyTransform(filter.transform, transforms), filter.sharedMesh);
+            if (!filter.TryGetComponent<MeshRenderer>(out MeshRenderer renderer)) continue;
+            AddMesh(CopyTransform(filter.transform, transforms), filter.sharedMesh,
+                renderer.sharedMaterials);
         }
         foreach (SkinnedMeshRenderer renderer in prefab.GetComponentsInChildren<SkinnedMeshRenderer>())
         {
-            AddMesh(CopyTransform(renderer.transform, transforms), renderer.sharedMesh);
+            AddMesh(CopyTransform(renderer.transform, transforms), renderer.sharedMesh, renderer.sharedMaterials);
         }
 
         _textures.Add(prefab, RenderModel(model));
     }
 
     /// <summary>
-    /// fishMesh를 사용해 기본 투척물의 회색 미리보기를 렌더링한다.
+    /// fishMesh와 originalMaterials를 사용해 기본 투척물의 미리보기를 렌더링한다.
     /// 이전 기본 텍스처를 해제하고 새 결과를 DefaultFishTexture에 저장한다.
     /// </summary>
-    public void PrepareDefaultFishTexture(Mesh fishMesh)
+    public void PrepareDefaultFishTexture(Mesh fishMesh, Material[] originalMaterials = null)
     {
         if (DefaultFishTexture != null)
         {
@@ -115,7 +119,7 @@ public sealed class FishSelectionPreview : IDisposable
             UnityEngine.Object.Destroy(DefaultFishTexture);
         }
         GameObject model = new GameObject("Default Fish Preview Model");
-        AddMesh(model.transform, fishMesh);
+        AddMesh(model.transform, fishMesh, originalMaterials);
         DefaultFishTexture = RenderModel(model);
     }
 
@@ -169,10 +173,10 @@ public sealed class FishSelectionPreview : IDisposable
     }
 
     /// <summary>
-    /// mesh를 사용해 parent의 로컬 원점에 렌더링 전용 자식 메시를 만든다.
-    /// parent 아래에 회색 머티리얼을 쓰는 MeshFilter와 MeshRenderer를 추가한다.
+    /// mesh와 originalMaterials로 parent의 로컬 원점에 렌더링 전용 자식 메시를 만든다.
+    /// 보유용은 원본 머티리얼, 미획득용은 회색 머티리얼을 사용하는 렌더러를 추가한다.
     /// </summary>
-    private void AddMesh(Transform parent, Mesh mesh)
+    private void AddMesh(Transform parent, Mesh mesh, Material[] originalMaterials)
     {
         GameObject part = new GameObject("Preview Mesh") { layer = PREVIEW_LAYER };
         part.transform.SetParent(parent, false);
@@ -180,7 +184,7 @@ public sealed class FishSelectionPreview : IDisposable
         MeshRenderer renderer = part.AddComponent<MeshRenderer>();
         Material[] materials = new Material[mesh.subMeshCount];
         for (int i = 0; i < materials.Length; i++) materials[i] = _material;
-        renderer.sharedMaterials = materials;
+        renderer.sharedMaterials = _useOriginalMaterials ? originalMaterials : materials;
         renderer.shadowCastingMode = ShadowCastingMode.Off;
         renderer.receiveShadows = false;
     }
