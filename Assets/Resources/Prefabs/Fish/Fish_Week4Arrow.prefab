@@ -5310,7 +5310,7 @@ MonoBehaviour:
       _volumeProfile: {fileID: 0}
     _spawnConditions:
       _onlyInRain: 0
-      _onlyAtNight: 0
+      _onlyAtNight: 1
       _requiredPlayerFish: {fileID: 0}
   _body: {fileID: 7720000000000000002}
 --- !u!114 &114000002

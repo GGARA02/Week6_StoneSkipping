@@ -47,6 +47,15 @@ public class Umbrella : FishAbility
     }
 
     /// <summary>
+    /// 하늘에서 떨어질 때 우산을 펼친 모습으로 바꾼다.
+    /// _umbrellaOn을 사용하며, 몸 머티리얼을 변경한다.
+    /// </summary>
+    public override void OnSkyFall()
+    {
+        _bodyRenderer.sharedMaterial = _umbrellaOn;
+    }
+
+    /// <summary>
     /// 우산의 펼침 여부에 맞춰 표시와 낙하 중력을 함께 설정한다.
     /// context, open과 Inspector 설정을 사용하며, 몸 머티리얼과 플레이어의 공중 중력 배율을 변경한다.
     /// </summary>

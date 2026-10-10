@@ -73,6 +73,14 @@ public class FishSpawner : MonoBehaviour
     public event Action OnClearing;
     public event Action OnCleared;
 
+    [Header("하늘 출현")]
+    [Tooltip("하늘에서 떨어지는 종류가 처음 나타나는 수면 위 높이")]
+    [SerializeField]
+    private float _skyFallHeight = 30f;
+    [Tooltip("하늘에서 떨어지는 종류의 낙하 속도")]
+    [SerializeField]
+    private float _skyFallSpeed = 8f;
+
     [Header("물결")]
     [Tooltip("물고기가 튀어 오르거나 물에 들어갈 때 물결 세기 배율")]
     [SerializeField]
@@ -297,6 +305,7 @@ public class FishSpawner : MonoBehaviour
 
     /// <summary>
     /// 던진 물고기가 몇 초 뒤 지나갈 자리 근처에서 최고점에 오르도록 물고기 프리팹을 만들어 튀어 오르게 한다.
+    /// 하늘에서 떨어지는 종류는 DropFromSky로 넘긴다.
     /// 던진 물고기 위치와 속도, 출현 설정을 사용하며, 새 물고기를 _activeFish에 추가한다.
     /// </summary>
     private void Spawn()
@@ -310,6 +319,11 @@ public class FishSpawner : MonoBehaviour
 
         float lead = UnityEngine.Random.Range(_leadTimeRange.x, _leadTimeRange.y);
         float sideOffset = UnityEngine.Random.Range(-_maxSideOffset, _maxSideOffset);
+        if (prefab.Type.SpawnFallsFromSky)
+        {
+            DropFromSky(prefab, horizontal, side * sideOffset);
+            return;
+        }
         Vector3 apex = _playerBody.position + horizontal * lead + side * sideOffset;
         apex.y = _waterY;
 
@@ -328,6 +342,25 @@ public class FishSpawner : MonoBehaviour
         FishAbility ability = fish.GetComponent<FishAbility>();
         if (ability != null) ability.OnWaterSpawn();
         fish.Launch(this, start, cross + Vector3.up * upSpeed, delay, _waterY);
+        _activeFish.Add(fish);
+    }
+
+    /// <summary>
+    /// 던진 물고기 높이까지 내려왔을 때 그 자리를 지나가도록 앞쪽 하늘에서 프리팹을 떨어뜨린다.
+    /// prefab, 던진 물고기 수평 속도 horizontal, 옆 거리 sideOffset과 하늘 출현 설정을 사용하며, 새 개체를 _activeFish에 추가한다.
+    /// </summary>
+    private void DropFromSky(Fish prefab, Vector3 horizontal, Vector3 sideOffset)
+    {
+        float startY = _waterY + _skyFallHeight;
+        float targetY = Mathf.Max(_playerBody.position.y, _waterY);
+        float fallTime = (startY - targetY) / _skyFallSpeed;
+        Vector3 start = _playerBody.position + horizontal * fallTime + sideOffset;
+        start.y = startY;
+
+        Fish fish = Instantiate(prefab);
+        FishAbility ability = fish.GetComponent<FishAbility>();
+        if (ability != null) ability.OnSkyFall();
+        fish.Drop(this, start, _skyFallSpeed, _waterY);
         _activeFish.Add(fish);
     }
 

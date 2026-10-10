@@ -22871,7 +22871,6 @@ MonoBehaviour:
   - {fileID: 4486523863033485913, guid: 78bd7ecc0c5edfc4c9746feaeb7f6e62, type: 3}
   - {fileID: 3341601530354568855, guid: 17298c4baaeb071468981e403e2bf6ba, type: 3}
   - {fileID: 114000001, guid: 46f3f3a6ab774a109b958ecfe990b9b2, type: 3}
-  - {fileID: 114000001, guid: bb4ebf38c5ff46c785768c48b5ab7cf4, type: 3}
   - {fileID: 114000001, guid: 90c576cd768a43f88741eb349da8ecca, type: 3}
   - {fileID: 5370640082949416132, guid: 9bb1cea04b8f05045838cb10e5d8aced, type: 3}
   - {fileID: 4733609989497901054, guid: 4f92ba4d103c4c82b201023d4738343f, type: 3}
@@ -22898,6 +22897,7 @@ MonoBehaviour:
   - {fileID: 114000003, guid: 8275716c08f94c27b315bb0c91629dd3, type: 3}
   - {fileID: 114000001, guid: bcf4400ded2b0f542ba8453d69d9194b, type: 3}
   - {fileID: 114000001, guid: 6f3b0342169a4104db5e6b94847841ed, type: 3}
+  - {fileID: 114000001, guid: bb4ebf38c5ff46c785768c48b5ab7cf4, type: 3}
   _spawnIntervalRange: {x: 0.35, y: 0.9}
   _schoolSizeRange: {x: 1, y: 3}
   _leadTimeRange: {x: 1, y: 2}

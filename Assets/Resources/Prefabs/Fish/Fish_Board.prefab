@@ -1474,7 +1474,7 @@ MonoBehaviour:
       _volumeProfile: {fileID: 11400000, guid: 208da86d2d9d74b47b40fef0fc04cb73, type: 2}
     _spawnConditions:
       _onlyInRain: 0
-      _onlyAtNight: 0
+      _onlyAtNight: 1
       _requiredPlayerFish: {fileID: 0}
   _body: {fileID: 5603345681756419157}
 --- !u!114 &7613572114012109103
