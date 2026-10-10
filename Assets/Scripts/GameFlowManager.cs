@@ -910,7 +910,6 @@ public class GameFlowManager : MonoBehaviour
     /// </summary>
     private void HandleEndingCompleted()
     {
-        //Debug.Log("엔딩 종료 신호 받음");
         UnlockCreditFish();
         _showHud = true;
         Restart();
@@ -929,7 +928,6 @@ public class GameFlowManager : MonoBehaviour
                 FishType fish = _fishSpawner.FishTypes[i];
                 if (fish.Id == CREDIT_FISH_ID)
                 {
-                    //Debug.Log("엔딩 크래딧 등록 및 정보 저장");
                     _progress.AddFish(fish);
                     PlayerPrefs.SetInt(FISH_KEY_PREFIX, 1);
                     PlayerPrefs.Save();

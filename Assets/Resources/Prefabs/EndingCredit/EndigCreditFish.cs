@@ -58,11 +58,28 @@ public class EndigCreditFish : FishAbility
             return;
         }
 
-        string contributorName = _contributor.contributorList[UnityEngine.Random.Range(0, _contributor.contributorList.Count)];
-        if (string.IsNullOrWhiteSpace(contributorName))
+        string rawEntry = _contributor.contributorList[UnityEngine.Random.Range(0, _contributor.contributorList.Count)];
+        if (string.IsNullOrWhiteSpace(rawEntry))
         {
             return;
         }
+
+        // 별도 처리 없이 문장 전체를 그대로 출력한다.
+        string contributorName = rawEntry.Trim();
+
+        // 하이픈 뒤 이름만 개별 추출하던 기존 로직
+        /*
+        int dashIndex = contributorName.IndexOf('-');
+        if (dashIndex >= 0)
+        {
+            string namesPart = contributorName.Substring(dashIndex + 1).Trim();
+            string[] names = namesPart.Split(new[] { ' ', ',', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+            if (names.Length > 0)
+            {
+                contributorName = names[UnityEngine.Random.Range(0, names.Length)];
+            }
+        }
+        */
 
         Vector3 spawnPosition = context.Player != null
             ? context.Player.transform.position + Vector3.up * 0.5f
