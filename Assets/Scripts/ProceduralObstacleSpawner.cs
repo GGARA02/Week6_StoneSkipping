@@ -27,13 +27,13 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
     private Transform _water;
     private Vector3 _waterStartPosition;
     private Vector3 _startPosition;
-    private Mesh _wallMesh;
-    private Material[] _wallMaterials;
+    private CuttableWall _wallPrefab;
     private float _waterY;
     private int _layer;
     private int _seed;
     private Vector2Int _center;
     private bool _hasCenter;
+    private bool _initialized;
     private GameObject _boostPrefab;
     private readonly Dictionary<Vector2Int, GameObject> _activeBoosts = new Dictionary<Vector2Int, GameObject>();
     private readonly Stack<GameObject> _boostPool = new Stack<GameObject>();
@@ -46,7 +46,7 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
 
     void Update()
     {
-        if (_player.IsGameOver) return;
+        if (!_initialized || _player.IsGameOver) return;
 
         Vector3 position = _spawner.PlayerBody.position;
         _water.position = new Vector3(position.x, _waterStartPosition.y, position.z);
@@ -66,7 +66,7 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
 
     /// <summary>
     /// spawner, player, 수면 높이와 water, 원본 벽, 유빙 종류로 주변 생성기를 준비한다.
-    /// 공유 유빙 메시와 머티리얼을 만들고 기존 고정 벽을 숨기며 풀과 셀 추적 상태를 초기화한다.
+    /// 벽 프리팹을 보관하고 공유 유빙 메시와 머티리얼을 만들며 풀과 셀 추적 상태를 초기화한다.
     /// </summary>
     public void Initialize(FishSpawner spawner, PlayerController player, float waterY, Transform water, MeshFilter wall, FishType iceType)
     {
@@ -76,8 +76,7 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
         _waterY = waterY;
         _water = water;
         _waterStartPosition = water.position;
-        _wallMesh = wall.sharedMesh;
-        _wallMaterials = wall.GetComponent<MeshRenderer>().sharedMaterials;
+        _wallPrefab = wall.GetComponent<CuttableWall>();
         _layer = wall.gameObject.layer;
         _iceType = iceType;
         _boostPrefab = Resources.Load<GameObject>("Prefabs/Boost/Boost");
@@ -85,7 +84,7 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
         IceMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "Procedural Ice" };
         IceMaterial.SetColor("_BaseColor", new Color(0.65f, 0.9f, 1f));
         IceMaterial.SetFloat("_Smoothness", 0.65f);
-        GameObject.Find("Wall").SetActive(false);
+        _initialized = true;
         ResetObstacles();
     }
 
@@ -95,6 +94,8 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
     /// </summary>
     public void ResetObstacles()
     {
+        if (!_initialized) return;
+
         ReleaseAll();
         _water.position = _waterStartPosition;
         _seed = Random.Range(0, int.MaxValue);
@@ -241,21 +242,24 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
     /// </summary>
     private CuttableWall CreateObstacle(bool ice)
     {
-        GameObject obstacle = new GameObject(ice ? "Ice Floe" : "Pooled Wall Cube") { layer = _layer };
+        if (!ice)
+        {
+            CuttableWall instance = Instantiate(_wallPrefab, transform);
+            instance.gameObject.SetActive(false);
+            instance.Initialize(_spawner, _spawner.WallFish.Type);
+            return instance;
+        }
+
+        GameObject obstacle = new GameObject("Ice Floe") { layer = _layer };
         obstacle.SetActive(false);
         obstacle.transform.SetParent(transform, false);
-        Mesh mesh = ice ? IceMesh : _wallMesh;
-        obstacle.AddComponent<MeshFilter>().sharedMesh = mesh;
-        obstacle.AddComponent<MeshRenderer>().sharedMaterials = ice ? new[] { IceMaterial } : _wallMaterials;
-        if (ice)
-        {
-            MeshCollider collider = obstacle.AddComponent<MeshCollider>();
-            collider.sharedMesh = mesh;
-            collider.convex = true;
-        }
-        else obstacle.AddComponent<BoxCollider>();
+        obstacle.AddComponent<MeshFilter>().sharedMesh = IceMesh;
+        obstacle.AddComponent<MeshRenderer>().sharedMaterials = new[] { IceMaterial };
+        MeshCollider collider = obstacle.AddComponent<MeshCollider>();
+        collider.sharedMesh = IceMesh;
+        collider.convex = true;
         CuttableWall wall = obstacle.AddComponent<CuttableWall>();
-        wall.Initialize(_spawner, ice ? _iceType : _spawner.WallFish.Type);
+        wall.Initialize(_spawner, _iceType);
         return wall;
     }
 
