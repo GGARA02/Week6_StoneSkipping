@@ -150,8 +150,9 @@ public class W02BallAbility : FishAbility
         Time.timeScale = 0f;
 
         // 시간이 멈춘 동안 CameraController는 카메라를 움직이지 않으므로 여기서 직접 옮긴다.
+        // 메인 카메라는 CinemachineBrain이 덮어쓰므로 추적용 시네머신 카메라를 옮긴다.
         Camera mainCamera = Camera.main;
-        Transform view = mainCamera.transform;
+        Transform view = FindFirstObjectByType<CameraController>().transform;
         Vector3 startPosition = view.position;
         Quaternion startRotation = view.rotation;
         Renderer[] bodyRenderers = context.Body.GetComponentsInChildren<Renderer>();

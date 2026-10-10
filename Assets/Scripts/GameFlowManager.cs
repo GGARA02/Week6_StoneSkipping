@@ -180,6 +180,15 @@ public class GameFlowManager : MonoBehaviour
             }
             return;
         }
+        if (_endingCredit != null && _endingCredit.gameObject.activeInHierarchy)
+        {
+            if (_inputActions.Player.Jump.WasPressedThisFrame())
+            {
+                ThrowCreditFish();
+                return;
+            }
+            return;
+        }
         if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
         {
             LockCursor(Cursor.lockState != CursorLockMode.Locked);
@@ -905,15 +914,47 @@ public class GameFlowManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 엔딩 크레딧 완료 이벤트를 받아 크레딧 물고기를 해금하고 HUD를 복원한 뒤 게임을 준비 상태로 되돌린다.
-    /// 입력값은 없으며, 크레딧 물고기 해금 상태와 _showHud를 변경하고 게임을 재시작한다.
+    /// 엔딩 크레딧 완료 이벤트를 받아 크레딧 물고기를 해금하고 강제 선택한 뒤 재시작 후 즉시 투척한다.
+    /// 입력값은 없으며, ThrowCreditFish를 호출한다.
     /// </summary>
     private void HandleEndingCompleted()
     {
-        //Debug.Log("엔딩 종료 신호 받음");
+        ThrowCreditFish();
+    }
+
+    /// <summary>
+    /// 엔딩 크레딧을 종료하고 크레딧 물고기(endingcredit)를 선택하여 재시작 후 즉시 투척한다.
+    /// 입력값은 없으며, 크레딧 물고기 해금, 선택 상태, HUD 활성화, 게임 재시작 및 투척을 수행한다.
+    /// </summary>
+    private void ThrowCreditFish()
+    {
         UnlockCreditFish();
+        SelectCreditFish();
+        if (_endingCredit != null)
+        {
+            _endingCredit.gameObject.SetActive(false);
+        }
         _showHud = true;
         Restart();
+        Throw();
+    }
+
+    /// <summary>
+    /// 엔딩 크레딧 물고기(endingcredit)를 현재 투척물로 강제 지정한다.
+    /// _fishSpawner를 탐색하며, _projectileIndex를 변경한다.
+    /// </summary>
+    private void SelectCreditFish()
+    {
+        if (_fishSpawner == null || _fishSpawner.FishTypes == null) return;
+
+        for (int i = 0; i < _fishSpawner.FishTypes.Count; i++)
+        {
+            if (_fishSpawner.FishTypes[i].Id == CREDIT_FISH_ID)
+            {
+                _projectileIndex = i;
+                return;
+            }
+        }
     }
 
     /// <summary>
@@ -929,9 +970,8 @@ public class GameFlowManager : MonoBehaviour
                 FishType fish = _fishSpawner.FishTypes[i];
                 if (fish.Id == CREDIT_FISH_ID)
                 {
-                    //Debug.Log("엔딩 크래딧 등록 및 정보 저장");
                     _progress.AddFish(fish);
-                    PlayerPrefs.SetInt(FISH_KEY_PREFIX, 1);
+                    PlayerPrefs.SetInt(FISH_KEY_PREFIX + CREDIT_FISH_ID, 1);
                     PlayerPrefs.Save();
                     return;
                 }

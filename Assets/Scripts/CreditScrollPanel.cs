@@ -25,9 +25,9 @@ public class CreditScrollPanel : MonoBehaviour
     [Tooltip("3D 월드 아이템(Fish) 모드 여부. 체크 시 3D 공간에서 잘 보이도록 폰트 크기를 확대합니다.")]
     [SerializeField] private bool _is3DMode;
     [Tooltip("2D UI 모드 폰트 크기")]
-    private const float UIFONTSIZE = 32f;
+    private const float UIFONTSIZE = 20f;
     [Tooltip("3D 월드 모드 폰트 크기")]
-    private const float WORLDFONTSIZE = 80f;
+    private const float WORLDFONTSIZE = 43f;
 
     [Header("Mask Settings")]
     [Tooltip("부모 패널에 RectMask2D를 자동 적용하여 보드 크기 밖으로 나가는 글자를 자를지 여부")]
@@ -117,8 +117,8 @@ public class CreditScrollPanel : MonoBehaviour
     }
 
     /// <summary>
-    /// Special Thanks 제목과 기여자 목록을 조합하여 텍스트 상단부터 반영한다.
-    /// _contributor의 목록을 사용하며, _creditText의 내용과 상단 중앙 정렬을 변경한다.
+    /// Special Thanks 제목과 기여자 목록을 영화 크레딧 형태로 조합하여 텍스트 상단부터 반영한다.
+    /// _contributor의 목록을 사용하며, _creditText의 내용과 상단 정렬을 변경한다.
     /// </summary>
     private void SetupCreditContent()
     {
@@ -127,7 +127,7 @@ public class CreditScrollPanel : MonoBehaviour
         _creditText.fontSize = _is3DMode ? WORLDFONTSIZE : UIFONTSIZE;
 
         StringBuilder builder = new StringBuilder();
-        builder.AppendLine("<size=140%><b>" + DEFAULT_TITLE + "</b></size>");
+        builder.AppendLine("<align=center><size=140%><b>" + DEFAULT_TITLE + "</b></size></align>");
         builder.AppendLine();
         builder.AppendLine();
 
@@ -135,11 +135,30 @@ public class CreditScrollPanel : MonoBehaviour
         {
             for (int i = 0; i < _contributor.contributorList.Count; i++)
             {
-                string name = _contributor.contributorList[i];
-                if (!string.IsNullOrWhiteSpace(name))
+                string entry = _contributor.contributorList[i];
+                if (string.IsNullOrWhiteSpace(entry)) continue;
+
+                entry = entry.Trim();
+                int dashIndex = entry.IndexOf('-');
+                if (dashIndex >= 0)
                 {
-                    builder.AppendLine(name.Trim());
-                    builder.AppendLine();
+                    string asset = entry.Substring(0, dashIndex).Trim();
+                    string names = entry.Substring(dashIndex + 1).Trim();
+
+                    // 왼쪽에는 에셋 이름(우측 정렬), 중앙에는 구분선(|), 오른쪽에는 기여자 명단(좌측 정렬)을 배치한다.
+                    builder.Append("<line-height=0><margin-right=53%><align=right>");
+                    builder.Append(asset);
+                    builder.Append("</align></margin>\n");
+                    builder.Append("<align=center>|</align>\n</line-height>");
+                    builder.Append("<margin-left=53%><align=left>");
+                    builder.Append(names);
+                    builder.Append("</align></margin>\n\n");
+                }
+                else
+                {
+                    builder.Append("<align=center>");
+                    builder.Append(entry);
+                    builder.Append("</align>\n\n");
                 }
             }
         }
@@ -163,7 +182,8 @@ public class CreditScrollPanel : MonoBehaviour
 
         float contentHeight = GetContentHeight();
         float panelHeight = Mathf.Max(1200f, contentHeight + 400f);
-        _creditPanel.sizeDelta = new Vector2(900f, panelHeight);
+        float panelWidth = _is3DMode ? 1800f : 1000f;
+        _creditPanel.sizeDelta = new Vector2(panelWidth, panelHeight);
 
         _creditPanel.localRotation = Quaternion.identity;
         _creditPanel.localScale = Vector3.one;
