@@ -51,6 +51,10 @@ public class FishSpawner : MonoBehaviour
     private float _maxSideOffset = 9f;
     [SerializeField]
     private Vector2 _jumpHeightRange = new Vector2(3f, 8f);
+    [Tooltip("33Fisher가 바다에서 솟아오르는 높이 배율")]
+    [Min(1f)]
+    [SerializeField]
+    private float _fisherJumpHeightMultiplier = 2f;
     [Tooltip("물고기가 던진 물고기 경로를 가로지르는 속도 범위")]
     [SerializeField]
     private Vector2 _crossSpeedRange = new Vector2(2f, 5f);
@@ -224,6 +228,16 @@ public class FishSpawner : MonoBehaviour
         _effect.PlayImpact(0.8f, _catchFlashColor);
         OnFishCaught?.Invoke(fish.Type);
         Remove(fish);
+        if (fish.TryGetComponent<FisherQteController>(out _))
+        {
+            for (int i = _activeFish.Count - 1; i >= 0; i--)
+            {
+                Fish active = _activeFish[i];
+                if (active.Type.Id != fish.Type.Id) continue;
+                active.gameObject.SetActive(false);
+                Remove(active);
+            }
+        }
     }
 
     /// <summary>
@@ -300,6 +314,8 @@ public class FishSpawner : MonoBehaviour
         apex.y = _waterY;
 
         float height = UnityEngine.Random.Range(_jumpHeightRange.x, _jumpHeightRange.y);
+        bool isFisher = prefab.TryGetComponent<FisherQteController>(out _);
+        if (isFisher) height *= _fisherJumpHeightMultiplier;
         float gravity = -Physics.gravity.y;
         float upSpeed = Mathf.Sqrt(2f * gravity * height);
         float timeToApex = upSpeed / gravity;
@@ -307,6 +323,7 @@ public class FishSpawner : MonoBehaviour
         // 던진 물고기 경로 쪽으로 가로질러 헤엄치게 해서, 옆으로 벗어난 물고기도 경로를 지나가게 한다.
         float crossSign = sideOffset > 0f ? -1f : 1f;
         Vector3 cross = side * (crossSign * UnityEngine.Random.Range(_crossSpeedRange.x, _crossSpeedRange.y));
+        if (isFisher) cross = Vector3.zero;
         Vector3 start = apex - cross * timeToApex;
         float delay = Mathf.Max(0f, lead - timeToApex);
 

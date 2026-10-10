@@ -329,7 +329,7 @@ public class PlayerController : MonoBehaviour
 
     void OnCollisionEnter(Collision collision)
     {
-        if (!_isThrown) return;
+        if (!_isThrown || Time.timeScale == 0f) return;
 
         OnObstacleHit?.Invoke(collision.relativeVelocity.magnitude);
         if (collision.gameObject.CompareTag("Finish"))
@@ -433,6 +433,22 @@ public class PlayerController : MonoBehaviour
         _isThrown = true;
         _throwFrame = Time.frameCount;
         UpdateAbilityFlight(0f);
+    }
+
+    /// <summary>
+    /// 접촉 직전 incomingVelocity의 수평 성분을 반전해 33Fisher에게 튕겨 나간다.
+    /// 수직 속도는 유지하고 Rigidbody 속도, 내부 속도와 진행 방향, 대기 조작을 갱신한다.
+    /// </summary>
+    public void ReboundFromFisher(Vector3 incomingVelocity)
+    {
+        _velocity = new Vector3(-incomingVelocity.x, incomingVelocity.y, -incomingVelocity.z);
+        _playerRB.linearVelocity = _velocity;
+        Vector3 horizontal = Horizontal(_velocity);
+        if (horizontal.sqrMagnitude > 0f) _heading = horizontal.normalized;
+        _steer = 0f;
+        _jumpPending = false;
+        _slidePushCount = 0;
+        _stopTimer = 0f;
     }
 
     /// <summary>

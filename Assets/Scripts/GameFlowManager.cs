@@ -119,7 +119,7 @@ public class GameFlowManager : MonoBehaviour
 
     void Update()
     {
-        if (_fishSpawner.ScreenCapture.IsCapturing) return;
+        if (_fishSpawner.ScreenCapture.IsCapturing || Time.timeScale == 0f) return;
         Keyboard keyboard = Keyboard.current;
         Gamepad gamepad = Gamepad.current;
         if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
