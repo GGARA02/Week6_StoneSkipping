@@ -32,6 +32,8 @@ public class GameFlowManager : MonoBehaviour
     private PlayerProgress _progress;
     [SerializeField]
     private FishSpawner _fishSpawner;
+    [SerializeField]
+    private EnvironmentController _environmentController;
     private InputSystem_Actions _inputActions;
 
     [Header("흐름")]
@@ -100,6 +102,7 @@ public class GameFlowManager : MonoBehaviour
         _bestSkips = PlayerPrefs.GetInt(BEST_SKIPS_KEY, 0);
         _bestDistance = PlayerPrefs.GetFloat(BEST_DISTANCE_KEY, 0f);
         _state = State.Ready;
+        _environmentController.Roll(SelectedFish());
         _fishSelectionPreview = new FishSelectionPreview();
         _fishSelectionPreview.PrepareDefaultFishTexture(_fishGenerator.GetComponent<MeshFilter>().sharedMesh);
     }
@@ -264,8 +267,8 @@ public class GameFlowManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 새 던질 거리를 만들고 물고기와 카메라를 던지기 전 상태로 되돌린다.
-    /// 입력값은 없으며, 물고기, 던질 거리 메시, 물고기 상태, 카메라, _state를 변경한다.
+    /// 새 던질 거리를 만들고 물고기와 카메라를 던지기 전 상태로 되돌린 뒤 이번 판 날씨를 새로 정한다.
+    /// 입력값은 없으며, 물고기, 던질 거리 메시, 물고기 상태, 카메라, _state, 날씨를 변경한다.
     /// </summary>
     private void Restart()
     {
@@ -278,12 +281,13 @@ public class GameFlowManager : MonoBehaviour
         _goodCount = 0;
         _missCount = 0;
         _state = State.Ready;
+        _environmentController.Roll(SelectedFish());
         LockCursor(true);
     }
 
     /// <summary>
     /// 기본 물고기와 도감에 등록된 물고기 사이에서 던질 거리를 바꾼다. 등록되지 않은 종류는 건너뛴다.
-    /// direction(-1 또는 1)을 사용하며, _projectileIndex와 던질 거리 메시를 변경한다.
+    /// direction(-1 또는 1)을 사용하며, _projectileIndex, 던질 거리 메시와 고른 물고기에 따른 목표 날씨를 변경한다.
     /// </summary>
     private void CycleProjectile(int direction)
     {
@@ -299,11 +303,12 @@ public class GameFlowManager : MonoBehaviour
         if (index == _projectileIndex) return;
         _projectileIndex = index;
         ApplyProjectileShape();
+        _environmentController.ChangeFish(SelectedFish());
     }
 
     /// <summary>
     /// 선택한 던질 거리에 맞게 기본 물고기 또는 프리팹 메시를 만든다. 프리팹은 던지기 전부터 파닥이게 한다.
-    /// _projectileIndex를 사용하며, 던질 거리 메시와 파닥임 상태를 변경한다.
+    /// _projectileIndex를 사용하며, 던질 거리 메시, 파닥임 상태와 스포너가 아는 플레이어 물고기를 변경한다.
     /// </summary>
     private void ApplyProjectileShape()
     {
@@ -312,11 +317,13 @@ public class GameFlowManager : MonoBehaviour
         {
             _fishGenerator.GenerateFish(_fishSpawner.FishPrefabs[_projectileIndex]);
             _fishGenerator.SetFlopping(true);
+            _fishSpawner.SetPlayerFish(_fishSpawner.FishPrefabs[_projectileIndex]);
         }
         else
         {
             _fishGenerator.Generate();
             _fishSelectionPreview.PrepareDefaultFishTexture(_fishGenerator.GetComponent<MeshFilter>().sharedMesh);
+            _fishSpawner.SetPlayerFish(null);
         }
     }
 

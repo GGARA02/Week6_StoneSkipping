@@ -19,8 +19,13 @@ public class FishSpawner : MonoBehaviour
     private SkipEffect _effect;
     [SerializeField]
     private GameObject _water;
+    [Tooltip("비와 밤 출현 조건을 확인할 때 쓴다")]
+    [SerializeField]
+    private EnvironmentController _environment;
     private Rigidbody _playerBody;
     private float _waterY;
+    // 플레이어가 지금 고른 던질 거리 프리팹. 기본 물고기면 null이다.
+    private Fish _playerFish;
 
     [Header("물고기 종류")]
     [Tooltip("출현하는 물고기 프리팹. 이 순서대로 던질 거리 선택 목록에 나온다")]
@@ -239,6 +244,15 @@ public class FishSpawner : MonoBehaviour
     }
 
     /// <summary>
+    /// 플레이어가 고른 던질 거리를 기억해 특정 물고기를 골랐을 때만 나오는 종류의 출현 조건에 쓴다.
+    /// prefab(기본 물고기면 null)을 사용하며, _playerFish를 변경한다.
+    /// </summary>
+    public void SetPlayerFish(Fish prefab)
+    {
+        _playerFish = prefab;
+    }
+
+    /// <summary>
     /// 던질 거리 선택 목록에서 from 자리를 to로 바꾼다. 물에서 튀어 오르는 목록(_fishPrefabs)은 그대로 둔다.
     /// from과 to를 사용하며, _selectablePrefabs와 _fishTypes의 해당 자리를 변경한다.
     /// </summary>
@@ -361,12 +375,16 @@ public class FishSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// 종류의 바다 등록, 획득 정책과 동시 출현 제한을 확인한다.
-    /// type과 현재 상태를 사용하며, 자연 출현 가능 여부를 반환한다.
+    /// 종류의 바다 등록, 날씨와 플레이어가 고른 물고기 조건, 획득 정책과 동시 출현 제한을 확인한다.
+    /// type, 현재 날씨, _playerFish와 현재 상태를 사용하며, 자연 출현 가능 여부를 반환한다.
     /// </summary>
     private bool CanSpawn(FishType type)
     {
         if (type.RequiresEjection && !_seaTypes.Contains(type.Id)) return false;
+        if (type.SpawnOnlyInRain && !_environment.IsRaining) return false;
+        if (type.SpawnOnlyAtNight && !_environment.IsNight) return false;
+        if (type.RequiredPlayerFish != null
+            && (_playerFish == null || _playerFish.gameObject != type.RequiredPlayerFish)) return false;
         return CanCreate(type);
     }
 

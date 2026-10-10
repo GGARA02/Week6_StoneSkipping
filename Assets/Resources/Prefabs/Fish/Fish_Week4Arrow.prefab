@@ -58,7 +58,7 @@ TrailRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: e0edd06d4f5a4e95bab35b18f989bc9c, type: 2}
+  - {fileID: 2100000, guid: ec5fd1aeb92b7d94196c2b3089918511, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -5061,7 +5061,7 @@ ParticleSystemRenderer:
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: e66f879da793be74dae6c17c70d1d353, type: 2}
-  - {fileID: 2100000, guid: e0edd06d4f5a4e95bab35b18f989bc9c, type: 2}
+  - {fileID: 2100000, guid: ec5fd1aeb92b7d94196c2b3089918511, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -5286,6 +5286,11 @@ MonoBehaviour:
     _value: 50
     _color: {r: 1, g: 1, b: 1, a: 1}
     _spawnWeight: 0.2
+    _requiresEjection: 0
+    _allowRepeatEjection: 1
+    _maxConcurrent: 0
+    _stopAfterCatch: 0
+    _isRevealed: 1
     _shape: 0
     _length: 2
     _height: 2
@@ -5297,6 +5302,11 @@ MonoBehaviour:
     _liftMultiplier: 1
     _frictionMultiplier: 1
     _airGravityScale: 1
+    _selectCausesRain: 0
+    _selectCausesNight: 1
+    _spawnOnlyInRain: 0
+    _spawnOnlyAtNight: 0
+    _requiredPlayerFish: {fileID: 0}
   _body: {fileID: 7720000000000000002}
 --- !u!114 &114000002
 MonoBehaviour:

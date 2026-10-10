@@ -76,6 +76,31 @@ public class FishType
     [SerializeField]
     private float _airGravityScale = 1f;
 
+    [Header("선택 시 날씨")]
+    [Tooltip("던질 거리로 고르면 비가 온다")]
+    [SerializeField]
+    private bool _selectCausesRain;
+    [Tooltip("던질 거리로 고르면 밤이 된다")]
+    [SerializeField]
+    private bool _selectCausesNight;
+    [Tooltip("던질 거리로 고르면 그 판에 비가 오기로 했어도 비가 그친다")]
+    [SerializeField]
+    private bool _selectPreventsRain;
+    [Tooltip("던질 거리로 고르면 그 판이 밤이기로 했어도 낮이 된다")]
+    [SerializeField]
+    private bool _selectPreventsNight;
+
+    [Header("출현 조건")]
+    [Tooltip("켜면 비가 올 때만 자연 출현한다")]
+    [SerializeField]
+    private bool _spawnOnlyInRain;
+    [Tooltip("켜면 밤일 때만 자연 출현한다")]
+    [SerializeField]
+    private bool _spawnOnlyAtNight;
+    [Tooltip("지정하면 플레이어가 이 물고기를 골라 던졌을 때만 자연 출현한다. 물고기 프리팹을 넣는다")]
+    [SerializeField]
+    private GameObject _requiredPlayerFish;
+
     public string Id => _id;
     public string DisplayName => _displayName;
     public int Value => _value;
@@ -92,6 +117,13 @@ public class FishType
     public float Thickness => _thickness;
     public float TailLength => _tailLength;
     public float DorsalFin => _dorsalFin;
+    public bool SelectCausesRain => _selectCausesRain;
+    public bool SelectCausesNight => _selectCausesNight;
+    public bool SelectPreventsRain => _selectPreventsRain;
+    public bool SelectPreventsNight => _selectPreventsNight;
+    public bool SpawnOnlyInRain => _spawnOnlyInRain;
+    public bool SpawnOnlyAtNight => _spawnOnlyAtNight;
+    public GameObject RequiredPlayerFish => _requiredPlayerFish;
 
     /// <summary>
     /// 입력값 없이 절단 조각의 Wall 종류를 생성해 반환한다.
