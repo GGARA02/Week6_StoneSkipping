@@ -1,92 +1,127 @@
 {
-  "default": [],
-  "mackerel": [
-    "tire"
+  "initialFish": [
+    "default",
+    "mackerel",
+    "flyingfish",
+    "flounder",
+    "puffer",
+    "starfish",
+    "babyshark",
+    "can",
+    "volcano",
+    "arrow"
   ],
-  "flyingfish": [
-    "crab"
+  "specialFish": [
+    "balksoul",
+    "monster",
+    "alkagi",
+    "pickpocket",
+    "blackhole",
+    "ship_normal",
+    "aide",
+    "w02ball",
+    "bucket_full",
+    "water_block",
+    "wall",
+    "ice",
+    "screen",
+    "catalog",
+    "boost",
+    "endingcredit"
   ],
-  "flounder": [
-    "baguette"
-  ],
-  "puffer": [
-    "car"
-  ],
-  "starfish": [
-    "car"
-  ],
-  "babyshark": [
-    "tire"
-  ],
-  "tire": [
-    "bonfire",
-    "deer"
-  ],
-  "can": [
-    "deer"
-  ],
-  "balksoul": [],
-  "baguette": [
-    "hopak",
-    "kinghopak"
-  ],
-  "hopak": [
-    "board"
-  ],
-  "kinghopak": [
-    "alkagi"
-  ],
-  "33fisher": [
-    "umbrella"
-  ],
-  "alkagi": [],
-  "deer": [
-    "board"
-  ],
-  "monster": [],
-  "umbrella": [
-    "ship_normal"
-  ],
-  "volcano": [],
-  "whale_dark": [
-    "alkagi"
-  ],
-  "whale_white": [
-    "alkagi"
-  ],
-  "arrow": [],
-  "week4arrow": [
-    "whale_dark",
-    "whale_white"
-  ],
-  "board": [],
-  "bonfire": [
-    "week4arrow"
-  ],
-  "car": [
-    "33fisher"
-  ],
-  "pickpocket": [
-    "umbrella"
-  ],
-  "blackhole": [],
-  "crab": [
-    "bucket_empty"
-  ],
-  "ship_normal": [],
-  "aide": [],
-  "w02ball": [],
-  "bucket_empty": [
-    "week4arrow"
-  ],
-  "bucket_full": [
-    "whale_dark"
-  ],
-  "water_block": [
-    "whale_white"
-  ],
-  "wall": [],
-  "ice": [],
-  "screen": [],
-  "catalog": []
+  "connections": {
+    "default": [],
+    "mackerel": [
+      "tire"
+    ],
+    "flyingfish": [
+      "crab"
+    ],
+    "flounder": [
+      "baguette"
+    ],
+    "puffer": [
+      "car"
+    ],
+    "starfish": [
+      "car"
+    ],
+    "babyshark": [
+      "tire"
+    ],
+    "tire": [
+      "bonfire",
+      "deer"
+    ],
+    "can": [
+      "deer"
+    ],
+    "balksoul": [],
+    "baguette": [
+      "hopak",
+      "kinghopak"
+    ],
+    "hopak": [
+      "board"
+    ],
+    "kinghopak": [],
+    "33fisher": [
+      "umbrella"
+    ],
+    "alkagi": [],
+    "deer": [
+      "board"
+    ],
+    "monster": [
+      "alkagi"
+    ],
+    "umbrella": [
+      "ship_normal"
+    ],
+    "volcano": [],
+    "whale_dark": [],
+    "whale_white": [],
+    "arrow": [],
+    "week4arrow": [
+      "whale_dark",
+      "whale_white"
+    ],
+    "board": [
+      "keyboard"
+    ],
+    "bonfire": [
+      "week4arrow"
+    ],
+    "car": [
+      "33fisher"
+    ],
+    "pickpocket": [
+      "umbrella"
+    ],
+    "blackhole": [],
+    "crab": [
+      "bucket_empty"
+    ],
+    "ship_normal": [],
+    "aide": [],
+    "w02ball": [],
+    "bucket_empty": [
+      "week4arrow"
+    ],
+    "bucket_full": [
+      "whale_dark"
+    ],
+    "water_block": [
+      "whale_white"
+    ],
+    "wall": [],
+    "ice": [],
+    "screen": [],
+    "catalog": [],
+    "boost": [
+      "kinghopak"
+    ],
+    "endingcredit": [],
+    "keyboard": []
+  }
 }

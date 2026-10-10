@@ -736,6 +736,17 @@ public class GameFlowManager : MonoBehaviour
     }
 
     /// <summary>
+    /// fish의 ID로 도감 JSON의 표시 이름을 조회하고 비어 있으면 기존 이름을 반환한다.
+    /// 기본 물수제비는 default 항목을 사용하며 이름 조회만 수행하고 상태는 변경하지 않는다.
+    /// </summary>
+    private string GetCatalogDisplayName(FishType fish)
+    {
+        string id = fish == null ? "default" : fish.Id;
+        string displayName = _catalogEntries[id]?.Value<string>("displayName");
+        return string.IsNullOrWhiteSpace(displayName) ? fish == null ? "FISH" : fish.DisplayName : displayName;
+    }
+
+    /// <summary>
     /// 전체 종류를 보유 상태와 함께 그리드로 그리고 선택한 항목의 JSON 상세 정보를 표시한다.
     /// 화면 크기, scale과 마우스 입력을 사용하며 선택 항목과 도감·커서 상태를 변경한다.
     /// </summary>
@@ -780,7 +791,7 @@ public class GameFlowManager : MonoBehaviour
                 : (owned ? _ownedFishSelectionPreview : _fishSelectionPreview).GetTexture(_fishSpawner.FishPrefabs[option - 1]);
             if (revealed && texture != null) GUI.DrawTexture(image, texture, ScaleMode.ScaleToFit, true);
             else ShadowLabel(image, "?", _centerStyle, new Color(1f, 1f, 1f, 0.5f));
-            string name = fish == null ? "FISH" : revealed ? fish.DisplayName : "?";
+            string name = revealed ? GetCatalogDisplayName(fish) : "?";
             ShadowLabel(new Rect(cell.x, cell.y + 142f * scale, cell.width, 34f * scale), name, _previewStyle, Color.white);
             ShadowLabel(new Rect(cell.x, cell.y + 180f * scale, cell.width, 28f * scale), owned ? "보유" : "미획득", _centerSubStyle,
                 owned ? new Color(1f, 0.92f, 0.7f) : new Color(1f, 1f, 1f, 0.45f));
@@ -793,7 +804,7 @@ public class GameFlowManager : MonoBehaviour
         FishType selectedFish = _catalogSelectedFish;
         bool selectedOwned = selectedFish == null || _progress.IsFishRegistered(selectedFish);
         string selectedId = selectedFish == null ? "default" : selectedFish.Id;
-        string selectedName = selectedFish == null ? "FISH" : selectedOwned || selectedFish.IsRevealed ? selectedFish.DisplayName : "?";
+        string selectedName = selectedOwned || selectedFish.IsRevealed ? GetCatalogDisplayName(selectedFish) : "?";
         JToken entry = _catalogEntries[selectedId];
         string heading = selectedOwned
             ? $"{selectedName}    누적 획득 {(selectedFish == null ? 0 : _progress.GetFishCount(selectedFish))}개"

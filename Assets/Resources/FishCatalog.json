@@ -193,5 +193,20 @@
     "displayName": "도감",
     "description": "열어 둔 도감의 한 순간을 담은 16:9 기록 패널입니다.",
     "unlockHint": "이 기록도 물 위에 띄울 수 있을까요?"
+  },
+  "boost": {
+    "displayName": "점프대",
+    "description": "점프대 모양의 물수제비입니다. 바다의 발판도 직접 집어 던질 수 있습니다.",
+    "unlockHint": "바다 곳곳에 놓인 점프대에 물수제비를 닿게 해 보세요."
+  },
+  "endingcredit": {
+    "displayName": "엔딩크레딧",
+    "description": "함께한 사람들의 이름을 담은 특별한 물수제비입니다. 마지막 감사 인사를 바다 위에 띄웁니다.",
+    "unlockHint": "여정의 끝에서 감사 인사가 담긴 크레딧을 확인해 보세요."
+  },
+  "keyboard": {
+    "displayName": "키보드",
+    "description": "키보드 모양의 물수제비입니다. 누른 키가 움직이고, 물이나 벽에 닿으면 키캡이 떨어져 나갑니다.",
+    "unlockHint": "바다에서 키보드를 만나면 물수제비로 맞혀 보세요."
   }
 }
