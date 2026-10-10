@@ -5,6 +5,12 @@ using UnityEngine;
 public abstract class FishAbility : MonoBehaviour
 {
     /// <summary>
+    /// 투척 시 수면 판정, 충돌체와 카메라 크기 계산에 사용할 메시를 반환한다.
+    /// 지정하지 않으면 프리팹의 기존 합성 형상을 사용한다.
+    /// </summary>
+    public virtual MeshFilter ThrowGeometry => null;
+
+    /// <summary>
     /// 플레이어가 던질 개체의 외형을 충돌체 생성 전에 준비한다. 기본 동작은 없다.
     /// 입력값은 없으며, 변경하는 상태는 하위 클래스가 정한다.
     /// </summary>
@@ -58,6 +64,14 @@ public abstract class FishAbility : MonoBehaviour
     /// context를 사용하며, 변경하는 상태는 하위 클래스가 정한다.
     /// </summary>
     public virtual void OnSlideStart(ThrowContext context)
+    {
+    }
+
+    /// <summary>
+    /// 투척물과 장애물의 충돌을 종류별 특수 동작에 전달한다. 기본 동작은 없다.
+    /// context와 collision의 접촉 정보를 사용하며, 변경하는 상태는 하위 클래스가 정한다.
+    /// </summary>
+    public virtual void OnObstacleCollision(ThrowContext context, Collision collision)
     {
     }
 

@@ -273,6 +273,10 @@ public class FishMeshGenerator : MonoBehaviour
             }
         }
         _fishMeshFilter = filters.Length == 1 && skinnedRenderers.Length == 0 ? filters[0] : null;
+        if (CurrentAbility != null && CurrentAbility.ThrowGeometry != null)
+        {
+            _fishMeshFilter = CurrentAbility.ThrowGeometry;
+        }
         Mesh oldRender = _renderMesh;
         _renderMesh = _fishMeshFilter != null
             ? _fishMeshFilter.sharedMesh
@@ -474,6 +478,7 @@ public class FishMeshGenerator : MonoBehaviour
         bool active = flopping && _shapeMode == ShapeMode.Prefab
             && _fishFlopMeshes.Length > 0
             && _fishType.Id != "wall"
+            && _fishType.Id != "ice"
             && _fishType.Id != "screen"
             && _fishInstance.GetComponentInChildren<HopakJumpAnimation>(true) == null;
         if (_isFlopping == active) return;

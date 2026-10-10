@@ -10,12 +10,14 @@ public sealed class CuttableWall : MonoBehaviour
 
     [Header("상태")]
     private FishSpawner _spawner;
+    private FishType _pieceType;
     private MeshFilter _meshFilter;
     private Mesh _originalMesh;
     private Collider _originalCollider;
     private MeshCollider _remainingCollider;
     private Mesh _remainingMesh;
     private readonly List<GameObject> _pieces = new List<GameObject>();
+    public FishType PieceType => _pieceType;
 
     void OnDestroy()
     {
@@ -24,12 +26,13 @@ public sealed class CuttableWall : MonoBehaviour
     }
 
     /// <summary>
-    /// spawner를 저장하고 새 throw에서 복원할 원본 메쉬와 충돌체를 보관한다.
+    /// spawner와 pieceType을 저장하고 재사용 때 복원할 원본 메쉬와 충돌체를 보관한다.
     /// 밑둥용 충돌체를 비활성 상태로 준비하여 최초 벽의 렌더링과 충돌은 유지한다.
     /// </summary>
-    public void Initialize(FishSpawner spawner)
+    public void Initialize(FishSpawner spawner, FishType pieceType)
     {
         _spawner = spawner;
+        _pieceType = pieceType;
         _meshFilter = GetComponent<MeshFilter>();
         _originalMesh = _meshFilter.sharedMesh;
         _originalCollider = GetComponent<Collider>();
@@ -146,7 +149,7 @@ public sealed class CuttableWall : MonoBehaviour
         mesh.vertices = vertices;
         mesh.RecalculateBounds();
 
-        GameObject piece = new GameObject("Wall") { layer = gameObject.layer };
+        GameObject piece = new GameObject(_pieceType.DisplayName) { layer = gameObject.layer };
         piece.transform.SetParent(transform.parent, false);
         piece.transform.localScale = transform.localScale;
         piece.transform.rotation = transform.rotation;
@@ -165,7 +168,7 @@ public sealed class CuttableWall : MonoBehaviour
         body.useGravity = true;
         body.interpolation = RigidbodyInterpolation.Interpolate;
         body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-        piece.AddComponent<Fish>().InitializeWall(_spawner, _spawner.WallFish.Type, mesh);
+        piece.AddComponent<Fish>().InitializeWall(_spawner, _pieceType, mesh);
         _pieces.Add(piece);
         body.AddForce(separation * EJECTION_SPEED + Vector3.up * UPWARD_SPEED, ForceMode.VelocityChange);
     }

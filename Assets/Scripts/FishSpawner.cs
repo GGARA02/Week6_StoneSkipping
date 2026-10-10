@@ -35,9 +35,11 @@ public class FishSpawner : MonoBehaviour
     private Fish[] _selectablePrefabs;
     private FishType[] _fishTypes;
     private Fish _wallFish;
+    private Fish _iceFish;
     private ScreenFishCapture _screenCapture;
     private Mesh _wallCatalogMesh;
-    private CuttableWall[] _walls = Array.Empty<CuttableWall>();
+    private Mesh _iceCatalogMesh;
+    private ProceduralObstacleSpawner _obstacles;
     private readonly HashSet<string> _seaTypes = new HashSet<string>();
     private readonly HashSet<string> _pendingSeaTypes = new HashSet<string>();
 
@@ -56,6 +58,10 @@ public class FishSpawner : MonoBehaviour
     private float _maxSideOffset = 9f;
     [SerializeField]
     private Vector2 _jumpHeightRange = new Vector2(3f, 8f);
+    [Tooltip("33Fisher가 바다에서 솟아오르는 높이 배율")]
+    [Min(1f)]
+    [SerializeField]
+    private float _fisherJumpHeightMultiplier = 2f;
     [Tooltip("물고기가 던진 물고기 경로를 가로지르는 속도 범위")]
     [SerializeField]
     private Vector2 _crossSpeedRange = new Vector2(2f, 5f);
@@ -90,6 +96,7 @@ public class FishSpawner : MonoBehaviour
     public IReadOnlyList<Fish> FishPrefabs => _selectablePrefabs;
     public IReadOnlyList<FishType> FishTypes => _fishTypes;
     public Fish WallFish => _wallFish;
+    public Fish IceFish => _iceFish;
     public ScreenFishCapture ScreenCapture => _screenCapture;
 
     void Awake()
@@ -97,7 +104,8 @@ public class FishSpawner : MonoBehaviour
         _playerBody = _player.GetComponent<Rigidbody>();
         _waterY = _water.GetComponent<Collider>().bounds.max.y;
         InitializeWalls();
-        _screenCapture = gameObject.AddComponent<ScreenFishCapture>();
+        _screenCapture = GetComponent<ScreenFishCapture>();
+        if (_screenCapture == null) _screenCapture = gameObject.AddComponent<ScreenFishCapture>();
         Fish screenFish = _screenCapture.Initialize(_progress);
         int count = _fishPrefabs.Length;
         Array.Resize(ref _fishPrefabs, count + 1);
@@ -119,11 +127,12 @@ public class FishSpawner : MonoBehaviour
     {
         if (_wallFish != null) Destroy(_wallFish.gameObject);
         if (_wallCatalogMesh != null) Destroy(_wallCatalogMesh);
+        if (_iceCatalogMesh != null) Destroy(_iceCatalogMesh);
     }
 
     /// <summary>
-    /// 씬의 Wall 자식 큐브와 저장 메시를 사용해 절단 대상과 Wall 선택 항목을 준비한다.
-    /// 자연 출현 목록의 끝에 비활성 Wall 템플릿을 추가하고 각 큐브에 절단 동작을 연결한다.
+    /// 씬의 Wall 큐브와 저장 메시로 벽과 유빙의 선택 항목 및 주변 생성기를 준비한다.
+    /// 비활성 템플릿을 선택 목록에 추가하고 고정 배치 대신 풀 기반 생성과 절단을 연결한다.
     /// </summary>
     private void InitializeWalls()
     {
@@ -145,21 +154,30 @@ public class FishSpawner : MonoBehaviour
         int count = _fishPrefabs.Length;
         Array.Resize(ref _fishPrefabs, count + 1);
         _fishPrefabs[count] = _wallFish;
-        _walls = new CuttableWall[walls.Length];
-        for (int i = 0; i < walls.Length; i++)
-        {
-            _walls[i] = walls[i].gameObject.AddComponent<CuttableWall>();
-            _walls[i].Initialize(this);
-        }
+        _obstacles = GetComponent<ProceduralObstacleSpawner>();
+        if (_obstacles == null) _obstacles = gameObject.AddComponent<ProceduralObstacleSpawner>();
+        FishType iceType = FishType.CreateIce();
+        _obstacles.Initialize(this, _player, _waterY, _water.transform, walls[0], iceType);
+        GameObject iceTemplate = new GameObject("Ice Floe Fish Catalog");
+        iceTemplate.SetActive(false);
+        iceTemplate.transform.SetParent(transform, false);
+        _iceCatalogMesh = _progress.LoadIceMesh();
+        iceTemplate.AddComponent<MeshFilter>().sharedMesh = _iceCatalogMesh != null ? _iceCatalogMesh : _obstacles.IceMesh;
+        iceTemplate.AddComponent<MeshRenderer>().sharedMaterial = _obstacles.IceMaterial;
+        iceTemplate.AddComponent<Rigidbody>().isKinematic = true;
+        _iceFish = iceTemplate.AddComponent<Fish>();
+        _iceFish.InitializeWall(this, iceType, null);
+        Array.Resize(ref _fishPrefabs, _fishPrefabs.Length + 1);
+        _fishPrefabs[_fishPrefabs.Length - 1] = _iceFish;
     }
 
     /// <summary>
-    /// 초기화 때 보관한 벽 목록을 사용해 모든 장애물을 새 throw의 원본 큐브로 복원한다.
-    /// 이전 조각은 제거하지만 도감에 등록된 Wall 메쉬와 해금 상태는 유지한다.
+    /// 주변 생성기를 사용해 모든 벽과 유빙을 풀로 반환한다.
+    /// 입력값 없이 이전 조각을 제거하며 도감의 메시와 해금 상태는 유지한다.
     /// </summary>
     public void ResetWalls()
     {
-        foreach (CuttableWall wall in _walls) wall.ResetWall();
+        if (_obstacles != null) _obstacles.ResetObstacles();
     }
 
     void Update()
@@ -183,6 +201,7 @@ public class FishSpawner : MonoBehaviour
     public void Clear()
     {
         OnClearing?.Invoke();
+        ResetWalls();
         foreach (Fish fish in _activeFish)
         {
             Destroy(fish.gameObject);
@@ -232,11 +251,28 @@ public class FishSpawner : MonoBehaviour
             _wallFish.GetComponent<MeshFilter>().sharedMesh = _wallCatalogMesh;
             if (previous != null) Destroy(previous);
         }
+        else if (fish.Type.Id == "ice")
+        {
+            Mesh previous = _iceCatalogMesh;
+            _iceCatalogMesh = _progress.SaveIceMesh(fish.GetComponent<MeshFilter>().sharedMesh, fish.transform.lossyScale);
+            _iceFish.GetComponent<MeshFilter>().sharedMesh = _iceCatalogMesh;
+            if (previous != null) Destroy(previous);
+        }
         _progress.AddFish(fish.Type);
         _effect.PlaySplash(fish.transform.position, 0.6f);
         _effect.PlayImpact(0.8f, _catchFlashColor);
         OnFishCaught?.Invoke(fish.Type);
         Remove(fish);
+        if (fish.TryGetComponent<FisherQteController>(out _))
+        {
+            for (int i = _activeFish.Count - 1; i >= 0; i--)
+            {
+                Fish active = _activeFish[i];
+                if (active.Type.Id != fish.Type.Id) continue;
+                active.gameObject.SetActive(false);
+                Remove(active);
+            }
+        }
     }
 
     /// <summary>
@@ -328,6 +364,8 @@ public class FishSpawner : MonoBehaviour
         apex.y = _waterY;
 
         float height = UnityEngine.Random.Range(_jumpHeightRange.x, _jumpHeightRange.y);
+        bool isFisher = prefab.TryGetComponent<FisherQteController>(out _);
+        if (isFisher) height *= _fisherJumpHeightMultiplier;
         float gravity = -Physics.gravity.y;
         float upSpeed = Mathf.Sqrt(2f * gravity * height);
         float timeToApex = upSpeed / gravity;
@@ -335,6 +373,7 @@ public class FishSpawner : MonoBehaviour
         // 던진 물고기 경로 쪽으로 가로질러 헤엄치게 해서, 옆으로 벗어난 물고기도 경로를 지나가게 한다.
         float crossSign = sideOffset > 0f ? -1f : 1f;
         Vector3 cross = side * (crossSign * UnityEngine.Random.Range(_crossSpeedRange.x, _crossSpeedRange.y));
+        if (isFisher) cross = Vector3.zero;
         Vector3 start = apex - cross * timeToApex;
         float delay = Mathf.Max(0f, lead - timeToApex);
 
@@ -413,6 +452,7 @@ public class FishSpawner : MonoBehaviour
     /// </summary>
     private bool CanSpawn(FishType type)
     {
+        if (_obstacles != null && type.Id == "blackhole") return false;
         if (type.RequiresEjection && !_seaTypes.Contains(type.Id)) return false;
         if (type.SpawnOnlyInRain && !_environment.IsRaining) return false;
         if (type.SpawnOnlyAtNight && !_environment.IsNight) return false;

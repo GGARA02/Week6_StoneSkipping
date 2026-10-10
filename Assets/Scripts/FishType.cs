@@ -184,6 +184,24 @@ public class FishType
     }
 
     /// <summary>
+    /// 입력값 없이 절단된 유빙의 ICE FLOE 종류를 생성해 반환한다.
+    /// 자연 출현을 끄고 섭취 전에는 미등록 항목으로 숨기는 고정 도감 ID를 설정한다.
+    /// </summary>
+    public static FishType CreateIce()
+    {
+        return new FishType
+        {
+            _id = "ice",
+            _displayName = "ICE FLOE",
+            _value = 0,
+            _color = new Color(0.65f, 0.9f, 1f),
+            _spawnWeight = 0f,
+            _isRevealed = false,
+            _liftMultiplier = 1f,
+        };
+    }
+
+    /// <summary>
     /// 입력값 없이 캡처 이미지를 사용하는 SCREEN 종류를 반환한다.
     /// 자연 출현을 끄고 16:9 패널 크기와 도감 ID를 설정한다.
     /// </summary>

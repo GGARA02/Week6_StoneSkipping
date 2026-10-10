@@ -131,24 +131,25 @@ public class ShipAideController : MonoBehaviour
 
     /// <summary>
     /// 선택된 source의 성공 판정에 맞는 표정과 대사를 표시한다.
-    /// 최초 ShipNormal 비행 또는 AideJjang 비행에만 성공 반응을 적용한다.
+    /// 최초 ShipNormal 또는 AideJjang 비행에 적용하며 AideJjang의 마지막 연타 구간에서는 Panic을 유지한다.
     /// </summary>
     public void ReactSuccess(FishAbility source)
     {
         if (!CanReact(source)) return;
-        ShowExpression(_dialogues.PickSuccess());
+        ShowExpression(source is AideProjectileAbility && _player.IsSliding
+            ? AideExpression.Panic : _dialogues.PickSuccess());
     }
 
     /// <summary>
     /// 선택된 source의 실패 판정에 대응하는 표정과 대사를 표시한다.
-    /// ShipNormal은 실패를 누적해 세 번째에 침몰하고 AideJjang은 실패 표정을 무작위로 고른다.
+    /// ShipNormal은 세 번째 실패에 침몰하고 AideJjang은 마지막 연타 구간에서 Panic, 그 외에는 무작위 실패 표정을 표시한다.
     /// </summary>
     public void ReactFailure(FishAbility source)
     {
         if (!CanReact(source)) return;
         if (source is AideProjectileAbility)
         {
-            ShowExpression(_dialogues.PickFailure());
+            ShowExpression(_player.IsSliding ? AideExpression.Panic : _dialogues.PickFailure());
             return;
         }
 
@@ -159,6 +160,16 @@ public class ShipAideController : MonoBehaviour
             return;
         }
         ShowExpression(_failureCount == 1 ? AideExpression.Embarrassed : AideExpression.Angry);
+    }
+
+    /// <summary>
+    /// 선택된 AideJjang인 source의 비행 시작 또는 마지막 연타 구간에 Panic을 표시한다.
+    /// 반응 가능한 현재 투척물의 표정과 대사를 함께 변경한다.
+    /// </summary>
+    public void ReactPanic(AideProjectileAbility source)
+    {
+        if (!CanReact(source)) return;
+        ShowExpression(AideExpression.Panic);
     }
 
     /// <summary>

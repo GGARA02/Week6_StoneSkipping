@@ -39,6 +39,7 @@ public class Fish : MonoBehaviour
     // 하늘에서 떨어질 때 기준으로 삼는 프리팹 자세와 바라볼 카메라
     private Quaternion _fallRotation;
     private Transform _view;
+    private FisherQteController _fisherQte;
 
     public FishType Type => _type;
     public Transform Body => _body;
@@ -46,7 +47,7 @@ public class Fish : MonoBehaviour
 
     void Update()
     {
-        if (_isWall) return;
+        if (_isWall || Time.timeScale == 0f) return;
         if (!_jumped)
         {
             _delay -= Time.deltaTime;
@@ -74,7 +75,13 @@ public class Fish : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (_isEjected || _caught || !_jumped || other.attachedRigidbody != _spawner.PlayerBody) return;
+        if (_isEjected || _caught || !_jumped || Time.timeScale == 0f || other.attachedRigidbody != _spawner.PlayerBody) return;
+
+        if (_fisherQte != null)
+        {
+            if (_fisherQte.TryBegin()) _caught = true;
+            return;
+        }
 
         _caught = true;
         _spawner.HandleFishCaught(this);
@@ -133,6 +140,7 @@ public class Fish : MonoBehaviour
         {
             renderer.enabled = false;
         }
+        if (TryGetComponent(out _fisherQte)) _fisherQte.Initialize(this, spawner);
     }
 
     /// <summary>
@@ -195,6 +203,9 @@ public class Fish : MonoBehaviour
             return Quaternion.LookRotation(toView) * Quaternion.Euler(0f, 0f, tilt)
                 * Quaternion.Euler(0f, -90f, 0f) * _fallRotation;
         }
+        if (_fisherQte != null && !_isEjected)
+            return _fisherQte.IsResolving ? transform.rotation : Quaternion.identity;
+
         if (Type.Shape == FishShape.Tire)
         {
             // 굴러가듯 세워서 돌면서 좌우로 털썩털썩 흔들린다.

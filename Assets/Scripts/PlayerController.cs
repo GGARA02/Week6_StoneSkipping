@@ -329,7 +329,13 @@ public class PlayerController : MonoBehaviour
 
     void OnCollisionEnter(Collision collision)
     {
-        if (!_isThrown) return;
+        if (!_isThrown || Time.timeScale == 0f) return;
+
+        FishAbility ability = _fish.CurrentAbility;
+        if (ability != null)
+        {
+            ability.OnObstacleCollision(AbilityContext(), collision);
+        }
 
         OnObstacleHit?.Invoke(collision.relativeVelocity.magnitude);
         if (collision.gameObject.CompareTag("Finish"))
@@ -407,8 +413,8 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// 선택 파닥임을 원형으로 복구한 뒤 맞춘 자세와 랜덤 스핀을 주고 물고기를 던진다.
-    /// modifiers와 _throwVelocity, 목표 자세, _throwSpin, _spinScale을 사용하며, Rigidbody 속도와 회전, _isThrown을 변경한다.
+    /// 선택 파닥임을 복구하고 맞춘 자세와 랜덤 스핀으로 물고기를 던진다.
+    /// modifiers와 목표 자세, 던지기 설정을 사용하며, Rigidbody 속도와 회전, _isThrown을 변경한다.
     /// </summary>
     public void Throw(ThrowModifiers modifiers)
     {
@@ -433,6 +439,22 @@ public class PlayerController : MonoBehaviour
         _isThrown = true;
         _throwFrame = Time.frameCount;
         UpdateAbilityFlight(0f);
+    }
+
+    /// <summary>
+    /// 접촉 직전 incomingVelocity의 수평 성분을 반전해 33Fisher에게 튕겨 나간다.
+    /// 수직 속도는 유지하고 Rigidbody 속도, 내부 속도와 진행 방향, 대기 조작을 갱신한다.
+    /// </summary>
+    public void ReboundFromFisher(Vector3 incomingVelocity)
+    {
+        _velocity = new Vector3(-incomingVelocity.x, incomingVelocity.y, -incomingVelocity.z);
+        _playerRB.linearVelocity = _velocity;
+        Vector3 horizontal = Horizontal(_velocity);
+        if (horizontal.sqrMagnitude > 0f) _heading = horizontal.normalized;
+        _steer = 0f;
+        _jumpPending = false;
+        _slidePushCount = 0;
+        _stopTimer = 0f;
     }
 
     /// <summary>
