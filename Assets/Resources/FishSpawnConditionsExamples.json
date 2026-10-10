@@ -1,0 +1,7 @@
+{
+  "mackerel": ["puffer", "flounder"],
+  "puffer": ["volcano"],
+  "flounder": ["volcano"],
+  "volcano": ["w02ball"],
+  "w02ball": []
+}

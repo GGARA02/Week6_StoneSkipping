@@ -1,0 +1,92 @@
+{
+  "default": [],
+  "mackerel": [
+    "tire"
+  ],
+  "flyingfish": [
+    "crab"
+  ],
+  "flounder": [
+    "baguette"
+  ],
+  "puffer": [
+    "car"
+  ],
+  "starfish": [
+    "car"
+  ],
+  "babyshark": [
+    "tire"
+  ],
+  "tire": [
+    "bonfire",
+    "deer"
+  ],
+  "can": [
+    "deer"
+  ],
+  "balksoul": [],
+  "baguette": [
+    "hopak",
+    "kinghopak"
+  ],
+  "hopak": [
+    "board"
+  ],
+  "kinghopak": [
+    "alkagi"
+  ],
+  "33fisher": [
+    "umbrella"
+  ],
+  "alkagi": [],
+  "deer": [
+    "board"
+  ],
+  "monster": [],
+  "umbrella": [
+    "ship_normal"
+  ],
+  "volcano": [],
+  "whale_dark": [
+    "alkagi"
+  ],
+  "whale_white": [
+    "alkagi"
+  ],
+  "arrow": [],
+  "week4arrow": [
+    "whale_dark",
+    "whale_white"
+  ],
+  "board": [],
+  "bonfire": [
+    "week4arrow"
+  ],
+  "car": [
+    "33fisher"
+  ],
+  "pickpocket": [
+    "umbrella"
+  ],
+  "blackhole": [],
+  "crab": [
+    "bucket_empty"
+  ],
+  "ship_normal": [],
+  "aide": [],
+  "w02ball": [],
+  "bucket_empty": [
+    "week4arrow"
+  ],
+  "bucket_full": [
+    "whale_dark"
+  ],
+  "water_block": [
+    "whale_white"
+  ],
+  "wall": [],
+  "ice": [],
+  "screen": [],
+  "catalog": []
+}
