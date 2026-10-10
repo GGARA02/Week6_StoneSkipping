@@ -1024,7 +1024,7 @@ MonoBehaviour:
     _displayName: ALKAGI
     _value: 50
     _color: {r: 0.118, g: 0.165, b: 0.212, a: 1}
-    _spawnWeight: 0.3
+    _spawnWeight: 0
     _requiresEjection: 0
     _allowRepeatEjection: 1
     _maxConcurrent: 0
