@@ -66,8 +66,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 3, y: 3, z: 3}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 6780461964794617443}
   m_Father: {fileID: 21622451110834091}
@@ -84,6 +84,7 @@ GameObject:
   - component: {fileID: 5311422519724064903}
   - component: {fileID: 1877937660508908935}
   - component: {fileID: 6489902929851386473}
+  - component: {fileID: 8315946565320933865}
   m_Layer: 0
   m_Name: Fish_Credit
   m_TagString: Untagged
@@ -153,7 +154,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 3.2, y: 0.2, z: 1.8}
+  m_Size: {x: 9.5, y: 0.2, z: 5.5}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &6489902929851386473
 MonoBehaviour:
@@ -190,6 +191,25 @@ MonoBehaviour:
     _frictionMultiplier: 1
     _airGravityScale: 1
   _body: {fileID: 6750865281886937514}
+--- !u!114 &8315946565320933865
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3587596801598371332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2d557c873c6ea8498fa7852867ab471, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EndigCreditFish
+  _contributor: {fileID: 11400000, guid: 166c1dffb1f41a9468d716db331252a0, type: 2}
+  _fontAsset: {fileID: 11400000, guid: cff7f16a9714cf54eb0ef62679623185, type: 2}
+  _namePrefab: {fileID: 0}
+  _fontSize: 9
+  _inheritVelocityRate: 0.4
+  _upwardSpeed: 7
+  _scatterSpeed: 5
 --- !u!1 &3670302282663518813
 GameObject:
   m_ObjectHideFlags: 0

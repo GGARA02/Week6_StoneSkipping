@@ -37,7 +37,7 @@ public class CreditScrollPanel : MonoBehaviour
     [Tooltip("위로 스크롤되는 속도 (px/초)")]
     private float _scrollSpeed = 120f;
     [Tooltip("바닥 시작 및 상단 종료 시 추가 여백(px)")]
-    [SerializeField] private float _marginOffset = 120f;
+    [SerializeField] private float _marginOffset = 140f;
 
     private bool _isInitialized;
 
