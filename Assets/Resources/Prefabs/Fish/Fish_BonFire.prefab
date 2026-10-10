@@ -134,7 +134,7 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 0.57254905, b: 0, a: 1}
-  m_Intensity: 500
+  m_Intensity: 100
   m_Range: 10
   m_SpotAngle: 113.479805
   m_InnerSpotAngle: 113.479805
@@ -5157,6 +5157,11 @@ MonoBehaviour:
     _value: 50
     _color: {r: 1, g: 1, b: 1, a: 1}
     _spawnWeight: 0.2
+    _requiresEjection: 0
+    _allowRepeatEjection: 1
+    _maxConcurrent: 0
+    _stopAfterCatch: 0
+    _isRevealed: 1
     _shape: 0
     _length: 2
     _height: 2
@@ -5168,8 +5173,17 @@ MonoBehaviour:
     _liftMultiplier: 1
     _frictionMultiplier: 1
     _airGravityScale: 1
+    _selectEffects:
+      _causesRain: 0
+      _causesNight: 0
+      _preventsRain: 0
+      _preventsNight: 0
+      _volumeProfile: {fileID: 0}
+    _spawnConditions:
+      _onlyInRain: 0
+      _onlyAtNight: 1
+      _requiredPlayerFish: {fileID: 0}
   _body: {fileID: 1114640743129619689}
-  _bodyRenderer: {fileID: 7710000000000000002}
 --- !u!114 &114000002
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5186,4 +5200,5 @@ MonoBehaviour:
   - {fileID: 7852777927328166214}
   _fireLights:
   - {fileID: 4945745574364020470}
-  _burnDuration: 1
+  _burnDuration: 2
+  _lightSmoothTime: 0.25

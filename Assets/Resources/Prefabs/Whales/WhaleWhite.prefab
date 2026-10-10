@@ -740,6 +740,11 @@ MonoBehaviour:
     _value: 500
     _color: {r: 0.9, g: 0.9, b: 0.9, a: 1}
     _spawnWeight: 0.05
+    _requiresEjection: 0
+    _allowRepeatEjection: 1
+    _maxConcurrent: 0
+    _stopAfterCatch: 0
+    _isRevealed: 1
     _shape: 0
     _length: 6
     _height: 2.4
@@ -751,6 +756,16 @@ MonoBehaviour:
     _liftMultiplier: 0.35
     _frictionMultiplier: 0.12
     _airGravityScale: 1
+    _selectEffects:
+      _causesRain: 0
+      _causesNight: 0
+      _preventsRain: 0
+      _preventsNight: 0
+      _volumeProfile: {fileID: 0}
+    _spawnConditions:
+      _onlyInRain: 0
+      _onlyAtNight: 0
+      _requiredPlayerFish: {fileID: 8397657499604025662, guid: 90c576cd768a43f88741eb349da8ecca, type: 3}
   _body: {fileID: 2063264445578992136}
 --- !u!1 &8123063460466635973
 GameObject:

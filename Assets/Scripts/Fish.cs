@@ -8,6 +8,9 @@ public class Fish : MonoBehaviour
     private const float WIGGLE_ANGLE = 12f;
     private const float TIRE_ROLL_SPEED = 360f;
     private const float CAN_FLIP_SPEED = 620f;
+    private const float FALL_SWAY_SPEED = 1.8f;
+    private const float FALL_SWAY_DISTANCE = 1.2f;
+    private const float FALL_TILT_ANGLE = 18f;
 
     [Header("종류")]
     [SerializeField]
@@ -32,6 +35,10 @@ public class Fish : MonoBehaviour
     private bool _isWall;
     private Mesh _wallMesh;
     private bool _isEjected;
+    private bool _isFalling;
+    // 하늘에서 떨어질 때 기준으로 삼는 프리팹 자세와 바라볼 카메라
+    private Quaternion _fallRotation;
+    private Transform _view;
     private FisherQteController _fisherQte;
 
     public FishType Type => _type;
@@ -58,7 +65,7 @@ public class Fish : MonoBehaviour
         _airTime += dt;
         _velocity += Vector3.down * (_gravity * dt);
         _position += _velocity * dt;
-        transform.SetPositionAndRotation(_position, BodyRotation());
+        transform.SetPositionAndRotation(_isFalling ? _position + FallSway() : _position, BodyRotation());
 
         if (_velocity.y < 0f && _position.y < _waterY - 0.5f)
         {
@@ -127,6 +134,7 @@ public class Fish : MonoBehaviour
         _jumped = false;
         _caught = false;
         _isEjected = false;
+        _isFalling = false;
         transform.position = start;
         foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
         {
@@ -151,11 +159,50 @@ public class Fish : MonoBehaviour
     }
 
     /// <summary>
+    /// 하늘의 start에서 fallSpeed로 흔들리며 떨어지게 준비하고 바로 보이게 한다. 떨어지는 동안에도 잡을 수 있다.
+    /// spawner, start, fallSpeed, waterY, 바라볼 카메라 view와 프리팹 자세를 사용하며, 낙하 이동 상태와 몸 표시 여부를 변경한다.
+    /// </summary>
+    public void Drop(FishSpawner spawner, Vector3 start, float fallSpeed, float waterY, Transform view)
+    {
+        _fallRotation = transform.rotation;
+        _view = view;
+        Launch(spawner, start, Vector3.down * fallSpeed, 0f, waterY);
+        _gravity = 0f;
+        _jumped = true;
+        _isFalling = true;
+        foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
+        {
+            renderer.enabled = true;
+        }
+    }
+
+    /// <summary>
+    /// 떨어지는 동안 카메라에서 볼 때 좌우로 흔들리는 거리를 구한다.
+    /// _airTime과 _view를 사용하며, 낙하 위치에 더할 수평 이동량을 반환한다.
+    /// </summary>
+    private Vector3 FallSway()
+    {
+        Vector3 right = _view.right;
+        right.y = 0f;
+        return right.normalized * (Mathf.Sin(_airTime * FALL_SWAY_SPEED) * FALL_SWAY_DISTANCE);
+    }
+
+    /// <summary>
     /// 날아가는 동안의 몸 방향을 구한다. 머리가 진행 방향을 보며 몸을 흔들고, 타이어와 캔은 굴러가거나 뒤집힌다.
-    /// _velocity, _airTime, 종류 모양을 사용하며, 회전을 반환한다.
+    /// 하늘에서 떨어질 때는 카메라를 보며 흔들림에 맞춰 기운다.
+    /// _velocity, _airTime, 종류 모양, _fallRotation과 _view를 사용하며, 회전을 반환한다.
     /// </summary>
     private Quaternion BodyRotation()
     {
+        if (_isFalling)
+        {
+            // 프리팹 자세의 X축 쪽 면을 카메라로 돌리고, 흔들리는 쪽으로 아래가 따라가도록 기울인다.
+            Vector3 toView = _view.position - _position;
+            toView.y = 0f;
+            float tilt = Mathf.Sin(_airTime * FALL_SWAY_SPEED) * FALL_TILT_ANGLE;
+            return Quaternion.LookRotation(toView) * Quaternion.Euler(0f, 0f, tilt)
+                * Quaternion.Euler(0f, -90f, 0f) * _fallRotation;
+        }
         if (_fisherQte != null && !_isEjected)
             return _fisherQte.IsResolving ? transform.rotation : Quaternion.identity;
 

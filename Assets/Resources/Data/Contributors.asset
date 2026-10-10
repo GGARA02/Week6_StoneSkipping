@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1598a6c700016894785516a5113d875c, type: 3}
+  m_Name: Contributors
+  m_EditorClassIdentifier: Assembly-CSharp::ContributorList
+  contributorList:
+  - "\uAE30\uC5EC\uC7901"
+  - "\uAE30\uC5EC\uC7902"
+  - "\uAE30\uC5EC\uC7903"
+  - "\uAE30\uC5EC\uC7905"
+  - "\uAE30\uC5EC\uC7906"
+  - "\uAE30\uC5EC\uC7907"
+  - "\uAE30\uC5EC\uC7908"
+  - "\uAE30\uC5EC\uC7909"
+  - "\uAE30\uC5EC\uC79010"
+  - "\uAE30\uC5EC\uC79011"
+  - "\uAE30\uC5EC\uC79012"
+  - "\uAE30\uC5EC\uC79013"
+  - "\uAE30\uC5EC\uC79014"
+  - "\uAE30\uC5EC\uC79015"
+  - "\uAE30\uC5EC\uC79016"

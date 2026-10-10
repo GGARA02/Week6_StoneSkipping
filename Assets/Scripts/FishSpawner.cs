@@ -19,8 +19,15 @@ public class FishSpawner : MonoBehaviour
     private SkipEffect _effect;
     [SerializeField]
     private GameObject _water;
+    [Tooltip("비와 밤 출현 조건을 확인할 때 쓴다")]
+    [SerializeField]
+    private EnvironmentController _environment;
     private Rigidbody _playerBody;
     private float _waterY;
+    // 하늘에서 떨어지는 종류가 바라볼 메인 카메라. 컷어웨이로 메인 카메라가 꺼져도 쓰도록 시작할 때 저장한다.
+    private Transform _cameraTransform;
+    // 플레이어가 지금 고른 던질 거리 프리팹. 기본 물고기면 null이다.
+    private Fish _playerFish;
 
     [Header("물고기 종류")]
     [Tooltip("출현하는 물고기 프리팹. 이 순서대로 던질 거리 선택 목록에 나온다")]
@@ -75,6 +82,14 @@ public class FishSpawner : MonoBehaviour
     public event Action OnClearing;
     public event Action OnCleared;
 
+    [Header("하늘 출현")]
+    [Tooltip("하늘에서 떨어지는 종류가 처음 나타나는 수면 위 높이")]
+    [SerializeField]
+    private float _skyFallHeight = 30f;
+    [Tooltip("하늘에서 떨어지는 종류의 낙하 속도")]
+    [SerializeField]
+    private float _skyFallSpeed = 8f;
+
     [Header("물결")]
     [Tooltip("물고기가 튀어 오르거나 물에 들어갈 때 물결 세기 배율")]
     [SerializeField]
@@ -87,11 +102,13 @@ public class FishSpawner : MonoBehaviour
     public Fish IceFish => _iceFish;
     public ScreenFishCapture ScreenCapture => _screenCapture;
     public ScreenFishCapture CatalogCapture => _catalogCapture;
+    public PlayerProgress Progress => _progress;
 
     void Awake()
     {
         _playerBody = _player.GetComponent<Rigidbody>();
         _waterY = _water.GetComponent<Collider>().bounds.max.y;
+        _cameraTransform = Camera.main.transform;
         InitializeWalls();
         _screenCapture = GetComponent<ScreenFishCapture>();
         if (_screenCapture == null) _screenCapture = gameObject.AddComponent<ScreenFishCapture>();
@@ -280,6 +297,15 @@ public class FishSpawner : MonoBehaviour
     }
 
     /// <summary>
+    /// 플레이어가 고른 던질 거리를 기억해 특정 물고기를 골랐을 때만 나오는 종류의 출현 조건에 쓴다.
+    /// prefab(기본 물고기면 null)을 사용하며, _playerFish를 변경한다.
+    /// </summary>
+    public void SetPlayerFish(Fish prefab)
+    {
+        _playerFish = prefab;
+    }
+
+    /// <summary>
     /// 던질 거리 선택 목록에서 from 자리를 to로 바꾼다. 물에서 튀어 오르는 목록(_fishPrefabs)은 그대로 둔다.
     /// from과 to를 사용하며, _selectablePrefabs와 _fishTypes의 해당 자리를 변경한다.
     /// </summary>
@@ -341,6 +367,7 @@ public class FishSpawner : MonoBehaviour
 
     /// <summary>
     /// 던진 물고기가 몇 초 뒤 지나갈 자리 근처에서 최고점에 오르도록 물고기 프리팹을 만들어 튀어 오르게 한다.
+    /// 하늘에서 떨어지는 종류는 DropFromSky로 넘긴다.
     /// 던진 물고기 위치와 속도, 출현 설정을 사용하며, 새 물고기를 _activeFish에 추가한다.
     /// </summary>
     private void Spawn()
@@ -354,6 +381,11 @@ public class FishSpawner : MonoBehaviour
 
         float lead = UnityEngine.Random.Range(_leadTimeRange.x, _leadTimeRange.y);
         float sideOffset = UnityEngine.Random.Range(-_maxSideOffset, _maxSideOffset);
+        if (prefab.Type.SpawnFallsFromSky)
+        {
+            DropFromSky(prefab, horizontal, side * sideOffset);
+            return;
+        }
         Vector3 apex = _playerBody.position + horizontal * lead + side * sideOffset;
         apex.y = _waterY;
 
@@ -375,6 +407,25 @@ public class FishSpawner : MonoBehaviour
         FishAbility ability = fish.GetComponent<FishAbility>();
         if (ability != null) ability.OnWaterSpawn();
         fish.Launch(this, start, cross + Vector3.up * upSpeed, delay, _waterY);
+        _activeFish.Add(fish);
+    }
+
+    /// <summary>
+    /// 던진 물고기 높이까지 내려왔을 때 그 자리를 지나가도록 앞쪽 하늘에서 프리팹을 떨어뜨린다.
+    /// prefab, 던진 물고기 수평 속도 horizontal, 옆 거리 sideOffset, 하늘 출현 설정과 _cameraTransform을 사용하며, 새 개체를 _activeFish에 추가한다.
+    /// </summary>
+    private void DropFromSky(Fish prefab, Vector3 horizontal, Vector3 sideOffset)
+    {
+        float startY = _waterY + _skyFallHeight;
+        float targetY = Mathf.Max(_playerBody.position.y, _waterY);
+        float fallTime = (startY - targetY) / _skyFallSpeed;
+        Vector3 start = _playerBody.position + horizontal * fallTime + sideOffset;
+        start.y = startY;
+
+        Fish fish = Instantiate(prefab);
+        FishAbility ability = fish.GetComponent<FishAbility>();
+        if (ability != null) ability.OnSkyFall();
+        fish.Drop(this, start, _skyFallSpeed, _waterY, _cameraTransform);
         _activeFish.Add(fish);
     }
 
@@ -422,13 +473,17 @@ public class FishSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// 종류의 바다 등록, 획득 정책과 동시 출현 제한을 확인한다.
-    /// type과 현재 상태를 사용하며, 자연 출현 가능 여부를 반환한다.
+    /// 종류의 바다 등록, 날씨와 플레이어가 고른 물고기 조건, 획득 정책과 동시 출현 제한을 확인한다.
+    /// type, 현재 날씨, _playerFish와 현재 상태를 사용하며, 자연 출현 가능 여부를 반환한다.
     /// </summary>
     private bool CanSpawn(FishType type)
     {
         if (_obstacles != null && type.Id == "blackhole") return false;
         if (type.RequiresEjection && !_seaTypes.Contains(type.Id)) return false;
+        if (type.SpawnOnlyInRain && (_environment == null || !_environment.IsRaining)) return false;
+        if (type.SpawnOnlyAtNight && (_environment == null || !_environment.IsNight)) return false;
+        if (type.RequiredPlayerFish != null
+            && (_playerFish == null || _playerFish.gameObject != type.RequiredPlayerFish)) return false;
         return CanCreate(type);
     }
 

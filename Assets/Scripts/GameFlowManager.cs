@@ -24,6 +24,8 @@ public class GameFlowManager : MonoBehaviour
     private const int DEFAULT_FISH_INDEX = -1;
     // 게임오버 직후 SPACE 연타로 바로 재시작되지 않게 기다리는 시간(초)
     private const float RETRY_INPUT_DELAY = 0.6f;
+    private const string CREDIT_FISH_ID = "endingcredit";
+    private const string FISH_KEY_PREFIX = "SkipStoneV2.Fish.";
 
     [Header("참조")]
     [SerializeField]
@@ -37,6 +39,8 @@ public class GameFlowManager : MonoBehaviour
     private PlayerProgress _progress;
     [SerializeField]
     private FishSpawner _fishSpawner;
+    [SerializeField]
+    private EnvironmentController _environmentController;
     private InputSystem_Actions _inputActions;
 
     [Header("흐름")]
@@ -93,6 +97,9 @@ public class GameFlowManager : MonoBehaviour
     private FishSelectionPreview _fishSelectionPreview;
     private FishSelectionPreview _ownedFishSelectionPreview;
 
+    [Header("엔딩 크레딧 UI")]
+    [SerializeField] private EndingCreditUI _endingCredit;
+
     void Start()
     {
         LockCursor(true);
@@ -110,11 +117,18 @@ public class GameFlowManager : MonoBehaviour
         _fishSpawner.OnFishCaught += HandleFishCaught;
         _progress.OnFishRegistered += HandleFishRegistered;
         _fishSpawner.ScreenCapture.OnUnlocked += HandleScreenUnlocked;
+
+        if (_endingCredit != null)
+        {
+            _endingCredit.OnEndingCompleted += HandleEndingCompleted;
+            _endingCredit.gameObject.SetActive(false);
+        }
         _cameraController.Initialize(_fishGenerator);
 
         _bestSkips = PlayerPrefs.GetInt(BEST_SKIPS_KEY, 0);
         _bestDistance = PlayerPrefs.GetFloat(BEST_DISTANCE_KEY, 0f);
         _state = State.Ready;
+        if (_environmentController != null) _environmentController.Roll(SelectedFish());
         _fishSelectionPreview = new FishSelectionPreview();
         _ownedFishSelectionPreview = new FishSelectionPreview(true);
         _ownedFishSelectionPreview.PrepareDefaultFishTexture(_fishGenerator.GetComponent<MeshFilter>().sharedMesh,
@@ -132,6 +146,10 @@ public class GameFlowManager : MonoBehaviour
         _fishSpawner.OnFishCaught -= HandleFishCaught;
         _progress.OnFishRegistered -= HandleFishRegistered;
         _fishSpawner.ScreenCapture.OnUnlocked -= HandleScreenUnlocked;
+        if (_endingCredit != null)
+        {
+            _endingCredit.OnEndingCompleted -= HandleEndingCompleted;
+        }
         _inputActions.Dispose();
         _fishSelectionPreview.Dispose();
         _ownedFishSelectionPreview.Dispose();
@@ -342,8 +360,8 @@ public class GameFlowManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 새 던질 거리를 만들고 물고기와 카메라를 던지기 전 상태로 되돌린다.
-    /// 입력값은 없으며, 물고기, 던질 거리 메시, 물고기 상태, 카메라, _state를 변경한다.
+    /// 새 던질 거리를 만들고 물고기와 카메라를 던지기 전 상태로 되돌린 뒤 이번 판 날씨를 새로 정한다.
+    /// 입력값은 없으며, 물고기, 던질 거리 메시, 물고기 상태, 카메라, _state, 날씨를 변경한다.
     /// </summary>
     private void Restart()
     {
@@ -359,12 +377,13 @@ public class GameFlowManager : MonoBehaviour
         _goodCount = 0;
         _missCount = 0;
         _state = State.Ready;
+        if (_environmentController != null) _environmentController.Roll(SelectedFish());
         LockCursor(true);
     }
 
     /// <summary>
     /// 기본 물고기와 도감에 등록된 물고기 사이에서 던질 거리를 바꾼다. 등록되지 않은 종류는 건너뛴다.
-    /// direction(-1 또는 1)을 사용하며, _projectileIndex와 던질 거리 메시를 변경한다.
+    /// direction(-1 또는 1)을 사용하며, _projectileIndex, 던질 거리 메시와 고른 물고기에 따른 목표 날씨를 변경한다.
     /// </summary>
     private void CycleProjectile(int direction)
     {
@@ -374,6 +393,7 @@ public class GameFlowManager : MonoBehaviour
         if (index == _projectileIndex) return;
         _projectileIndex = index;
         ApplyProjectileShape();
+        if (_environmentController != null) _environmentController.ChangeFish(SelectedFish());
     }
 
     /// <summary>
@@ -402,7 +422,7 @@ public class GameFlowManager : MonoBehaviour
 
     /// <summary>
     /// 선택한 던질 거리에 맞게 기본 물고기 또는 프리팹 메시를 만든다. 프리팹은 던지기 전부터 파닥이게 한다.
-    /// _projectileIndex를 사용하며, 던질 거리 메시와 파닥임 상태를 변경한다.
+    /// _projectileIndex를 사용하며, 던질 거리 메시, 파닥임 상태와 스포너가 아는 플레이어 물고기를 변경한다.
     /// </summary>
     private void ApplyProjectileShape()
     {
@@ -411,12 +431,14 @@ public class GameFlowManager : MonoBehaviour
         {
             _fishGenerator.GenerateFish(_fishSpawner.FishPrefabs[_projectileIndex]);
             _fishGenerator.SetFlopping(true);
+            _fishSpawner.SetPlayerFish(_fishSpawner.FishPrefabs[_projectileIndex]);
         }
         else
         {
             _fishGenerator.Generate();
             _ownedFishSelectionPreview.PrepareDefaultFishTexture(_fishGenerator.GetComponent<MeshFilter>().sharedMesh,
                 _fishGenerator.GetComponent<MeshRenderer>().sharedMaterials);
+            _fishSpawner.SetPlayerFish(null);
         }
     }
 
@@ -864,5 +886,56 @@ public class GameFlowManager : MonoBehaviour
         style.normal.textColor = color;
         GUI.Label(rect, text, style);
         style.normal.textColor = original;
+    }
+
+    /// <summary>
+    /// 엔딩 크레딧 UI가 연결된 경우 기존 HUD를 숨기고 엔딩 연출을 시작한다.
+    /// 입력값 없이 _showHud와 _endingCredit의 활성화 상태를 변경하며, 참조가 없으면 경고를 출력한다.
+    /// </summary>
+    public void StartEndingCinema()
+    {
+        if (_endingCredit == null)
+        {
+            Debug.LogWarning("엔딩 크레딧 UI가 연결되지 않아 엔딩 연출을 시작할 수 없습니다.", this);
+            return;
+        }
+        // 기존에 켜져 있는 모든 HUD를 화면에서 숨긴다.
+        _showHud = false;
+        _endingCredit.gameObject.SetActive(true);
+    }
+
+    /// <summary>
+    /// 엔딩 크레딧 완료 이벤트를 받아 크레딧 물고기를 해금하고 HUD를 복원한 뒤 게임을 준비 상태로 되돌린다.
+    /// 입력값은 없으며, 크레딧 물고기 해금 상태와 _showHud를 변경하고 게임을 재시작한다.
+    /// </summary>
+    private void HandleEndingCompleted()
+    {
+        //Debug.Log("엔딩 종료 신호 받음");
+        UnlockCreditFish();
+        _showHud = true;
+        Restart();
+    }
+
+    /// <summary>
+    /// 엔딩 크레딧 물고기(endingcredit)를 도감에 등록하고 투척물로 선택할 수 있도록 활성화한다.
+    /// _fishSpawner와 _progress를 사용하며, 도감 등록 상태를 변경하고 PlayerPrefs에 저장한다.
+    /// </summary>
+    private void UnlockCreditFish()
+    {
+        if (_fishSpawner != null && _fishSpawner.FishTypes != null)
+        {
+            for (int i = 0; i < _fishSpawner.FishTypes.Count; i++)
+            {
+                FishType fish = _fishSpawner.FishTypes[i];
+                if (fish.Id == CREDIT_FISH_ID)
+                {
+                    //Debug.Log("엔딩 크래딧 등록 및 정보 저장");
+                    _progress.AddFish(fish);
+                    PlayerPrefs.SetInt(FISH_KEY_PREFIX, 1);
+                    PlayerPrefs.Save();
+                    return;
+                }
+            }
+        }
     }
 }

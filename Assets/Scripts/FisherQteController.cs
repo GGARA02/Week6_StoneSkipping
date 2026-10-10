@@ -7,71 +7,70 @@ public class FisherQteController : MonoBehaviour
 {
     private const string SUCCESS_KEY = "SkipStoneV2.FisherQteSuccess";
     private const float DURATION = 5f;
-    private const int FIRST_INPUT_COUNT = 4;
-    private const int SECOND_INPUT_COUNT = 10;
-    private const int FINAL_INPUT_COUNT = 100;
     private const float SUCCESS_SPIN_DURATION = 0.3f;
 
-    private static readonly Key[] _firstKeys = { Key.W, Key.A, Key.S, Key.D };
-    private static readonly Key[] _secondKeys = { Key.Q, Key.W, Key.E, Key.R, Key.A, Key.S, Key.D, Key.F };
-    private static readonly Key[] _alphabetKeys =
+    private enum QtePhase
     {
-        Key.A, Key.B, Key.C, Key.D, Key.E, Key.F, Key.G, Key.H, Key.I,
-        Key.J, Key.K, Key.L, Key.M, Key.N, Key.O, Key.P, Key.Q, Key.R,
-        Key.S, Key.T, Key.U, Key.V, Key.W, Key.X, Key.Y, Key.Z,
-    };
+        Inactive,
+        CameraMove,
+        Ready,
+        Input,
+        Resolving,
+    }
 
     [Header("참조")]
     private FishSpawner _spawner;
     private PlayerController _player;
     private Fish _fish;
+    private CameraController _cameraController;
+
+    [Header("QTE 설정")]
+    [SerializeField, Min(0.1f)] private float _cameraMoveDuration = 1f;
+    [SerializeField, Min(0.1f)] private float _readyDuration = 1f;
+    [Tooltip("성공 0회, 1회, 2회, 3회 이상의 심볼 편도 이동 시간")]
+    [SerializeField] private Vector4 _symbolTravelTimes = new Vector4(1.6f, 1.2f, 0.9f, 0.7f);
+    [Tooltip("성공 횟수별 중앙 판정 영역의 전체 막대 대비 폭")]
+    [SerializeField] private Vector4 _successZoneWidths = new Vector4(0.2f, 0.15f, 0.1f, 0.07f);
 
     [Header("QTE 상태")]
-    private Key[] _sequence;
     private Vector3 _incomingVelocity;
     private Quaternion _rotationBeforeQte;
+    private QtePhase _phase;
+    private float _inputStartTime;
     private float _deadline;
     private float _previousTimeScale;
-    private int _inputIndex;
+    private float _symbolTravelTime;
+    private float _successZoneWidth;
     private int _startedFrame;
     private bool _isInitialized;
-    private bool _isActive;
-    private bool _isResolving;
 
     [Header("화면 표시")]
     [SerializeField] private FisherQteView _uiPrefab;
     private FisherQteView _ui;
 
-    public bool IsResolving => _isResolving;
+    public bool IsResolving => _phase == QtePhase.Resolving;
 
     void Update()
     {
-        if (!_isActive) return;
+        if (_phase == QtePhase.Inactive) return;
         if (_player.IsGameOver)
         {
             Cancel();
             return;
         }
-        if (_isResolving) return;
+        if (_phase != QtePhase.Input) return;
+        float elapsed = Time.unscaledTime - _inputStartTime;
+        float symbolPosition = Mathf.PingPong(elapsed / _symbolTravelTime, 1f);
+        _ui.SetTiming(symbolPosition, (_deadline - Time.unscaledTime) / DURATION);
         if (Time.unscaledTime >= _deadline)
         {
             StartCoroutine(Resolve(false));
             return;
         }
         if (Time.frameCount == _startedFrame) return;
-
         Keyboard keyboard = Keyboard.current;
-        if (keyboard == null) return;
-        if (!keyboard[_sequence[_inputIndex]].wasPressedThisFrame) return;
-
-        _inputIndex++;
-        if (_inputIndex == _sequence.Length) StartCoroutine(Resolve(true));
-    }
-
-    void LateUpdate()
-    {
-        if (_isActive && !_isResolving)
-            _ui.SetProgress(_inputIndex, (_deadline - Time.unscaledTime) / DURATION);
+        if (keyboard == null || !keyboard.spaceKey.wasPressedThisFrame) return;
+        StartCoroutine(Resolve(Mathf.Abs(symbolPosition - 0.5f) <= _successZoneWidth * 0.5f));
     }
 
     void OnDestroy()
@@ -88,8 +87,8 @@ public class FisherQteController : MonoBehaviour
     }
 
     /// <summary>
-    /// fish와 spawner를 사용해 자연 출현한 33Fisher의 QTE 참조를 연결한다.
-    /// 플레이어와 접촉 대상을 저장하고 재시작 시 취소 이벤트를 구독한다.
+    /// fish와 spawner로 33Fisher, 플레이어와 카메라 참조를 연결한다.
+    /// 재시작 시 취소 이벤트를 구독하고 초기화 상태를 저장한다.
     /// </summary>
     public void Initialize(Fish fish, FishSpawner spawner)
     {
@@ -97,64 +96,79 @@ public class FisherQteController : MonoBehaviour
         _fish = fish;
         _spawner = spawner;
         _player = spawner.PlayerBody.GetComponent<PlayerController>();
+        _cameraController = Camera.main.GetComponent<CameraController>();
         _spawner.OnClearing += Cancel;
         _isInitialized = true;
     }
 
     /// <summary>
-    /// 입력값 없이 저장된 성공 횟수로 무작위 키 순서를 만들고 실제 시간 5초 QTE를 시작한다.
-    /// 플레이어의 접촉 속도와 기존 시간 배율을 저장하며 시작 여부를 반환한다.
+    /// 현재 접촉 상태와 누적 성공 횟수로 난이도를 정하고 카메라 진입 연출을 시작한다.
+    /// 접촉 속도와 시간 배율을 저장하고 게임을 정지하며 시작 여부를 반환한다.
     /// </summary>
     public bool TryBegin()
     {
-        if (_isActive || !_isInitialized || !isActiveAndEnabled || _fish.IsEjected
+        if (_phase != QtePhase.Inactive || !_isInitialized || !isActiveAndEnabled || _fish.IsEjected
             || !_player.IsThrown || _player.IsGameOver || _spawner.ScreenCapture.IsCapturing
             || Time.timeScale <= 0f) return false;
-
         int successes = PlayerPrefs.GetInt(SUCCESS_KEY, 0);
-        Key[] keys = successes == 0 ? _firstKeys : successes == 1 ? _secondKeys : _alphabetKeys;
-        int count = successes == 0 ? FIRST_INPUT_COUNT : successes == 1 ? SECOND_INPUT_COUNT : FINAL_INPUT_COUNT;
-        _sequence = new Key[count];
-        for (int i = 0; i < count; i++) _sequence[i] = keys[Random.Range(0, keys.Length)];
-
+        int difficulty = Mathf.Clamp(successes, 0, 3);
+        _symbolTravelTime = Mathf.Max(0.1f, _symbolTravelTimes[difficulty]);
+        _successZoneWidth = Mathf.Clamp(_successZoneWidths[difficulty], 0.01f, 1f);
         _incomingVelocity = _spawner.PlayerBody.linearVelocity;
         _rotationBeforeQte = transform.rotation;
-        _inputIndex = 0;
-        _startedFrame = Time.frameCount;
-        _deadline = Time.unscaledTime + DURATION;
         _previousTimeScale = Time.timeScale;
         if (_ui == null) _ui = Instantiate(_uiPrefab);
-        _ui.Show(_sequence, successes);
-        _isActive = true;
+        _ui.Hide();
+        _phase = QtePhase.CameraMove;
         Time.timeScale = 0f;
+        _cameraController.BeginFisherQte(transform, _cameraMoveDuration);
+        StartCoroutine(PrepareInput(successes));
         return true;
     }
 
     /// <summary>
-    /// 입력값 없이 진행 중인 QTE와 결과 대기를 취소하고 기존 시간 배율을 복원한다.
-    /// 재시작 또는 비활성화 시 호출되며 성공 횟수와 획득 상태는 변경하지 않는다.
+    /// successes를 기록으로 사용해 카메라 이동 이후 Ready를 보여주고 입력 단계를 시작한다.
+    /// 실제 시간 대기 후 5초 제한 시간과 심볼 이동을 시작한다.
+    /// </summary>
+    private IEnumerator PrepareInput(int successes)
+    {
+        yield return new WaitForSecondsRealtime(_cameraMoveDuration);
+        _phase = QtePhase.Ready;
+        _ui.ShowReady();
+        yield return new WaitForSecondsRealtime(_readyDuration);
+        _inputStartTime = Time.unscaledTime;
+        _deadline = _inputStartTime + DURATION;
+        _startedFrame = Time.frameCount;
+        _ui.ShowTiming(_successZoneWidth, successes);
+        _phase = QtePhase.Input;
+    }
+
+    /// <summary>
+    /// 입력값 없이 진행 중인 QTE와 회전을 취소하고 화면, 카메라와 시간 배율을 복원한다.
+    /// 저장한 회전과 초기화된 참조를 사용하며 성공 기록과 획득 상태는 변경하지 않는다.
     /// </summary>
     private void Cancel()
     {
-        if (!_isActive) return;
+        if (_phase == QtePhase.Inactive) return;
         StopAllCoroutines();
         _ui.Hide();
+        _cameraController.EndFisherQte(false);
         transform.rotation = _rotationBeforeQte;
-        _isActive = false;
-        _isResolving = false;
+        _phase = QtePhase.Inactive;
         Time.timeScale = _previousTimeScale;
     }
 
     /// <summary>
-    /// success를 사용해 QTE 결과를 적용하는 코루틴을 반환한다.
-    /// 시간 배율을 복원하고 성공 시 반사 속도와 기록을 즉시 갱신한 뒤 회전하며 실패 시 획득을 처리한다.
+    /// success로 결과를 처리하는 코루틴을 반환하고 UI와 대치 구도를 해제한다.
+    /// 시간을 재개하며 성공 시 즉시 반사와 기록 저장 후 회전하고 실패 시 33Fisher를 획득한다.
     /// </summary>
     private IEnumerator Resolve(bool success)
     {
-        _isResolving = true;
+        _phase = QtePhase.Resolving;
         _ui.Hide();
-        // 결과 입력이 일반 조작으로 전달되지 않도록 다음 Update까지 시간 정지를 유지한다.
+        // 결과 스페이스가 일반 플레이 입력으로 전달되지 않도록 다음 Update까지 기다린다.
         yield return null;
+        _cameraController.EndFisherQte(true);
         Time.timeScale = _previousTimeScale;
         if (success)
         {
@@ -163,17 +177,13 @@ public class FisherQteController : MonoBehaviour
             PlayerPrefs.Save();
             yield return SpinBeforeRebound();
         }
-        _isActive = false;
-        _isResolving = false;
-        if (!success)
-        {
-            _spawner.HandleFishCaught(_fish);
-        }
+        _phase = QtePhase.Inactive;
+        if (!success) _spawner.HandleFishCaught(_fish);
     }
 
     /// <summary>
-    /// 실제 경과 시간과 QTE 시작 회전을 사용해 수직축 기준 한 바퀴 회전하는 코루틴을 반환한다.
-    /// 게임 진행 중 SUCCESS_SPIN_DURATION 동안 회전하고 마지막에 원래 회전을 복원한다.
+    /// 실제 경과 시간과 저장한 회전으로 수직축 기준 한 바퀴 도는 코루틴을 반환한다.
+    /// 게임 진행 중 0.3초 동안 회전하고 마지막에 원래 회전을 복원한다.
     /// </summary>
     private IEnumerator SpinBeforeRebound()
     {
@@ -187,5 +197,4 @@ public class FisherQteController : MonoBehaviour
         }
         transform.rotation = _rotationBeforeQte;
     }
-
 }

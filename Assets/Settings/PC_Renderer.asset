@@ -13,6 +13,19 @@ MonoBehaviour:
   m_Name: Black Hole Background
   m_EditorClassIdentifier: Assembly-CSharp::BlackHoleBackgroundFeature
   m_Active: 1
+--- !u!114 &-3953833734011214465
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a3c8ea2de85f004287a669e33526f3b, type: 3}
+  m_Name: Pixelate
+  m_EditorClassIdentifier: Assembly-CSharp::PixelateFeature
+  m_Active: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -40,7 +53,8 @@ MonoBehaviour:
   m_RendererFeatures:
   - {fileID: 7833122117494664109}
   - {fileID: -4823365280426019209}
-  m_RendererFeatureMap: ad6b866f10d7b46c
+  - {fileID: -3953833734011214465}
+  m_RendererFeatureMap: ad6b866f10d7b46c7f254ecf2a2921c9
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}

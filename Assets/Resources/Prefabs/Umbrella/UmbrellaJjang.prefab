@@ -101,7 +101,7 @@ MonoBehaviour:
     _displayName: UMBRELLAJJANG
     _value: 50
     _color: {r: 1, g: 1, b: 1, a: 1}
-    _spawnWeight: 0.2
+    _spawnWeight: 5
     _requiresEjection: 0
     _allowRepeatEjection: 1
     _maxConcurrent: 0
@@ -118,6 +118,17 @@ MonoBehaviour:
     _liftMultiplier: 1
     _frictionMultiplier: 1
     _airGravityScale: 1
+    _selectEffects:
+      _causesRain: 1
+      _causesNight: 0
+      _preventsRain: 0
+      _preventsNight: 0
+      _volumeProfile: {fileID: 0}
+    _spawnConditions:
+      _onlyInRain: 1
+      _onlyAtNight: 0
+      _requiredPlayerFish: {fileID: 0}
+      _fallsFromSky: 1
   _body: {fileID: 3901284997661281352}
 --- !u!114 &114000002
 MonoBehaviour:

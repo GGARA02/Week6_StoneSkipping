@@ -1,6 +1,7 @@
 // 물수제비용 사실적인 물 셰이더(HDRP 물 스타일).
 // 굴절과 깊이 기반 흡수/산란, 화면 공간 반사, GGX 햇빛 반사, 파도 마루 산란, 거품, 착수 물결을 그린다.
 // 물결 위치는 SkipEffect가 전역 배열 _SkipRippleData(xy 위치, z 시작 시간, w 세기)로 넘긴다.
+// 빗물결 세기는 EnvironmentController가 전역 값 _RainIntensity로 넘긴다.
 // URP 에셋의 Depth Texture와 Opaque Texture가 켜져 있어야 한다.
 Shader "Custom/WaterV3"
 {
@@ -44,6 +45,11 @@ Shader "Custom/WaterV3"
         _RippleLifetime ("Ripple Lifetime", Float) = 1.8
         _RippleNormalStrength ("Ripple Normal Strength", Range(0, 2)) = 0.8
         _RippleFoam ("Ripple Foam", Range(0, 1)) = 0.8
+
+        [Header(Rain Ripples)]
+        _RainRippleStrength ("Rain Ripple Strength", Range(0, 2)) = 0.6
+        _RainRippleCellSize ("Rain Ripple Cell Size", Range(0.2, 3)) = 0.8
+        _RainRipplePeriod ("Rain Ripple Period", Range(0.2, 3)) = 0.9
 
         [Header(Water Hole)]
         // 바다는 NotEqual로 구멍 자리를 비우고, 구멍 안쪽 벽이나 양동이 속 물처럼 구멍 안에서도 보여야 하는 물은 Always로 둔다.
@@ -100,6 +106,12 @@ Shader "Custom/WaterV3"
             #define SSR_FIRST_STEP 0.25
             #define SSR_STEP_GROWTH 1.2
             #define SPECULAR_MAX 64.0
+            // 빗물결 값은 격자 한 칸을 1로 본 단위다.
+            #define RAIN_RIPPLE_LAYERS 3
+            #define RAIN_RIPPLE_MAX_RADIUS 0.28
+            #define RAIN_RIPPLE_WAVELENGTH 0.09
+            #define RAIN_RIPPLE_WIDTH2 0.004
+            #define RAIN_RIPPLE_FOOTPRINT_LIMIT 0.06
 
             CBUFFER_START(UnityPerMaterial)
                 half4 _ScatteringColor;
@@ -129,10 +141,15 @@ Shader "Custom/WaterV3"
                 float _RippleLifetime;
                 half _RippleNormalStrength;
                 half _RippleFoam;
+                half _RainRippleStrength;
+                float _RainRippleCellSize;
+                float _RainRipplePeriod;
                 float _WallFlowSpeed;
             CBUFFER_END
 
             float4 _SkipRippleData[RIPPLE_COUNT];
+            // EnvironmentController가 넘기는 비 세기(0~1).
+            float _RainIntensity;
 
             struct Attributes
             {
@@ -146,7 +163,6 @@ Shader "Custom/WaterV3"
             {
                 float4 positionCS : SV_POSITION;
                 float3 positionWS : TEXCOORD0;
-                half fogFactor : TEXCOORD1;
             #if defined(_WATER_HOLE_WALL)
                 float3 normalWS : TEXCOORD2;
             #endif
@@ -169,7 +185,6 @@ Shader "Custom/WaterV3"
                 VertexPositionInputs positions = GetVertexPositionInputs(input.positionOS.xyz);
                 output.positionCS = positions.positionCS;
                 output.positionWS = positions.positionWS;
-                output.fogFactor = ComputeFogFactor(positions.positionCS.z);
             #if defined(_WATER_HOLE_WALL)
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
             #endif
@@ -267,6 +282,44 @@ Shader "Custom/WaterV3"
                     foam += envelope * amplitude * (0.5 + 0.5 * sin(k * x)) * _RippleFoam;
                     // 착수 직후 가운데에 잠깐 남는 거품.
                     foam += saturate(1.0 - dist / (1.0 + age * 2.0)) * amplitude * saturate(1.0 - age / 0.6) * _RippleFoam;
+                }
+            }
+
+            // 빗방울이 떨어진 자리에서 작게 퍼지는 고리 물결. 격자 칸마다 해시로 위치와 시작 시간을 정해 반복한다.
+            // 비가 약하면 일부 칸만 물결을 만들고, 멀어서 고리가 픽셀보다 작아지면 끈다.
+            void AddRainRipples(float2 xz, float time, float footprint, inout float2 slope)
+            {
+                float cellSize = max(_RainRippleCellSize, 0.05);
+                float fade = saturate(2.0 * (1.0 - footprint / (cellSize * RAIN_RIPPLE_FOOTPRINT_LIMIT)));
+                if (fade <= 0.0)
+                {
+                    return;
+                }
+
+                float k = TWO_PI / RAIN_RIPPLE_WAVELENGTH;
+                float strength = _RainRippleStrength * fade;
+                [unroll]
+                for (int layer = 0; layer < RAIN_RIPPLE_LAYERS; layer++)
+                {
+                    float2 uv = xz / cellSize + layer * float2(0.37, 0.61);
+                    float2 cell = floor(uv);
+                    float cycle = time / max(_RainRipplePeriod, 0.05) + Hash12(cell + layer * 17.0);
+                    float t = frac(cycle);
+                    float2 seed = cell + floor(cycle) * 7.31 + layer * 31.7;
+                    if (Hash12(seed + 5.17) > _RainIntensity)
+                    {
+                        continue;
+                    }
+
+                    // 고리가 칸 밖으로 나가지 않도록 중심을 칸 가운데 쪽에 둔다.
+                    float2 center = 0.35 + 0.3 * float2(Hash12(seed), Hash12(seed + 1.93));
+                    float2 offset = frac(uv) - center;
+                    float dist = length(offset);
+                    float2 dir = offset / max(dist, 1e-3);
+                    float x = dist - t * RAIN_RIPPLE_MAX_RADIUS;
+                    float life = 1.0 - t;
+                    float envelope = exp(-x * x / RAIN_RIPPLE_WIDTH2) * life * life;
+                    slope += dir * (sin(k * x) * envelope * strength);
                 }
             }
 
@@ -382,6 +435,12 @@ Shader "Custom/WaterV3"
                 float3 normalWS = normalize(faceNormal * max(1.0 - _Choppiness * waves.pinch, 0.2) - faceTangent * slope.x - faceBitangent * slope.y);
             #else
                 AddRipples(positionWS.xz, time, slope, foam);
+                // 굴절은 빗물결을 뺀 법선으로 계산해 비가 와도 물속이 흐트러지지 않게 한다.
+                float3 refractNormalWS = normalize(float3(-slope.x, max(1.0 - _Choppiness * waves.pinch, 0.2), -slope.y));
+                if (_RainIntensity > 0.0)
+                {
+                    AddRainRipples(positionWS.xz, time, footprint, slope);
+                }
                 float3 normalWS = normalize(float3(-slope.x, max(1.0 - _Choppiness * waves.pinch, 0.2), -slope.y));
             #endif
 
@@ -405,7 +464,7 @@ Shader "Custom/WaterV3"
                 float3 screen = WorldToScreen(positionWS);
                 float surfaceDepth = screen.z;
                 float sceneDepth = SampleEyeDepth(screen.xy);
-                float2 distortion = mul((float3x3)GetWorldToViewMatrix(), float3(normalWS.x, 0.0, normalWS.z)).xy;
+                float2 distortion = mul((float3x3)GetWorldToViewMatrix(), float3(refractNormalWS.x, 0.0, refractNormalWS.z)).xy;
                 float2 refractUV = screen.xy + distortion * (_RefractionStrength * saturate((sceneDepth - surfaceDepth) * 0.5));
                 float refractDepth = SampleEyeDepth(refractUV);
                 if (refractDepth < surfaceDepth)
@@ -462,7 +521,9 @@ Shader "Custom/WaterV3"
                 half3 foamLit = _FoamColor.rgb * (ambient + mainLight.color * saturate(dot(normalWS, mainLight.direction)) * shadow);
                 color = lerp(color, foamLit, foamMask);
 
-                color = MixFog(max(color, 0.0), input.fogFactor);
+                // 바다는 꼭짓점이 몇 개뿐인 큰 상자라서 안개를 꼭짓점에서 구해 보간하면 카메라 뒤 꼭짓점 때문에 가까운 수면까지 안개로 덮인다.
+                // 그래서 픽셀마다 안개 값을 구한다.
+                color = MixFog(max(color, 0.0), ComputeFogFactor(TransformWorldToHClip(positionWS).z));
                 return half4(color, 1.0);
             }
             ENDHLSL
