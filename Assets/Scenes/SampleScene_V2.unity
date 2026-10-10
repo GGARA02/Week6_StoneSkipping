@@ -8423,10 +8423,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 44f7da2375d8b7245a520129296993c0, type: 3}
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::ProceduralObstacleSpawner
-  _iceStartDistance: 500
-  _blackHoleStartDistance: 1000
-  _cellSize: 45
-  _cellRadius: 3
+  _iceStartDistance: 1500
+  _blackHoleStartDistance: 3000
+  _cellSize: 60
+  _cellRadius: 6
   _density: 0.65
   _safeRadius: 25
   _wallWidthRange: {x: 6, y: 12}

@@ -4,17 +4,17 @@ using UnityEngine;
 
 public sealed class ProceduralObstacleSpawner : MonoBehaviour
 {
-    private const float BOOST_FREQUENCY_RATIO = 1f / 5f;
+    private const float BOOST_FREQUENCY_RATIO = 1f / 20f;
 
     [Header("거리 구역")]
-    [Min(0f)] [SerializeField] private float _iceStartDistance = 500f;
-    [Min(0f)] [SerializeField] private float _blackHoleStartDistance = 1000f;
+    [Min(0f)][SerializeField] private float _iceStartDistance = 1500f;
+    [Min(0f)][SerializeField] private float _blackHoleStartDistance = 3000f;
 
     [Header("플레이어 주변 생성")]
-    [Min(20f)] [SerializeField] private float _cellSize = 45f;
-    [Range(1, 6)] [SerializeField] private int _cellRadius = 3;
-    [Range(0f, 1f)] [SerializeField] private float _density = 0.65f;
-    [Min(0f)] [SerializeField] private float _safeRadius = 25f;
+    [Min(20f)][SerializeField] private float _cellSize = 60f;
+    [Range(1, 6)][SerializeField] private int _cellRadius = 6;
+    [Range(0f, 1f)][SerializeField] private float _density = 0.65f;
+    [Min(0f)][SerializeField] private float _safeRadius = 25f;
     [SerializeField] private Vector2 _wallWidthRange = new Vector2(6f, 12f);
     [SerializeField] private Vector2 _wallHeightRange = new Vector2(16f, 32f);
     [SerializeField] private Vector2 _iceWidthRange = new Vector2(12f, 24f);
@@ -27,13 +27,13 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
     private Transform _water;
     private Vector3 _waterStartPosition;
     private Vector3 _startPosition;
-    private Mesh _wallMesh;
-    private Material[] _wallMaterials;
+    private CuttableWall _wallPrefab;
     private float _waterY;
     private int _layer;
     private int _seed;
     private Vector2Int _center;
     private bool _hasCenter;
+    private bool _initialized;
     private GameObject _boostPrefab;
     private readonly Dictionary<Vector2Int, GameObject> _activeBoosts = new Dictionary<Vector2Int, GameObject>();
     private readonly Stack<GameObject> _boostPool = new Stack<GameObject>();
@@ -46,7 +46,7 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
 
     void Update()
     {
-        if (_player.IsGameOver) return;
+        if (!_initialized || _player.IsGameOver) return;
 
         Vector3 position = _spawner.PlayerBody.position;
         _water.position = new Vector3(position.x, _waterStartPosition.y, position.z);
@@ -66,7 +66,7 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
 
     /// <summary>
     /// spawner, player, 수면 높이와 water, 원본 벽, 유빙 종류로 주변 생성기를 준비한다.
-    /// 공유 유빙 메시와 머티리얼을 만들고 기존 고정 벽을 숨기며 풀과 셀 추적 상태를 초기화한다.
+    /// 벽 프리팹을 보관하고 공유 유빙 메시와 머티리얼을 만들며 풀과 셀 추적 상태를 초기화한다.
     /// </summary>
     public void Initialize(FishSpawner spawner, PlayerController player, float waterY, Transform water, MeshFilter wall, FishType iceType)
     {
@@ -76,8 +76,7 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
         _waterY = waterY;
         _water = water;
         _waterStartPosition = water.position;
-        _wallMesh = wall.sharedMesh;
-        _wallMaterials = wall.GetComponent<MeshRenderer>().sharedMaterials;
+        _wallPrefab = wall.GetComponent<CuttableWall>();
         _layer = wall.gameObject.layer;
         _iceType = iceType;
         _boostPrefab = Resources.Load<GameObject>("Prefabs/Boost/Boost");
@@ -85,7 +84,7 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
         IceMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "Procedural Ice" };
         IceMaterial.SetColor("_BaseColor", new Color(0.65f, 0.9f, 1f));
         IceMaterial.SetFloat("_Smoothness", 0.65f);
-        GameObject.Find("Wall").SetActive(false);
+        _initialized = true;
         ResetObstacles();
     }
 
@@ -95,6 +94,8 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
     /// </summary>
     public void ResetObstacles()
     {
+        if (!_initialized) return;
+
         ReleaseAll();
         _water.position = _waterStartPosition;
         _seed = Random.Range(0, int.MaxValue);
@@ -195,7 +196,8 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
                 Stack<CuttableWall> pool = ice ? _icePool : _wallPool;
                 CuttableWall obstacle = pool.Count > 0 ? pool.Pop() : CreateObstacle(ice);
                 obstacle.transform.localScale = scale;
-                obstacle.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, (float)random.NextDouble() * 360f, 0f));
+                Quaternion rotation = ice ? Quaternion.Euler(0f, (float)random.NextDouble() * 360f, 0f) : Quaternion.identity;
+                obstacle.transform.SetPositionAndRotation(position, rotation);
                 obstacle.gameObject.SetActive(true);
                 _active.Add(cell, obstacle);
             }
@@ -204,7 +206,7 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
 
     /// <summary>
     /// cell과 playerPosition으로 안전 거리와 생성 구역을 확인해 점프대를 배치한다.
-    /// 벽과 유빙 밀도의 1/5 확률로 프리팹을 생성하거나 재사용하고 활성 셀에 기록한다.
+    /// 벽과 유빙 밀도의 1/20 확률로 프리팹을 생성하거나 재사용하고 활성 셀에 기록한다.
     /// </summary>
     private void TrySpawnBoost(Vector2Int cell, Vector3 playerPosition)
     {
@@ -213,7 +215,7 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
         if (random.NextDouble() > _density * BOOST_FREQUENCY_RATIO) return;
         Vector3 position = new Vector3(
             (cell.x + 0.5f + ((float)random.NextDouble() - 0.5f) * 0.5f) * _cellSize,
-            _waterY,
+            6.5f,
             (cell.y + 0.5f + ((float)random.NextDouble() - 0.5f) * 0.5f) * _cellSize);
         Vector3 startOffset = position - _startPosition;
         startOffset.y = 0f;
@@ -240,21 +242,24 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
     /// </summary>
     private CuttableWall CreateObstacle(bool ice)
     {
-        GameObject obstacle = new GameObject(ice ? "Ice Floe" : "Pooled Wall Cube") { layer = _layer };
+        if (!ice)
+        {
+            CuttableWall instance = Instantiate(_wallPrefab, transform);
+            instance.gameObject.SetActive(false);
+            instance.Initialize(_spawner, _spawner.WallFish.Type);
+            return instance;
+        }
+
+        GameObject obstacle = new GameObject("Ice Floe") { layer = _layer };
         obstacle.SetActive(false);
         obstacle.transform.SetParent(transform, false);
-        Mesh mesh = ice ? IceMesh : _wallMesh;
-        obstacle.AddComponent<MeshFilter>().sharedMesh = mesh;
-        obstacle.AddComponent<MeshRenderer>().sharedMaterials = ice ? new[] { IceMaterial } : _wallMaterials;
-        if (ice)
-        {
-            MeshCollider collider = obstacle.AddComponent<MeshCollider>();
-            collider.sharedMesh = mesh;
-            collider.convex = true;
-        }
-        else obstacle.AddComponent<BoxCollider>();
+        obstacle.AddComponent<MeshFilter>().sharedMesh = IceMesh;
+        obstacle.AddComponent<MeshRenderer>().sharedMaterials = new[] { IceMaterial };
+        MeshCollider collider = obstacle.AddComponent<MeshCollider>();
+        collider.sharedMesh = IceMesh;
+        collider.convex = true;
         CuttableWall wall = obstacle.AddComponent<CuttableWall>();
-        wall.Initialize(_spawner, ice ? _iceType : _spawner.WallFish.Type);
+        wall.Initialize(_spawner, _iceType);
         return wall;
     }
 

@@ -140,23 +140,20 @@ public class FishSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// 씬의 Wall 큐브와 저장 메시로 벽과 유빙의 선택 항목 및 주변 생성기를 준비한다.
+    /// Wall 프리팹과 저장 메시로 벽과 유빙의 선택 항목 및 주변 생성기를 준비한다.
     /// 비활성 템플릿을 선택 목록에 추가하고 고정 배치 대신 풀 기반 생성과 절단을 연결한다.
     /// </summary>
     private void InitializeWalls()
     {
-        GameObject wallRoot = GameObject.Find("Wall");
-        if (wallRoot == null) return;
-        MeshFilter[] walls = wallRoot.GetComponentsInChildren<MeshFilter>();
-        if (walls.Length == 0) return;
+        MeshFilter wall = Resources.Load<GameObject>("Prefabs/Wall").GetComponent<MeshFilter>();
 
         GameObject template = new GameObject("Wall Fish Catalog");
         template.SetActive(false);
         template.transform.SetParent(transform, false);
         MeshFilter filter = template.AddComponent<MeshFilter>();
         _wallCatalogMesh = _progress.LoadWallMesh();
-        filter.sharedMesh = _wallCatalogMesh != null ? _wallCatalogMesh : walls[0].sharedMesh;
-        template.AddComponent<MeshRenderer>().sharedMaterials = walls[0].GetComponent<MeshRenderer>().sharedMaterials;
+        filter.sharedMesh = _wallCatalogMesh != null ? _wallCatalogMesh : wall.sharedMesh;
+        template.AddComponent<MeshRenderer>().sharedMaterials = wall.GetComponent<MeshRenderer>().sharedMaterials;
         template.AddComponent<Rigidbody>().isKinematic = true;
         _wallFish = template.AddComponent<Fish>();
         _wallFish.InitializeWall(this, FishType.CreateWall(), null);
@@ -166,7 +163,7 @@ public class FishSpawner : MonoBehaviour
         _obstacles = GetComponent<ProceduralObstacleSpawner>();
         if (_obstacles == null) _obstacles = gameObject.AddComponent<ProceduralObstacleSpawner>();
         FishType iceType = FishType.CreateIce();
-        _obstacles.Initialize(this, _player, _waterY, _water.transform, walls[0], iceType);
+        _obstacles.Initialize(this, _player, _waterY, _water.transform, wall, iceType);
         GameObject iceTemplate = new GameObject("Ice Floe Fish Catalog");
         iceTemplate.SetActive(false);
         iceTemplate.transform.SetParent(transform, false);
