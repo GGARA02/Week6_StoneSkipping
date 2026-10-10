@@ -69,6 +69,7 @@ public class CameraController : MonoBehaviour
     private float _largeProjectileClearance = 2f;
     private FishMeshGenerator _projectileShape;
     private float _projectileRadius;
+    public float ProjectileRadius => _projectileRadius;
 
     [Header("속도감")]
     [SerializeField]

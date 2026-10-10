@@ -5,13 +5,14 @@ using UnityEngine;
 
 public class PlacedAlkagiLaser : MonoBehaviour
 {
-    private const float SWEEP_STEP_ANGLE = 0.5f;
     private const float HORIZONTAL_CUT_THRESHOLD = 0.0001f;
     private const float MIN_CUT_NORMAL_Y = 0.001f;
 
     [Header("레이저")]
     [SerializeField] private Transform _eye;
     [SerializeField] private GameObject _beamPrefab;
+    [Tooltip("쓸고 지나가는 동안 접촉을 검사하는 각도 간격. 빔이 길수록 작게 잡아야 먼 곳에 빈틈이 생기지 않는다")]
+    [SerializeField, Min(0.001f)] private float _sweepStepAngle = 0.5f;
     private GameObject _beam;
     private CapsuleCollider _shape;
     private Vector3 _previousPosition;
@@ -62,7 +63,7 @@ public class PlacedAlkagiLaser : MonoBehaviour
         Vector3 position = _eye.position;
         Quaternion rotation = _eye.rotation;
         Vector3 cutNormal = CalculateCutNormal(position, rotation);
-        int steps = Mathf.Max(1, Mathf.CeilToInt(Quaternion.Angle(_previousRotation, rotation) / SWEEP_STEP_ANGLE));
+        int steps = Mathf.Max(1, Mathf.CeilToInt(Quaternion.Angle(_previousRotation, rotation) / _sweepStepAngle));
         bool hitPlayer = false;
         for (int i = 0; i <= steps; i++)
         {

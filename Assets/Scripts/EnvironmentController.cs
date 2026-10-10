@@ -49,7 +49,7 @@ public class EnvironmentController : MonoBehaviour
     [Tooltip("하늘만 찍는 반사 프로브. 하늘이 바뀔 때마다 다시 찍어 물과 물체의 반사를 맞춘다")]
     [SerializeField]
     private ReflectionProbe _skyReflectionProbe;
-    [Tooltip("카메라를 따라다니는 구름층 구. 비가 올 때 하늘을 덮는다")]
+    [Tooltip("카메라를 따라다니는 구름층 구. 비가 올 때 하늘을 덮고, 하늘 ALKAGI가 있으면 맑은 날에도 그 주변에 구름을 모은다")]
     [SerializeField]
     private Renderer _cloudRenderer;
 
@@ -160,9 +160,14 @@ public class EnvironmentController : MonoBehaviour
     private float _nightWeight;
     private Vector3 _lastPlayerPosition;
     private Vector3 _playerVelocity;
+    // 주변에 구름을 모으는 대상이 있으면 비가 오지 않아도 구름층을 켠다.
+    private bool _cloudFocus;
+    // 빗방울을 지울 때 매번 새로 만들지 않도록 재사용하는 파티클 버퍼.
+    private ParticleSystem.Particle[] _rainParticles;
     // 서서히 바뀌는 중이어도 정해진 날씨를 기준으로 한다.
     public bool IsRaining => _targetRain;
     public bool IsNight => _targetNight;
+    public Material CloudMaterial => _cloudMaterial;
 
     void Awake()
     {
@@ -274,8 +279,55 @@ public class EnvironmentController : MonoBehaviour
     {
         _isSpace = active;
         RenderSettings.skybox = active ? _spaceSkybox : _skybox;
-        _cloudRenderer.enabled = !active && _rainWeight > 0f;
+        _cloudRenderer.enabled = !active && (_rainWeight > 0f || _cloudFocus);
         _skyReflectionProbe.RenderProbe();
+    }
+
+    /// <summary>
+    /// 하늘 ALKAGI처럼 주변에 구름을 모으는 대상이 있는지 알려 맑은 날에도 구름층을 켜 둔다.
+    /// active와 현재 비 비중, 우주 하늘 여부를 사용하며 _cloudFocus와 구름층 표시를 변경한다.
+    /// </summary>
+    public void SetCloudFocus(bool active)
+    {
+        _cloudFocus = active;
+        _cloudRenderer.enabled = !_isSpace && (_rainWeight > 0f || _cloudFocus);
+    }
+
+    /// <summary>
+    /// start에서 end까지의 선분에서 radius 안에 있는 빗방울을 가까운 비와 먼 비 모두에서 없앤다.
+    /// 선분과 반경, 현재 비 비중을 사용하며 비가 올 때만 해당 빗방울의 남은 수명을 변경한다.
+    /// </summary>
+    public void ClearRain(Vector3 start, Vector3 end, float radius)
+    {
+        if (_rainWeight <= 0f) return;
+        ClearRainParticles(_rain, start, end, radius);
+        ClearRainParticles(_farRain, start, end, radius);
+    }
+
+    /// <summary>
+    /// system의 월드 공간 빗방울 중 start~end 선분에서 radius 안에 있는 것의 수명을 끝내 바로 사라지게 한다.
+    /// 선분과 반경을 사용하며 _rainParticles 버퍼와 해당 빗방울의 남은 수명을 변경한다.
+    /// </summary>
+    private void ClearRainParticles(ParticleSystem system, Vector3 start, Vector3 end, float radius)
+    {
+        if (system.particleCount == 0) return;
+        int capacity = system.main.maxParticles;
+        if (_rainParticles == null || _rainParticles.Length < capacity) _rainParticles = new ParticleSystem.Particle[capacity];
+        int count = system.GetParticles(_rainParticles);
+        Vector3 segment = end - start;
+        float lengthSq = Mathf.Max(segment.sqrMagnitude, 0.0001f);
+        float radiusSq = radius * radius;
+        bool cleared = false;
+        for (int i = 0; i < count; i++)
+        {
+            Vector3 offset = _rainParticles[i].position - start;
+            float along = Mathf.Clamp01(Vector3.Dot(offset, segment) / lengthSq);
+            if ((offset - segment * along).sqrMagnitude > radiusSq) continue;
+            // 수명을 끝내면 물에 닿을 때 생기는 물결 없이 다음 갱신에서 사라진다.
+            _rainParticles[i].remainingLifetime = -1f;
+            cleared = true;
+        }
+        if (cleared) system.SetParticles(_rainParticles, count);
     }
 
     /// <summary>
@@ -434,7 +486,7 @@ public class EnvironmentController : MonoBehaviour
         // 비 하늘을 먼저 섞고 밤 하늘을 나중에 섞어, 비 오는 밤에는 밤 하늘이 이긴다.
         SetSkyboxWeight(_rainSkybox, rain);
         SetSkyboxWeight(_nightSkybox, night);
-        _cloudRenderer.enabled = !_isSpace && rain > 0f;
+        _cloudRenderer.enabled = !_isSpace && (rain > 0f || _cloudFocus);
         _cloudMaterial.SetFloat(CLOUD_COVERAGE_ID, _rainCloudCoverage * rain);
 
         Color ambient = Color.Lerp(Color.white, _nightAmbient, night) * Color.Lerp(Color.white, _rainAmbient, rain);

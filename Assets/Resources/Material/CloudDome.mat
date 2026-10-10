@@ -27,13 +27,26 @@ Material:
     m_Floats:
     - _AmbientInfluence: 0.8
     - _CloudScale: 0.8
-    - _CloudSoftness: 0.15
+    - _CloudSoftness: 0.18
     - _Coverage: 0
+    - _CutAmount: 0
+    - _CutGlow: 0
+    - _CutWidth: 0.004
+    - _DepthRadius: 600
+    - _FocusAngle: 0.4
+    - _FocusCoverage: 0.75
+    - _FocusWeight: 0
+    - _Glow: 0
     - _MaxOpacity: 0.95
     - _SunInfluence: 0.35
+    - _Veil: 0.45
+    - _VeilAngle: 0.985
     m_Colors:
-    - _LitColor: {r: 0.86, g: 0.88, b: 0.92, a: 1}
-    - _ShadowColor: {r: 0.47999996, g: 0.50999993, b: 0.56, a: 1}
-    - _WindSpeed: {r: 0.02, g: 0.008, b: 0, a: 0}
+    - _CutColor: {r: 2, g: 0.2, b: 0.12, a: 1}
+    - _FocusDir: {r: 0, g: 0, b: 1, a: 0}
+    - _GlowColor: {r: 2.4, g: 0.3, b: 0.45, a: 1}
+    - _LitColor: {r: 0.74, g: 0.8, b: 0.9, a: 1}
+    - _ShadowColor: {r: 0.25, g: 0.29, b: 0.37, a: 1}
+    - _WindSpeed: {r: 0.01, g: 0.004, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

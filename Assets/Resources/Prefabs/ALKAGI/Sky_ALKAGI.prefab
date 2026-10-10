@@ -1,0 +1,270 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2369921332492661643
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2743953502053612684}
+  - component: {fileID: 2961348311689880049}
+  m_Layer: 0
+  m_Name: Giant
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2743953502053612684
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2369921332492661643}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2789516034199788772}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2961348311689880049
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2369921332492661643}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8a6dfa73a314cc44be1052a027a76ac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LockOnTarget
+--- !u!1 &2670100726243330472
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2789516034199788772}
+  - component: {fileID: 7796993261469981288}
+  - component: {fileID: 3925478711016057601}
+  - component: {fileID: 2862913093926502215}
+  - component: {fileID: 2536933156137940819}
+  m_Layer: 0
+  m_Name: Sky_ALKAGI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2789516034199788772
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2670100726243330472}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 2743953502053612684}
+  - {fileID: 3602543575520868516}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7796993261469981288
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2670100726243330472}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc3e72539e992c0438653d6fa2744f32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlacedAlkagiLaser
+  _eye: {fileID: 3602543575520868516}
+  _beamPrefab: {fileID: 5710913423741439087, guid: ed6ed3e406ab35b4a88d841f389225b0, type: 3}
+  _sweepStepAngle: 0.1
+--- !u!114 &3925478711016057601
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2670100726243330472}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e984dc37022c66240a0d65bac1f89dcc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SkyAlkagi
+  _sourcePrefab: {fileID: 5589047617780350840, guid: e73293636c12d004d8626a6e966ae921, type: 3}
+  _eyeSourceMaterial: {fileID: 2100000, guid: 6c49b42811b521245aaa6e4b37556b83, type: 2}
+  _bodyMaterial: {fileID: 2100000, guid: 76245742931874f46bd82e683667ab48, type: 2}
+  _eyeMaterial: {fileID: 2100000, guid: 3bd9dfd2aad8a0948a1a9d997ff93680, type: 2}
+  _glowMaterial: {fileID: 2100000, guid: 7d816f939f2d7614aa4eb81221232bad, type: 2}
+  _glowMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+  _fishPrefab: {fileID: 114000001, guid: 50d48c18fc731d64783fe1d33febb46e, type: 3}
+  _unlockFishPrefab: {fileID: 6653721780412713267, guid: 5d9e20f344ddd0c4dbc8c098bce497ed, type: 3}
+  _giant: {fileID: 2743953502053612684}
+  _aim: {fileID: 3602543575520868516}
+  _laser: {fileID: 7796993261469981288}
+  _holePrefab: {fileID: 5192527638694028642, guid: 7f48d0ff2d99c7540b15c7e7f74d21e4, type: 3}
+  _clouds: {fileID: 2862913093926502215}
+  _impulse: {fileID: 2536933156137940819}
+  _direction: {x: 0, y: 0, z: 1}
+  _distance: 900
+  _height: 110
+  _scale: 24
+  _turnSpeed: 1.5
+  _idleEyeIntensity: 4
+  _chargedEyeIntensity: 60
+  _idleGlowSize: 60
+  _chargedGlowSize: 260
+  _idleGlowIntensity: 0.6
+  _chargedGlowIntensity: 4
+  _firstAttackDelay: 3
+  _attackInterval: 7
+  _chargeDuration: 2
+  _sweepDuration: 1.6
+  _coolDuration: 1.5
+  _sweepHeight: 400
+  _beamLength: 1500
+  _rainClearRadius: 500
+  _waterSurfaceOffset: 0.02
+  _holeDepth: 200
+--- !u!114 &2862913093926502215
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2670100726243330472}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d260773a5d003e48b2659c1799ef373, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SkyAlkagiClouds
+  _startDelay: 0.5
+  _openDuration: 0.8
+  _openCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: -0.06409775
+      outSlope: -0.06409775
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0.4209844
+    - serializedVersion: 3
+      time: 1
+      value: 1.0015869
+      inSlope: 3.9212294
+      outSlope: 3.9212294
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.01943016
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  _openScale: 200
+  _healDuration: 6
+  _fadeDuration: 2
+--- !u!114 &2536933156137940819
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2670100726243330472}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 180ecf9b41d478f468eb3e9083753217, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineImpulseSource
+  ImpulseDefinition:
+    ImpulseChannel: 1
+    ImpulseShape: 4
+    CustomImpulseShape:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    ImpulseDuration: 0.8
+    ImpulseType: 0
+    DissipationRate: 0.25
+    RawSignal: {fileID: 0}
+    AmplitudeGain: 1
+    FrequencyGain: 1
+    RepeatMode: 0
+    Randomize: 1
+    TimeEnvelope:
+      AttackShape:
+        serializedVersion: 2
+        m_Curve: []
+        m_PreInfinity: 2
+        m_PostInfinity: 2
+        m_RotationOrder: 4
+      DecayShape:
+        serializedVersion: 2
+        m_Curve: []
+        m_PreInfinity: 2
+        m_PostInfinity: 2
+        m_RotationOrder: 4
+      AttackTime: 0
+      SustainTime: 0.2
+      DecayTime: 0.7
+      ScaleWithImpact: 1
+      HoldForever: 0
+    ImpactRadius: 100
+    DirectionMode: 0
+    DissipationMode: 2
+    DissipationDistance: 100
+    PropagationSpeed: 343
+  DefaultVelocity: {x: 0, y: -0.5, z: 0}
+--- !u!1 &3995088299410988778
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3602543575520868516}
+  m_Layer: 0
+  m_Name: Aim
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3602543575520868516
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3995088299410988778}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2789516034199788772}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
