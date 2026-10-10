@@ -1,41 +1,212 @@
 {
-  "default": { "description": "처음부터 사용할 수 있는 기본 물수제비입니다. 판마다 새로운 모양으로 만들어집니다.", "unlockHint": "처음부터 사용할 수 있습니다." },
-  "mackerel": { "description": "푸른 등을 가진 고등어입니다. 바다에서 만날 수 있는 익숙한 물수제비입니다.", "unlockHint": "물수제비 중 수면에서 튀어 오르는 고등어를 맞혀 보세요." },
-  "flyingfish": { "description": "수면 위로 날아오르는 날치입니다. 길쭉한 몸으로 바다를 가릅니다.", "unlockHint": "수면 위로 날아오르는 날치를 맞혀 보세요." },
-  "flounder": { "description": "납작한 몸을 가진 가자미입니다. 평평한 외형이 물수제비와 잘 어울립니다.", "unlockHint": "물수제비 중 수면에서 나타나는 가자미를 맞혀 보세요." },
-  "puffer": { "description": "둥글게 부푼 복어입니다. 통통한 몸이 눈에 띕니다.", "unlockHint": "수면에서 튀어 오르는 둥근 복어를 맞혀 보세요." },
-  "starfish": { "description": "붉은 불가사리입니다. 바다에서 건져 올린 별 모양의 물수제비입니다.", "unlockHint": "물수제비 중 나타나는 붉은 불가사리를 맞혀 보세요." },
-  "babyshark": { "description": "작은 상어입니다. 작아도 상어다운 날렵한 모습을 갖췄습니다.", "unlockHint": "바다에서 튀어 오르는 작은 상어를 맞혀 보세요." },
-  "tire": { "description": "바다를 구르는 타이어입니다. 물고기 대신 버려진 물건도 물수제비가 됩니다.", "unlockHint": "수면에서 나타나는 타이어를 맞혀 보세요." },
-  "can": { "description": "찌그러진 빈 캔입니다. 납작하게 눌린 몸으로 물 위를 튕깁니다.", "unlockHint": "수면에서 나타나는 찌그러진 캔을 맞혀 보세요." },
-  "balksoul": { "description": "독특한 모양의 BALK SOUL입니다. 평범한 물고기와는 다른 존재감을 드러냅니다.", "unlockHint": "물수제비 중 바다에서 모습을 드러내는 BALK SOUL을 맞혀 보세요." },
-  "baguette": { "description": "길쭉한 바게트입니다. 빵도 물 위에서는 훌륭한 물수제비가 됩니다.", "unlockHint": "수면에서 나타나는 길쭉한 바게트를 맞혀 보세요." },
-  "hopak": { "description": "HOPAK입니다. 물고기와는 다른 실루엣으로 바다를 누빕니다.", "unlockHint": "물수제비 중 바다에서 나타나는 HOPAK을 맞혀 보세요." },
-  "kinghopak": { "description": "KING HOPAK입니다. 한층 더 눈에 띄는 모습으로 물 위를 튕깁니다.", "unlockHint": "물수제비 중 나타나는 KING HOPAK을 맞혀 보세요." },
-  "33fisher": { "description": "물 위에서 만난 낚시꾼입니다. 키 입력 승부가 끝나면 독특한 방식으로 획득할 수 있습니다.", "unlockHint": "낚시꾼을 만나면, 때로는 손을 놓고 기다리는 편이 좋습니다." },
-  "alkagi": { "description": "알까기 돌입니다. 바둑판을 떠나 물 위에서 새로운 승부를 시작합니다.", "unlockHint": "수면에서 나타나는 알까기 돌을 맞혀 보세요." },
-  "deer": { "description": "바다에 나타난 사슴입니다. 익숙하지 않은 무대에서도 물수제비가 됩니다.", "unlockHint": "물수제비 중 바다에서 나타나는 사슴을 맞혀 보세요." },
-  "monster": { "description": "기묘한 모습을 가진 몬스터입니다. 바다의 평범한 풍경을 낯설게 만듭니다.", "unlockHint": "물수제비 중 나타나는 몬스터를 맞혀 보세요." },
-  "umbrella": { "description": "우산 모양의 물수제비입니다. 넓은 외형으로 물 위에 모습을 드러냅니다.", "unlockHint": "수면에서 나타나는 우산을 맞혀 보세요." },
-  "volcano": { "description": "작은 화산입니다. 좋은 판정으로 튕기면 화산 속의 공을 쏘아 올립니다.", "unlockHint": "물수제비 중 바다에서 나타나는 화산을 맞혀 보세요." },
-  "whale_dark": { "description": "어두운 색의 고래입니다. 커다란 몸으로 물 위를 가릅니다.", "unlockHint": "수면에서 나타나는 어두운 색의 고래를 맞혀 보세요." },
-  "whale_white": { "description": "밝은 색의 고래입니다. 커다란 실루엣이 바다 위에서 눈에 띕니다.", "unlockHint": "수면에서 나타나는 밝은 색의 고래를 맞혀 보세요." },
-  "arrow": { "description": "길쭉한 화살입니다. 날카로운 외형으로 바다를 가로지릅니다.", "unlockHint": "수면에서 나타나는 화살을 맞혀 보세요." },
-  "week4arrow": { "description": "WEEK4 ARROW입니다. 또 다른 화살 모양의 물수제비입니다.", "unlockHint": "물수제비 중 나타나는 WEEK4 ARROW를 맞혀 보세요." },
-  "board": { "description": "평평한 판자입니다. 넓은 면으로 물 위를 튕깁니다.", "unlockHint": "수면에서 나타나는 판자를 맞혀 보세요." },
-  "bonfire": { "description": "모닥불 모양의 물수제비입니다. 바다 위에서도 특별한 모습을 유지합니다.", "unlockHint": "물수제비 중 나타나는 모닥불을 맞혀 보세요." },
-  "car": { "description": "자동차입니다. 좋은 판정으로 튕기면 함께 타고 있던 소매치기를 사출합니다.", "unlockHint": "물수제비 중 바다에서 나타나는 자동차를 맞혀 보세요." },
-  "pickpocket": { "description": "자동차에서 튀어나온 소매치기입니다. 사출된 뒤 바다에서 다시 만날 수 있습니다.", "unlockHint": "자동차가 GOOD 이상으로 튕길 때 나타나는 동승자를 바다에 내려놓아 보세요." },
-  "blackhole": { "description": "모든 것을 삼키는 블랙홀입니다. 물에 닿으면 눈앞의 화면까지 빨아들입니다.", "unlockHint": "물수제비 중 바다에서 나타나는 블랙홀을 맞혀 보세요." },
-  "crab": { "description": "게입니다. 바다에서 만나는 또 다른 물수제비 친구입니다.", "unlockHint": "수면에서 나타나는 게를 맞혀 보세요." },
-  "ship_normal": { "description": "배 모양의 물수제비입니다. 좋은 판정으로 튕기면 보좌관을 사출합니다.", "unlockHint": "물수제비 중 바다에서 나타나는 배를 맞혀 보세요." },
-  "aide": { "description": "배에서 사출된 보좌관입니다. 바다에 도착한 뒤 다시 만날 수 있습니다.", "unlockHint": "배를 GOOD 이상으로 튕겨 보좌관을 사출하고 바다에 내려놓아 보세요." },
-  "w02ball": { "description": "화산에서 쏘아 올린 공입니다. 바다에 도착하면 새로운 물수제비가 됩니다.", "unlockHint": "화산을 GOOD 이상으로 튕겨 쏘아 올린 공을 바다에 내려놓아 보세요." },
-  "bucket_empty": { "description": "빈 양동이입니다. 수면의 구멍에서 물을 채울 수 있습니다.", "unlockHint": "수면에서 나타나는 빈 양동이를 맞혀 보세요." },
-  "bucket_full": { "description": "물을 가득 담은 양동이입니다. 빈 양동이가 채워지면 이 모습으로 바뀝니다.", "unlockHint": "빈 양동이로 수면의 구멍에서 물을 채워 보세요." },
-  "water_block": { "description": "양동이에 담았던 물 덩어리입니다. 물 그 자체를 물수제비로 던질 수 있습니다.", "unlockHint": "빈 양동이로 수면의 구멍에서 물을 채워 보세요." },
-  "wall": { "description": "절단한 벽의 조각입니다. 마지막으로 획득한 조각의 모양이 저장됩니다.", "unlockHint": "장애물을 잘라낸 뒤 떨어져 나온 조각을 맞혀 보세요." },
-  "ice": { "description": "잘라낸 유빙 조각입니다. 마지막으로 획득한 얼음의 모양이 저장됩니다.", "unlockHint": "500m 너머 바다의 유빙을 잘라낸 뒤 조각을 맞혀 보세요." },
-  "screen": { "description": "블랙홀이 삼킨 화면을 담은 16:9 패널입니다. 그 순간의 풍경을 물 위에 띄웁니다.", "unlockHint": "모든 것을 삼키는 물수제비가 화면까지 삼키는 순간을 지켜보세요." },
-  "catalog": { "description": "열어 둔 도감의 한 순간을 담은 16:9 기록 패널입니다.", "unlockHint": "이 기록도 물 위에 띄울 수 있을까요?" }
+  "default": {
+    "displayName": "짱돌",
+    "description": "처음부터 사용할 수 있는 기본 물수제비입니다. 판마다 새로운 모양으로 만들어집니다.",
+    "unlockHint": "처음부터 사용할 수 있습니다."
+  },
+  "mackerel": {
+    "displayName": "고등어",
+    "description": "푸른 등을 가진 고등어입니다. 바다에서 만날 수 있는 익숙한 물수제비입니다.",
+    "unlockHint": "물수제비 중 수면에서 튀어 오르는 고등어를 맞혀 보세요."
+  },
+  "flyingfish": {
+    "displayName": "날치",
+    "description": "수면 위로 날아오르는 날치입니다. 길쭉한 몸으로 바다를 가릅니다.",
+    "unlockHint": "수면 위로 날아오르는 날치를 맞혀 보세요."
+  },
+  "flounder": {
+    "displayName": "가자미",
+    "description": "납작한 몸을 가진 가자미입니다. 평평한 외형이 물수제비와 잘 어울립니다.",
+    "unlockHint": "물수제비 중 수면에서 나타나는 가자미를 맞혀 보세요."
+  },
+  "puffer": {
+    "displayName": "복어",
+    "description": "둥글게 부푼 복어입니다. 통통한 몸이 눈에 띕니다.",
+    "unlockHint": "수면에서 튀어 오르는 둥근 복어를 맞혀 보세요."
+  },
+  "starfish": {
+    "displayName": "불가사리",
+    "description": "붉은 불가사리입니다. 바다에서 건져 올린 별 모양의 물수제비입니다.",
+    "unlockHint": "물수제비 중 나타나는 붉은 불가사리를 맞혀 보세요."
+  },
+  "babyshark": {
+    "displayName": "부캉이",
+    "description": "작은 상어입니다. 작아도 상어다운 날렵한 모습을 갖췄습니다.",
+    "unlockHint": "바다에서 튀어 오르는 작은 상어를 맞혀 보세요."
+  },
+  "tire": {
+    "displayName": "뚝배기",
+    "description": "바다를 구르는 타이어입니다. 물고기 대신 버려진 물건도 물수제비가 됩니다.",
+    "unlockHint": "수면에서 나타나는 타이어를 맞혀 보세요."
+  },
+  "can": {
+    "displayName": "찌그러진 캔",
+    "description": "찌그러진 빈 캔입니다. 납작하게 눌린 몸으로 물 위를 튕깁니다.",
+    "unlockHint": "수면에서 나타나는 찌그러진 캔을 맞혀 보세요."
+  },
+  "balksoul": {
+    "displayName": "공크소울",
+    "description": "독특한 모양의 BALK SOUL입니다. 평범한 물고기와는 다른 존재감을 드러냅니다.",
+    "unlockHint": "물수제비 중 바다에서 모습을 드러내는 BALK SOUL을 맞혀 보세요."
+  },
+  "baguette": {
+    "displayName": "바게트",
+    "description": "길쭉한 바게트입니다. 빵도 물 위에서는 훌륭한 물수제비가 됩니다.",
+    "unlockHint": "수면에서 나타나는 길쭉한 바게트를 맞혀 보세요."
+  },
+  "hopak": {
+    "displayName": "호팍",
+    "description": "HOPAK입니다. 물고기와는 다른 실루엣으로 바다를 누빕니다.",
+    "unlockHint": "물수제비 중 바다에서 나타나는 HOPAK을 맞혀 보세요."
+  },
+  "kinghopak": {
+    "displayName": "킹호팍",
+    "description": "KING HOPAK입니다. 한층 더 눈에 띄는 모습으로 물 위를 튕깁니다.",
+    "unlockHint": "물수제비 중 나타나는 KING HOPAK을 맞혀 보세요."
+  },
+  "33fisher": {
+    "displayName": "33낚시꾼",
+    "description": "물 위에서 만난 낚시꾼입니다. 키 입력 승부가 끝나면 독특한 방식으로 획득할 수 있습니다.",
+    "unlockHint": "낚시꾼을 만나면, 때로는 손을 놓고 기다리는 편이 좋습니다."
+  },
+  "alkagi": {
+    "displayName": "ALKAGI",
+    "description": "알까기 돌입니다. 바둑판을 떠나 물 위에서 새로운 승부를 시작합니다.",
+    "unlockHint": "수면에서 나타나는 알까기 돌을 맞혀 보세요."
+  },
+  "deer": {
+    "displayName": "고라니",
+    "description": "바다에 나타난 사슴입니다. 익숙하지 않은 무대에서도 물수제비가 됩니다.",
+    "unlockHint": "물수제비 중 바다에서 나타나는 사슴을 맞혀 보세요."
+  },
+  "monster": {
+    "displayName": "외계인",
+    "description": "기묘한 모습을 가진 몬스터입니다. 바다의 평범한 풍경을 낯설게 만듭니다.",
+    "unlockHint": "물수제비 중 나타나는 몬스터를 맞혀 보세요."
+  },
+  "umbrella": {
+    "displayName": "우산짱",
+    "description": "우산 모양의 물수제비입니다. 넓은 외형으로 물 위에 모습을 드러냅니다.",
+    "unlockHint": "수면에서 나타나는 우산을 맞혀 보세요."
+  },
+  "volcano": {
+    "displayName": "화산",
+    "description": "작은 화산입니다. 좋은 판정으로 튕기면 화산 속의 공을 쏘아 올립니다.",
+    "unlockHint": "물수제비 중 바다에서 나타나는 화산을 맞혀 보세요."
+  },
+  "whale_dark": {
+    "displayName": "개씹어두운고래",
+    "description": "어두운 색의 고래입니다. 커다란 몸으로 물 위를 가릅니다.",
+    "unlockHint": "수면에서 나타나는 어두운 색의 고래를 맞혀 보세요."
+  },
+  "whale_white": {
+    "displayName": "개씹밝은고래",
+    "description": "밝은 색의 고래입니다. 커다란 실루엣이 바다 위에서 눈에 띕니다.",
+    "unlockHint": "수면에서 나타나는 밝은 색의 고래를 맞혀 보세요."
+  },
+  "arrow": {
+    "displayName": "",
+    "description": "길쭉한 화살입니다. 날카로운 외형으로 바다를 가로지릅니다.",
+    "unlockHint": "수면에서 나타나는 화살을 맞혀 보세요."
+  },
+  "week4arrow": {
+    "displayName": "빛",
+    "description": "WEEK4 ARROW입니다. 또 다른 화살 모양의 물수제비입니다.",
+    "unlockHint": "물수제비 중 나타나는 WEEK4 ARROW를 맞혀 보세요."
+  },
+  "board": {
+    "displayName": "지침서 게시판",
+    "description": "평평한 판자입니다. 넓은 면으로 물 위를 튕깁니다.",
+    "unlockHint": "수면에서 나타나는 판자를 맞혀 보세요."
+  },
+  "bonfire": {
+    "displayName": "화톳불",
+    "description": "모닥불 모양의 물수제비입니다. 바다 위에서도 특별한 모습을 유지합니다.",
+    "unlockHint": "물수제비 중 나타나는 모닥불을 맞혀 보세요."
+  },
+  "car": {
+    "displayName": "자동차",
+    "description": "자동차입니다. 좋은 판정으로 튕기면 함께 타고 있던 소매치기를 사출합니다.",
+    "unlockHint": "물수제비 중 바다에서 나타나는 자동차를 맞혀 보세요."
+  },
+  "pickpocket": {
+    "displayName": "도둑",
+    "description": "자동차에서 튀어나온 소매치기입니다. 사출된 뒤 바다에서 다시 만날 수 있습니다.",
+    "unlockHint": "자동차가 GOOD 이상으로 튕길 때 나타나는 동승자를 바다에 내려놓아 보세요."
+  },
+  "blackhole": {
+    "displayName": "블랙홀",
+    "description": "모든 것을 삼키는 블랙홀입니다. 물에 닿으면 눈앞의 화면까지 빨아들입니다.",
+    "unlockHint": "물수제비 중 바다에서 나타나는 블랙홀을 맞혀 보세요."
+  },
+  "crab": {
+    "displayName": "게",
+    "description": "게입니다. 바다에서 만나는 또 다른 물수제비 친구입니다.",
+    "unlockHint": "수면에서 나타나는 게를 맞혀 보세요."
+  },
+  "ship_normal": {
+    "displayName": "쇄빙선",
+    "description": "배 모양의 물수제비입니다. 좋은 판정으로 튕기면 보좌관을 사출합니다.",
+    "unlockHint": "물수제비 중 바다에서 나타나는 배를 맞혀 보세요."
+  },
+  "aide": {
+    "displayName": "부관짱",
+    "description": "배에서 사출된 보좌관입니다. 바다에 도착한 뒤 다시 만날 수 있습니다.",
+    "unlockHint": "배를 GOOD 이상으로 튕겨 보좌관을 사출하고 바다에 내려놓아 보세요."
+  },
+  "w02ball": {
+    "displayName": "공",
+    "description": "화산에서 쏘아 올린 공입니다. 바다에 도착하면 새로운 물수제비가 됩니다.",
+    "unlockHint": "화산을 GOOD 이상으로 튕겨 쏘아 올린 공을 바다에 내려놓아 보세요."
+  },
+  "bucket_empty": {
+    "displayName": "빈 양동이",
+    "description": "빈 양동이입니다. 수면의 구멍에서 물을 채울 수 있습니다.",
+    "unlockHint": "수면에서 나타나는 빈 양동이를 맞혀 보세요."
+  },
+  "bucket_full": {
+    "displayName": "물 양동이",
+    "description": "물을 가득 담은 양동이입니다. 빈 양동이가 채워지면 이 모습으로 바뀝니다.",
+    "unlockHint": "빈 양동이로 수면의 구멍에서 물을 채워 보세요."
+  },
+  "water_block": {
+    "displayName": "물",
+    "description": "양동이에 담았던 물 덩어리입니다. 물 그 자체를 물수제비로 던질 수 있습니다.",
+    "unlockHint": "빈 양동이로 수면의 구멍에서 물을 채워 보세요."
+  },
+  "wall": {
+    "displayName": "벽",
+    "description": "절단한 벽의 조각입니다. 마지막으로 획득한 조각의 모양이 저장됩니다.",
+    "unlockHint": "장애물을 잘라낸 뒤 떨어져 나온 조각을 맞혀 보세요."
+  },
+  "ice": {
+    "displayName": "유빙",
+    "description": "잘라낸 유빙 조각입니다. 마지막으로 획득한 얼음의 모양이 저장됩니다.",
+    "unlockHint": "500m 너머 바다의 유빙을 잘라낸 뒤 조각을 맞혀 보세요."
+  },
+  "screen": {
+    "displayName": "게임 화면",
+    "description": "블랙홀이 삼킨 화면을 담은 16:9 패널입니다. 그 순간의 풍경을 물 위에 띄웁니다.",
+    "unlockHint": "모든 것을 삼키는 물수제비가 화면까지 삼키는 순간을 지켜보세요."
+  },
+  "catalog": {
+    "displayName": "도감",
+    "description": "열어 둔 도감의 한 순간을 담은 16:9 기록 패널입니다.",
+    "unlockHint": "이 기록도 물 위에 띄울 수 있을까요?"
+  },
+  "boost": {
+    "displayName": "점프대",
+    "description": "점프대 모양의 물수제비입니다. 바다의 발판도 직접 집어 던질 수 있습니다.",
+    "unlockHint": "바다 곳곳에 놓인 점프대에 물수제비를 닿게 해 보세요."
+  },
+  "endingcredit": {
+    "displayName": "엔딩크레딧",
+    "description": "함께한 사람들의 이름을 담은 특별한 물수제비입니다. 마지막 감사 인사를 바다 위에 띄웁니다.",
+    "unlockHint": "여정의 끝에서 감사 인사가 담긴 크레딧을 확인해 보세요."
+  },
+  "keyboard": {
+    "displayName": "키보드",
+    "description": "키보드 모양의 물수제비입니다. 누른 키가 움직이고, 물이나 벽에 닿으면 키캡이 떨어져 나갑니다.",
+    "unlockHint": "바다에서 키보드를 만나면 물수제비로 맞혀 보세요."
+  }
 }

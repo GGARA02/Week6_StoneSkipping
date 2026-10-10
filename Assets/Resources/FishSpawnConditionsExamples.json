@@ -1,0 +1,11 @@
+{
+  "initialFish": ["mackerel"],
+  "specialFish": ["w02ball"],
+  "connections": {
+    "mackerel": ["puffer", "flounder"],
+    "puffer": ["volcano"],
+    "flounder": ["volcano"],
+    "volcano": [],
+    "w02ball": []
+  }
+}
