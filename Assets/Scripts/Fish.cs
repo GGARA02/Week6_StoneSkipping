@@ -32,6 +32,7 @@ public class Fish : MonoBehaviour
     private bool _isWall;
     private Mesh _wallMesh;
     private bool _isEjected;
+    private FisherQteController _fisherQte;
 
     public FishType Type => _type;
     public Transform Body => _body;
@@ -39,7 +40,7 @@ public class Fish : MonoBehaviour
 
     void Update()
     {
-        if (_isWall) return;
+        if (_isWall || Time.timeScale == 0f) return;
         if (!_jumped)
         {
             _delay -= Time.deltaTime;
@@ -67,7 +68,13 @@ public class Fish : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (_isEjected || _caught || !_jumped || other.attachedRigidbody != _spawner.PlayerBody) return;
+        if (_isEjected || _caught || !_jumped || Time.timeScale == 0f || other.attachedRigidbody != _spawner.PlayerBody) return;
+
+        if (_fisherQte != null)
+        {
+            if (_fisherQte.TryBegin()) _caught = true;
+            return;
+        }
 
         _caught = true;
         _spawner.HandleFishCaught(this);
@@ -125,6 +132,7 @@ public class Fish : MonoBehaviour
         {
             renderer.enabled = false;
         }
+        if (TryGetComponent(out _fisherQte)) _fisherQte.Initialize(this, spawner);
     }
 
     /// <summary>
@@ -148,6 +156,9 @@ public class Fish : MonoBehaviour
     /// </summary>
     private Quaternion BodyRotation()
     {
+        if (_fisherQte != null && !_isEjected)
+            return _fisherQte.IsResolving ? transform.rotation : Quaternion.identity;
+
         if (Type.Shape == FishShape.Tire)
         {
             // 굴러가듯 세워서 돌면서 좌우로 털썩털썩 흔들린다.
