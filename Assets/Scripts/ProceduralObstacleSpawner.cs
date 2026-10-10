@@ -4,6 +4,8 @@ using UnityEngine;
 
 public sealed class ProceduralObstacleSpawner : MonoBehaviour
 {
+    private const float BOOST_FREQUENCY_RATIO = 1f / 5f;
+
     [Header("거리 구역")]
     [Min(0f)] [SerializeField] private float _iceStartDistance = 500f;
     [Min(0f)] [SerializeField] private float _blackHoleStartDistance = 1000f;
@@ -32,6 +34,9 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
     private int _seed;
     private Vector2Int _center;
     private bool _hasCenter;
+    private GameObject _boostPrefab;
+    private readonly Dictionary<Vector2Int, GameObject> _activeBoosts = new Dictionary<Vector2Int, GameObject>();
+    private readonly Stack<GameObject> _boostPool = new Stack<GameObject>();
     private readonly Dictionary<Vector2Int, CuttableWall> _active = new Dictionary<Vector2Int, CuttableWall>();
     private readonly List<Vector2Int> _releaseCells = new List<Vector2Int>();
     private readonly Stack<CuttableWall> _wallPool = new Stack<CuttableWall>();
@@ -75,6 +80,7 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
         _wallMaterials = wall.GetComponent<MeshRenderer>().sharedMaterials;
         _layer = wall.gameObject.layer;
         _iceType = iceType;
+        _boostPrefab = Resources.Load<GameObject>("Prefabs/Boost/Boost");
         IceMesh = CreateIceMesh();
         IceMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "Procedural Ice" };
         IceMaterial.SetColor("_BaseColor", new Color(0.65f, 0.9f, 1f));
@@ -84,7 +90,7 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// 입력값 없이 활성 벽과 유빙을 풀로 반환하고 수면을 복원해 다음 투척을 준비한다.
+    /// 입력값 없이 활성 벽, 유빙과 점프대를 풀로 반환하고 수면을 복원해 다음 투척을 준비한다.
     /// 생성 시드와 셀 추적 상태를 초기화하며 기존 풀의 오브젝트는 재사용한다.
     /// </summary>
     public void ResetObstacles()
@@ -103,6 +109,18 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
     {
         foreach (CuttableWall wall in _active.Values) Release(wall);
         _active.Clear();
+        foreach (GameObject boost in _activeBoosts.Values) ReleaseBoost(boost);
+        _activeBoosts.Clear();
+    }
+
+    /// <summary>
+    /// boost를 비활성화하고 점프대 풀로 반환한다.
+    /// 전달된 오브젝트를 다음 셀 배치에서 재사용할 수 있게 저장한다.
+    /// </summary>
+    private void ReleaseBoost(GameObject boost)
+    {
+        boost.SetActive(false);
+        _boostPool.Push(boost);
     }
 
     /// <summary>
@@ -133,12 +151,24 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
             Release(_active[cell]);
             _active.Remove(cell);
         }
+        _releaseCells.Clear();
+        foreach (Vector2Int cell in _activeBoosts.Keys)
+        {
+            if (Mathf.Abs(cell.x - _center.x) > _cellRadius || Mathf.Abs(cell.y - _center.y) > _cellRadius)
+                _releaseCells.Add(cell);
+        }
+        foreach (Vector2Int cell in _releaseCells)
+        {
+            ReleaseBoost(_activeBoosts[cell]);
+            _activeBoosts.Remove(cell);
+        }
 
         for (int x = -_cellRadius; x <= _cellRadius; x++)
         {
             for (int z = -_cellRadius; z <= _cellRadius; z++)
             {
                 Vector2Int cell = _center + new Vector2Int(x, z);
+                TrySpawnBoost(cell, playerPosition);
                 if (_active.ContainsKey(cell)) continue;
                 System.Random random = new System.Random(unchecked(_seed ^ cell.x * 73856093 ^ cell.y * 19349663));
                 if (random.NextDouble() > _density) continue;
@@ -170,6 +200,38 @@ public sealed class ProceduralObstacleSpawner : MonoBehaviour
                 _active.Add(cell, obstacle);
             }
         }
+    }
+
+    /// <summary>
+    /// cell과 playerPosition으로 안전 거리와 생성 구역을 확인해 점프대를 배치한다.
+    /// 벽과 유빙 밀도의 1/5 확률로 프리팹을 생성하거나 재사용하고 활성 셀에 기록한다.
+    /// </summary>
+    private void TrySpawnBoost(Vector2Int cell, Vector3 playerPosition)
+    {
+        if (_activeBoosts.ContainsKey(cell)) return;
+        System.Random random = new System.Random(unchecked(_seed ^ cell.x * 73856093 ^ cell.y * 19349663 ^ 83492791));
+        if (random.NextDouble() > _density * BOOST_FREQUENCY_RATIO) return;
+        Vector3 position = new Vector3(
+            (cell.x + 0.5f + ((float)random.NextDouble() - 0.5f) * 0.5f) * _cellSize,
+            _waterY,
+            (cell.y + 0.5f + ((float)random.NextDouble() - 0.5f) * 0.5f) * _cellSize);
+        Vector3 startOffset = position - _startPosition;
+        startOffset.y = 0f;
+        if (startOffset.magnitude > _blackHoleStartDistance) return;
+        Vector3 offset = position - playerPosition;
+        offset.y = 0f;
+        if (offset.sqrMagnitude < _safeRadius * _safeRadius) return;
+
+        GameObject boost;
+        if (_boostPool.Count > 0) boost = _boostPool.Pop();
+        else
+        {
+            boost = Instantiate(_boostPrefab, transform);
+            boost.GetComponent<PlacedFish>().SetRespawnOnRestart(false);
+        }
+        boost.transform.SetPositionAndRotation(position, Quaternion.identity);
+        boost.SetActive(true);
+        _activeBoosts.Add(cell, boost);
     }
 
     /// <summary>

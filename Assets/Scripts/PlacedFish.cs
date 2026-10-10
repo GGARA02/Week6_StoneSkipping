@@ -39,6 +39,15 @@ public class PlacedFish : MonoBehaviour
     }
 
     /// <summary>
+    /// respawnOnRestart로 재시작 시 자동 재등장 여부를 설정한다.
+    /// 풀에서 관리되는 오브젝트의 활성 상태는 생성기가 직접 제어하게 한다.
+    /// </summary>
+    public void SetRespawnOnRestart(bool respawnOnRestart)
+    {
+        _respawnOnRestart = respawnOnRestart;
+    }
+
+    /// <summary>
     /// 재시작으로 물고기가 정리되면 잡혀서 숨었던 오브젝트를 다시 보이게 한다. 재등장을 끈 경우에는 숨은 채로 둔다.
     /// _respawnOnRestart를 사용하며, 오브젝트 활성 상태를 변경한다.
     /// </summary>
