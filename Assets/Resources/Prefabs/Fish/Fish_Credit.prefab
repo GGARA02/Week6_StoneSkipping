@@ -190,6 +190,17 @@ MonoBehaviour:
     _liftMultiplier: 3
     _frictionMultiplier: 1
     _airGravityScale: 1
+    _selectEffects:
+      _causesRain: 0
+      _causesNight: 0
+      _preventsRain: 0
+      _preventsNight: 0
+      _volumeProfile: {fileID: 0}
+    _spawnConditions:
+      _onlyInRain: 0
+      _onlyAtNight: 0
+      _requiredPlayerFish: {fileID: 0}
+      _fallsFromSky: 0
   _body: {fileID: 6750865281886937514}
 --- !u!114 &8315946565320933865
 MonoBehaviour:
@@ -206,7 +217,7 @@ MonoBehaviour:
   _contributor: {fileID: 11400000, guid: 166c1dffb1f41a9468d716db331252a0, type: 2}
   _fontAsset: {fileID: 11400000, guid: cff7f16a9714cf54eb0ef62679623185, type: 2}
   _namePrefab: {fileID: 0}
-  _fontSize: 9
+  _fontSize: 8
   _inheritVelocityRate: 0.4
   _upwardSpeed: 7
   _scatterSpeed: 5

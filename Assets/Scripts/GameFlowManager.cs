@@ -3,9 +3,11 @@ using System.Collections.Generic;
 
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
+
+using Unity.Cinemachine;
 
 using Newtonsoft.Json.Linq;
-using UnityEngine.Serialization;
 
 // 던지기, 비행, 도감, 정산, 재시작 흐름과 HUD를 담당한다.
 // 게임오버 시 씬을 다시 불러오지 않고 제자리에서 리셋하고 새 물고기를 만든다.
@@ -25,6 +27,7 @@ public class GameFlowManager : MonoBehaviour
     // 게임오버 직후 SPACE 연타로 바로 재시작되지 않게 기다리는 시간(초)
     private const float RETRY_INPUT_DELAY = 0.6f;
     private const string CREDIT_FISH_ID = "endingcredit";
+    private const string MONSTER_FISH_ID = "monster";
     private const string FISH_KEY_PREFIX = "SkipStoneV2.Fish.";
 
     [Header("참조")]
@@ -63,6 +66,8 @@ public class GameFlowManager : MonoBehaviour
     private Vector2 _resultScroll;
     private readonly List<int> _ownedOptions = new List<int>();
     private readonly List<FishType> _newFish = new List<FishType>();
+    private bool _endingCinemaRunning;
+    private GameObject _endingAlienInstance;
 
     [Header("HUD")]
     [SerializeField]
@@ -121,6 +126,7 @@ public class GameFlowManager : MonoBehaviour
         if (_endingCredit != null)
         {
             _endingCredit.OnEndingCompleted += HandleEndingCompleted;
+            _endingCredit.OnEndingSkipped += HandleEndingSkipped;
             _endingCredit.gameObject.SetActive(false);
         }
         _cameraController.Initialize(_fishGenerator);
@@ -149,6 +155,7 @@ public class GameFlowManager : MonoBehaviour
         if (_endingCredit != null)
         {
             _endingCredit.OnEndingCompleted -= HandleEndingCompleted;
+            _endingCredit.OnEndingSkipped -= HandleEndingSkipped;
         }
         _inputActions.Dispose();
         _fishSelectionPreview.Dispose();
@@ -177,6 +184,15 @@ public class GameFlowManager : MonoBehaviour
             {
                 _catalogOpen = false;
                 LockCursor(true);
+            }
+            return;
+        }
+        if (_endingCredit != null && _endingCredit.gameObject.activeInHierarchy)
+        {
+            if (_inputActions.Player.Jump.WasPressedThisFrame())
+            {
+                ThrowCreditFish();
+                return;
             }
             return;
         }
@@ -368,6 +384,12 @@ public class GameFlowManager : MonoBehaviour
         _newFish.Clear();
         _resultScroll = Vector2.zero;
         _catalogOpen = false;
+        if (_endingAlienInstance != null)
+        {
+            Destroy(_endingAlienInstance);
+            _endingAlienInstance = null;
+        }
+        _endingCinemaRunning = false;
         _fishSpawner.Clear();
         ApplyProjectileShape();
         _playerController.ResetToStart();
@@ -892,7 +914,7 @@ public class GameFlowManager : MonoBehaviour
     /// 엔딩 크레딧 UI가 연결된 경우 기존 HUD를 숨기고 엔딩 연출을 시작한다.
     /// 입력값 없이 _showHud와 _endingCredit의 활성화 상태를 변경하며, 참조가 없으면 경고를 출력한다.
     /// </summary>
-    public void StartEndingCinema()
+    public void StartEndingCredit()
     {
         if (_endingCredit == null)
         {
@@ -905,15 +927,78 @@ public class GameFlowManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 엔딩 크레딧 완료 이벤트를 받아 크레딧 물고기를 해금하고 HUD를 복원한 뒤 게임을 준비 상태로 되돌린다.
-    /// 입력값은 없으며, 크레딧 물고기 해금 상태와 _showHud를 변경하고 게임을 재시작한다.
+    /// 엔딩 크레딧 스킵 이벤트를 받아 크레딧 물고기(endingcredit)를 해금 및 선택하여 즉시 투척한다.
+    /// 입력값은 없으며, ThrowCreditFish를 호출한다.
+    /// </summary>
+    private void HandleEndingSkipped()
+    {
+        ThrowCreditFish();
+    }
+
+    /// <summary>
+    /// 엔딩 크레딧 정상 완료 이벤트를 받아 크레딧 물고기를 획득하고 투척 없이 재시작 대기 상태로 전환한다.
+    /// 입력값은 없으며, CompleteEndingCredit을 호출한다.
     /// </summary>
     private void HandleEndingCompleted()
     {
-        //Debug.Log("엔딩 종료 신호 받음");
+        CompleteEndingCredit();
+    }
+
+    /// <summary>
+    /// 엔딩 크레딧을 종료하고 크레딧 물고기(endingcredit)를 선택하여 재시작 후 즉시 투척한다.
+    /// 입력값은 없으며, CompleteEndingCredit 후 Throw를 호출한다.
+    /// </summary>
+    private void ThrowCreditFish()
+    {
+        CompleteEndingCredit();
+        Throw();
+    }
+
+    /// <summary>
+    /// 엔딩 크레딧을 정리하고 크레딧 물고기를 해금 및 선택한 뒤 재시작 상태로 전환한다.
+    /// 입력값은 없으며, 크레딧 물고기 해금, 선택 상태, HUD 및 카메라 복구, 게임 재시작을 수행한다.
+    /// </summary>
+    private void CompleteEndingCredit()
+    {
         UnlockCreditFish();
+        SelectCreditFish();
+        if (_endingCredit != null)
+        {
+            _endingCredit.gameObject.SetActive(false);
+        }
+        if (_cameraController != null)
+        {
+            _cameraController.enabled = true;
+        }
+        if (_playerController != null)
+        {
+            _playerController.gameObject.SetActive(true);
+            Rigidbody rb = _playerController.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.isKinematic = false;
+            }
+        }
         _showHud = true;
         Restart();
+    }
+
+    /// <summary>
+    /// 엔딩 크레딧 물고기(endingcredit)를 현재 투척물로 강제 지정한다.
+    /// _fishSpawner를 탐색하며, _projectileIndex를 변경한다.
+    /// </summary>
+    private void SelectCreditFish()
+    {
+        if (_fishSpawner == null || _fishSpawner.FishTypes == null) return;
+
+        for (int i = 0; i < _fishSpawner.FishTypes.Count; i++)
+        {
+            if (_fishSpawner.FishTypes[i].Id == CREDIT_FISH_ID)
+            {
+                _projectileIndex = i;
+                return;
+            }
+        }
     }
 
     /// <summary>
@@ -929,13 +1014,219 @@ public class GameFlowManager : MonoBehaviour
                 FishType fish = _fishSpawner.FishTypes[i];
                 if (fish.Id == CREDIT_FISH_ID)
                 {
-                    //Debug.Log("엔딩 크래딧 등록 및 정보 저장");
                     _progress.AddFish(fish);
-                    PlayerPrefs.SetInt(FISH_KEY_PREFIX, 1);
+                    PlayerPrefs.SetInt(FISH_KEY_PREFIX + CREDIT_FISH_ID, 1);
                     PlayerPrefs.Save();
                     return;
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// 블랙홀 접촉 시 미지의 행성 엔딩 시네마 연출을 시작한다.
+    /// 플레이어 비행과 HUD를 정지하고 시네머신 기반의 엔딩 컷신 코루틴을 실행한다.
+    /// </summary>
+    public void StartEndingCinema()
+    {
+        if (_endingCinemaRunning) return;
+        _endingCinemaRunning = true;
+
+        _state = State.GameOver;
+        _showHud = false;
+
+        if (_playerController != null)
+        {
+            Rigidbody rb = _playerController.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+                rb.isKinematic = true;
+            }
+        }
+
+        StartCoroutine(PlayEndingCinemaRoutine());
+    }
+
+    /// <summary>
+    /// 미지의 행성 컷신을 순차적으로 재생하고 외계인 획득 및 엔딩 크레딧을 연결한다.
+    /// 시간 경과에 따라 카메라 구도, 돌 낙하, 외계인 반응 및 돌에 의한 흡수를 연출하고 정적 후 크레딧을 연다.
+    /// </summary>
+    private IEnumerator PlayEndingCinemaRoutine()
+    {
+        // 1. 우주 환경 전환 및 시네머신 카메라 제어권 확보
+        if (_environmentController != null)
+        {
+            _environmentController.SetSpace(true);
+        }
+
+        Vector3 landingSpot = new Vector3(0f, 2f, 3200f);
+        Vector3 stoneStartPos = landingSpot + new Vector3(0f, 18f, 0f);
+        Vector3 alienStartPos = landingSpot + new Vector3(15.5f, 0f, 14.5f);
+
+        if (_cameraController != null)
+        {
+            _cameraController.enabled = false;
+            Vector3 camPos = landingSpot + new Vector3(-17f, 6.0f, -17f);
+            Vector3 camTarget = Vector3.Lerp(landingSpot, alienStartPos, 0.45f) + Vector3.up * 2.5f;
+            _cameraController.transform.position = camPos;
+            _cameraController.transform.rotation = Quaternion.LookRotation(camTarget - camPos, Vector3.up);
+
+            CinemachineCamera cmCam = _cameraController.GetComponent<CinemachineCamera>();
+            if (cmCam != null)
+            {
+                cmCam.Lens.FieldOfView = 50f;
+            }
+        }
+
+        // 2. 외계인(Monster_Ending) 배치 및 돌 위치 설정
+        GameObject monsterPrefab = Resources.Load<GameObject>("Prefabs/CCTV/Monster/Monster_Ending");
+        if (monsterPrefab != null)
+        {
+            Quaternion alienRot = Quaternion.LookRotation((landingSpot - alienStartPos).normalized, Vector3.up);
+            _endingAlienInstance = Instantiate(monsterPrefab, alienStartPos, alienRot);
+            _endingAlienInstance.transform.localScale = new Vector3(5f, 5f, 5f);
+        }
+
+        if (_playerController != null)
+        {
+            _playerController.transform.position = stoneStartPos;
+            _playerController.transform.rotation = Quaternion.Euler(30f, 45f, 0f);
+        }
+
+        yield return new WaitForSeconds(0.3f);
+
+        // 3. 하늘에서 돌 낙하 연출
+        if (_playerController != null)
+        {
+            float fallDuration = 1.2f;
+            float elapsed = 0f;
+            Quaternion startRot = _playerController.transform.rotation;
+            Quaternion endRot = Quaternion.Euler(0f, 180f, 15f);
+
+            while (elapsed < fallDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / fallDuration);
+                float fallT = t * t;
+                _playerController.transform.position = Vector3.Lerp(stoneStartPos, landingSpot, fallT);
+                _playerController.transform.rotation = Quaternion.Slerp(startRot, endRot, t);
+                yield return null;
+            }
+            _playerController.transform.position = landingSpot;
+
+            // 착지 시 작은 바운스
+            float bounceDuration = 0.25f;
+            elapsed = 0f;
+            while (elapsed < bounceDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / bounceDuration);
+                float yOffset = Mathf.Sin(t * Mathf.PI) * 0.35f;
+                _playerController.transform.position = landingSpot + Vector3.up * yOffset;
+                yield return null;
+            }
+            _playerController.transform.position = landingSpot;
+        }
+
+        yield return new WaitForSeconds(0.2f);
+
+        // 4. 외계인 반응: 돌을 보고 기뻐하며 점프
+        if (_endingAlienInstance != null)
+        {
+            Vector3 toStone = (landingSpot - alienStartPos);
+            toStone.y = 0f;
+            if (toStone.sqrMagnitude > 0.01f)
+            {
+                _endingAlienInstance.transform.rotation = Quaternion.LookRotation(toStone.normalized, Vector3.up);
+            }
+
+            int hopCount = 2;
+            float hopDuration = 0.45f;
+            float hopHeight = 1.8f;
+
+            for (int h = 0; h < hopCount; h++)
+            {
+                float elapsed = 0f;
+                while (elapsed < hopDuration)
+                {
+                    elapsed += Time.deltaTime;
+                    float t = Mathf.Clamp01(elapsed / hopDuration);
+                    float yOffset = Mathf.Sin(t * Mathf.PI) * hopHeight;
+                    _endingAlienInstance.transform.position = alienStartPos + Vector3.up * yOffset;
+                    yield return null;
+                }
+                _endingAlienInstance.transform.position = alienStartPos;
+                yield return new WaitForSeconds(0.1f);
+            }
+        }
+
+        // 5. 외계인이 돌을 줍기 위해 다가감
+        if (_endingAlienInstance != null)
+        {
+            Vector3 startMovePos = _endingAlienInstance.transform.position;
+            Vector3 pickUpPos = landingSpot + (alienStartPos - landingSpot).normalized * 2.2f;
+            float moveDuration = 2.5f;
+            float elapsed = 0f;
+
+            while (elapsed < moveDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / moveDuration);
+                float hopY = Mathf.Abs(Mathf.Sin(t * Mathf.PI * 4f)) * 0.4f;
+                Vector3 currentPos = Vector3.Lerp(startMovePos, pickUpPos, t);
+                currentPos.y += hopY;
+                _endingAlienInstance.transform.position = currentPos;
+                yield return null;
+            }
+            _endingAlienInstance.transform.position = pickUpPos;
+        }
+
+        // 6. 반전 및 획득: 돌이 외계인을 먹는 설정으로 외계인만 즉시 소멸하고 돌은 유지 & 도감 등록
+        if (_endingAlienInstance != null)
+        {
+            Destroy(_endingAlienInstance);
+        }
+
+
+        UnlockMonsterFish();
+
+        // 7. 정적 (1.5초) - 외계인을 먹은 돌만 남은 채 정적 유지
+        yield return new WaitForSeconds(1.5f);
+
+        // 8. 엔딩 크레딧 오픈
+        _endingCinemaRunning = false;
+        StartEndingCredit();
+    }
+
+    /// <summary>
+    /// 외계인 물고기(monster)를 도감에 등록하고 영구 저장한다.
+    /// _fishSpawner와 _progress를 사용하며, 도감 등록 상태를 변경하고 PlayerPrefs에 저장한다.
+    /// </summary>
+    private void UnlockMonsterFish()
+    {
+        FishType monsterType = null;
+        if (_fishSpawner != null && _fishSpawner.FishTypes != null)
+        {
+            for (int i = 0; i < _fishSpawner.FishTypes.Count; i++)
+            {
+                if (_fishSpawner.FishTypes[i] != null && _fishSpawner.FishTypes[i].Id == MONSTER_FISH_ID)
+                {
+                    monsterType = _fishSpawner.FishTypes[i];
+                    break;
+                }
+            }
+        }
+
+        if (monsterType != null && _progress != null)
+        {
+            _progress.AddFish(monsterType);
+        }
+        else
+        {
+            PlayerPrefs.SetInt(FISH_KEY_PREFIX + MONSTER_FISH_ID, 1);
+            PlayerPrefs.Save();
         }
     }
 }

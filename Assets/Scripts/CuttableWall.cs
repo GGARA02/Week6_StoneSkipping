@@ -9,12 +9,12 @@ public sealed class CuttableWall : MonoBehaviour
     private const float UPWARD_SPEED = 4f;
 
     [Header("상태")]
+    [SerializeField] private MeshCollider _remainingCollider;
     private FishSpawner _spawner;
     private FishType _pieceType;
     private MeshFilter _meshFilter;
     private Mesh _originalMesh;
     private Collider _originalCollider;
-    private MeshCollider _remainingCollider;
     private Mesh _remainingMesh;
     private readonly List<GameObject> _pieces = new List<GameObject>();
     public FishType PieceType => _pieceType;
@@ -36,7 +36,7 @@ public sealed class CuttableWall : MonoBehaviour
         _meshFilter = GetComponent<MeshFilter>();
         _originalMesh = _meshFilter.sharedMesh;
         _originalCollider = GetComponent<Collider>();
-        _remainingCollider = gameObject.AddComponent<MeshCollider>();
+        if (_remainingCollider == null) _remainingCollider = gameObject.AddComponent<MeshCollider>();
         _remainingCollider.convex = true;
         _remainingCollider.enabled = false;
     }
